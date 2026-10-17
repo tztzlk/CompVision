@@ -363,3 +363,9 @@ DETECTORS: dict[str, Callable[[SceneTimeline, Mapping[str, Any]], list[Event]]] 
     "phone_in_cash_room": phone_in_cash_room,
     "left_during_service": left_during_service,
 }
+
+# Детекторы позы — в отдельном модуле; импорт после всех определений, чтобы модуль позы мог
+# брать общую механику (_events_from_series) без циклического импорта.
+from worker.events.pose_detectors import POSE_DETECTORS  # noqa: E402
+
+DETECTORS.update(POSE_DETECTORS)

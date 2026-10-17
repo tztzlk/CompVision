@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any, Optional, Sequence
@@ -28,7 +29,7 @@ from worker.perception.zones import all_zone_queries, infer_zones
 from worker.scene.builder import FrameRef, SceneConfig, assemble_timeline
 from worker.scene.contract import SceneTimeline
 
-__all__ = ["FRAMES_SUBDIR", "run_pipeline"]
+__all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled"]
 
 LOG = logging.getLogger("worker.scene")
 
@@ -95,9 +96,20 @@ def run_pipeline(
         config=cfg,
         meta=meta,
     )
+    if pose_enabled():
+        from worker.scene.pose_pass import run_pose_pass
+
+        mark = time.monotonic()
+        timeline = run_pose_pass(timeline, work_dir / FRAMES_SUBDIR, Path(models_dir), bundle.device)
+        timings["pose_sec"] = round(time.monotonic() - mark, 2)
     elapsed = round(time.monotonic() - started, 2)
     LOG.info("сцена %s: %d кадров, %d треков, %.1f с (%s)", vid, len(frames), len(tracks), elapsed, bundle.device)
-    return dataclasses.replace(timeline, meta={**timeline.meta, "elapsed_sec": elapsed})
+    return dataclasses.replace(timeline, meta={**timeline.meta, "timings": timings, "elapsed_sec": elapsed})
+
+
+def pose_enabled() -> bool:
+    """Проход позы (worker.scene.pose_pass) включается переменной окружения ENABLE_POSE=1."""
+    return os.environ.get("ENABLE_POSE", "").strip() == "1"
 
 
 def _decode_and_detect(
