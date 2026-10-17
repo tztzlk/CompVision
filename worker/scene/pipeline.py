@@ -212,15 +212,18 @@ def select_zones(
 
 
 def scan_desk_items(frames: Sequence[Frame], bundle: Any, cfg: SceneConfig) -> list[tuple[float, list[Detection]]]:
-    """OWLv2 по SCAN_QUERIES на кадрах раз в cfg.item_scan_sec: [(таймкод кадра, детекции)]."""
+    """OWLv2 по SCAN_QUERIES на кадрах раз в cfg.item_scan_sec (на длинном видео реже — не больше
+    cfg.item_scan_max кадров): [(таймкод кадра, детекции)]."""
     if cfg.item_scan_sec <= 0 or not frames:
         return []
+    # длинное видео — реже, чтобы скан укладывался в лимит задачи (не больше item_scan_max кадров)
+    step = max(cfg.item_scan_sec, frames[-1].timestamp_sec / max(1, cfg.item_scan_max))
     picks: list[int] = []
     next_t = 0.0
     for pos, frame in enumerate(frames):
         if frame.timestamp_sec + 1e-6 >= next_t:
             picks.append(pos)
-            next_t = frame.timestamp_sec + cfg.item_scan_sec
+            next_t = frame.timestamp_sec + step
     out: list[tuple[float, list[Detection]]] = []
     for start in range(0, len(picks), 8):
         chunk = [(frames[k].timestamp_sec, imread_unicode(frames[k].path)) for k in picks[start:start + 8]]

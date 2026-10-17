@@ -121,6 +121,7 @@ class SceneConfig:
     # desk_cash, desk_cup, desk_coat, desk_collection_bag — score лучшего предмета группы в зоне стола,
     # приведённый к 0..1: (score - item_scan_floor) / item_scan_span. 0 — сканирование выключено.
     item_scan_sec: float = 2.0
+    item_scan_max: int = 80             # не больше стольких кадров скана (Х-14, 142 с: 71 кадр — 51 с на GPU)
     item_scan_floor: float = 0.1
     item_scan_span: float = 0.3
     # предметы
