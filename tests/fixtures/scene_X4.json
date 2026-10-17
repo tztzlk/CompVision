@@ -74,7 +74,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 0.333,
@@ -110,7 +111,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 0.667,
@@ -146,7 +148,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 1.0,
@@ -182,7 +185,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 1.333,
@@ -218,7 +222,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 1.667,
@@ -254,7 +259,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 2.0,
@@ -290,7 +296,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 2.333,
@@ -326,7 +333,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 2.667,
@@ -362,7 +370,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 3.0,
@@ -398,7 +407,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 3.333,
@@ -434,7 +444,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 3.667,
@@ -470,7 +481,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 4.0,
@@ -506,7 +518,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 4.333,
@@ -542,7 +555,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 4.667,
@@ -578,7 +592,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 5.0,
@@ -614,7 +629,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 5.333,
@@ -650,7 +666,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 5.667,
@@ -686,7 +703,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 6.0,
@@ -722,7 +740,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 6.333,
@@ -758,7 +777,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 6.667,
@@ -794,7 +814,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 7.0,
@@ -830,7 +851,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 7.333,
@@ -866,7 +888,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 7.667,
@@ -902,7 +925,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 8.0,
@@ -938,7 +962,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 8.333,
@@ -974,7 +999,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 8.667,
@@ -1010,7 +1036,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 9.0,
@@ -1046,7 +1073,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 9.333,
@@ -1082,7 +1110,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 9.667,
@@ -1118,7 +1147,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 10.0,
@@ -1154,7 +1184,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 10.333,
@@ -1190,7 +1221,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 10.667,
@@ -1226,7 +1258,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 11.0,
@@ -1262,7 +1295,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 11.333,
@@ -1298,7 +1332,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 11.667,
@@ -1334,7 +1369,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 12.0,
@@ -1370,7 +1406,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 12.333,
@@ -1406,7 +1443,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 12.667,
@@ -1442,7 +1480,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 13.0,
@@ -1478,7 +1517,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 13.333,
@@ -1514,7 +1554,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 13.667,
@@ -1550,7 +1591,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 14.0,
@@ -1586,7 +1628,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 14.333,
@@ -1622,7 +1665,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 14.667,
@@ -1658,7 +1702,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 15.0,
@@ -1694,7 +1739,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 15.333,
@@ -1730,7 +1776,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 15.667,
@@ -1766,7 +1813,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 16.0,
@@ -1802,7 +1850,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 16.333,
@@ -1838,7 +1887,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 16.667,
@@ -1874,7 +1924,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 17.0,
@@ -1910,7 +1961,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 17.333,
@@ -1946,7 +1998,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 17.667,
@@ -1982,7 +2035,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 18.0,
@@ -2018,7 +2072,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 18.333,
@@ -2054,7 +2109,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 18.667,
@@ -2090,7 +2146,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 19.0,
@@ -2126,7 +2183,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 19.333,
@@ -2162,7 +2220,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 19.667,
@@ -2198,7 +2257,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 20.0,
@@ -2234,7 +2294,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 20.333,
@@ -2270,7 +2331,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 20.667,
@@ -2306,7 +2368,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 21.0,
@@ -2342,7 +2405,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 21.333,
@@ -2378,7 +2442,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 21.667,
@@ -2414,7 +2479,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 22.0,
@@ -2450,7 +2516,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 22.333,
@@ -2486,7 +2553,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 22.667,
@@ -2522,7 +2590,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 23.0,
@@ -2558,7 +2627,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 23.333,
@@ -2594,7 +2664,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 23.667,
@@ -2630,7 +2701,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 24.0,
@@ -2666,7 +2738,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 24.333,
@@ -2702,7 +2775,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 24.667,
@@ -2738,7 +2812,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 25.0,
@@ -2774,7 +2849,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 25.333,
@@ -2810,7 +2886,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 25.667,
@@ -2846,7 +2923,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 26.0,
@@ -2882,7 +2960,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 26.333,
@@ -2918,7 +2997,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 26.667,
@@ -2954,7 +3034,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 27.0,
@@ -2990,7 +3071,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 27.333,
@@ -3026,7 +3108,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 27.667,
@@ -3062,7 +3145,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 28.0,
@@ -3098,7 +3182,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 28.333,
@@ -3134,7 +3219,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 28.667,
@@ -3170,7 +3256,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 29.0,
@@ -3206,7 +3293,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 29.333,
@@ -3242,7 +3330,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 29.667,
@@ -3278,7 +3367,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 30.0,
@@ -3314,7 +3404,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 30.333,
@@ -3350,7 +3441,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 30.667,
@@ -3386,7 +3478,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 31.0,
@@ -3422,7 +3515,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 31.333,
@@ -3458,7 +3552,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 31.667,
@@ -3494,7 +3589,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 32.0,
@@ -3530,7 +3626,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 32.333,
@@ -3566,7 +3663,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 32.667,
@@ -3602,7 +3700,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 33.0,
@@ -3638,7 +3737,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 33.333,
@@ -3674,7 +3774,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 33.667,
@@ -3710,7 +3811,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 34.0,
@@ -3746,7 +3848,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 34.333,
@@ -3782,7 +3885,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 34.667,
@@ -3818,7 +3922,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 35.0,
@@ -3854,7 +3959,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 35.333,
@@ -3890,7 +3996,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 35.667,
@@ -3926,7 +4033,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 36.0,
@@ -3962,7 +4070,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 36.333,
@@ -3998,7 +4107,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 36.667,
@@ -4034,7 +4144,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 37.0,
@@ -4070,7 +4181,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 37.333,
@@ -4106,7 +4218,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 37.667,
@@ -4142,7 +4255,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 38.0,
@@ -4178,7 +4292,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 38.333,
@@ -4214,7 +4329,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 38.667,
@@ -4250,7 +4366,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 39.0,
@@ -4286,7 +4403,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 39.333,
@@ -4322,7 +4440,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 39.667,
@@ -4358,7 +4477,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 40.0,
@@ -4394,7 +4514,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 40.333,
@@ -4430,7 +4551,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 40.667,
@@ -4466,7 +4588,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 41.0,
@@ -4502,7 +4625,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 41.333,
@@ -4538,7 +4662,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 41.667,
@@ -4574,7 +4699,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 42.0,
@@ -4610,7 +4736,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 42.333,
@@ -4646,7 +4773,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 42.667,
@@ -4682,7 +4810,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 43.0,
@@ -4718,7 +4847,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 43.333,
@@ -4754,7 +4884,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 43.667,
@@ -4790,7 +4921,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 44.0,
@@ -4826,7 +4958,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 44.333,
@@ -4862,7 +4995,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 44.667,
@@ -4898,7 +5032,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 45.0,
@@ -4934,7 +5069,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 45.333,
@@ -4970,7 +5106,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 45.667,
@@ -5006,7 +5143,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 46.0,
@@ -5042,7 +5180,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 46.333,
@@ -5078,7 +5217,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 46.667,
@@ -5114,7 +5254,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 47.0,
@@ -5150,7 +5291,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 47.333,
@@ -5186,7 +5328,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 47.667,
@@ -5222,7 +5365,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 48.0,
@@ -5258,7 +5402,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 48.333,
@@ -5294,7 +5439,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 48.667,
@@ -5330,7 +5476,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 49.0,
@@ -5366,7 +5513,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 49.333,
@@ -5402,7 +5550,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 49.667,
@@ -5438,7 +5587,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 50.0,
@@ -5474,7 +5624,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 50.333,
@@ -5510,7 +5661,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 50.667,
@@ -5546,7 +5698,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 51.0,
@@ -5582,7 +5735,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 51.333,
@@ -5618,7 +5772,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 51.667,
@@ -5654,7 +5809,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 52.0,
@@ -5679,7 +5835,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 52.333,
@@ -5704,7 +5861,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 52.667,
@@ -5729,7 +5887,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 53.0,
@@ -5754,7 +5913,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 53.333,
@@ -5779,7 +5939,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 53.667,
@@ -5804,7 +5965,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 54.0,
@@ -5829,7 +5991,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 54.333,
@@ -5854,7 +6017,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 54.667,
@@ -5879,7 +6043,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 55.0,
@@ -5904,7 +6069,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 55.333,
@@ -5929,7 +6095,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 55.667,
@@ -5954,7 +6121,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 56.0,
@@ -5979,7 +6147,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 56.333,
@@ -6004,7 +6173,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 56.667,
@@ -6029,7 +6199,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 57.0,
@@ -6067,7 +6238,8 @@
    "laptop_unlocked": null,
    "visitor_entered_ids": [
     9
-   ]
+   ],
+   "desk_cash": 0.75
   },
   {
    "t": 57.333,
@@ -6103,7 +6275,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 57.667,
@@ -6139,7 +6312,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 58.0,
@@ -6175,7 +6349,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 58.333,
@@ -6211,7 +6386,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 58.667,
@@ -6247,7 +6423,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 59.0,
@@ -6283,7 +6460,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 59.333,
@@ -6319,7 +6497,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 59.667,
@@ -6355,7 +6534,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 60.0,
@@ -6391,7 +6571,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 60.333,
@@ -6427,7 +6608,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 60.667,
@@ -6463,7 +6645,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 61.0,
@@ -6499,7 +6682,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 61.333,
@@ -6535,7 +6719,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 61.667,
@@ -6571,7 +6756,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 62.0,
@@ -6607,7 +6793,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 62.333,
@@ -6643,7 +6830,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 62.667,
@@ -6679,7 +6867,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 63.0,
@@ -6715,7 +6904,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 63.333,
@@ -6751,7 +6941,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 63.667,
@@ -6787,7 +6978,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 64.0,
@@ -6823,7 +7015,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 64.333,
@@ -6859,7 +7052,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 64.667,
@@ -6895,7 +7089,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 65.0,
@@ -6931,7 +7126,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 65.333,
@@ -6967,7 +7163,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 65.667,
@@ -7003,7 +7200,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.75
   },
   {
    "t": 66.0,
@@ -7039,7 +7237,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 66.333,
@@ -7075,7 +7274,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 66.667,
@@ -7111,7 +7311,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 67.0,
@@ -7147,7 +7348,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 67.333,
@@ -7183,7 +7385,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 67.667,
@@ -7219,7 +7422,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 68.0,
@@ -7255,7 +7459,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 68.333,
@@ -7291,7 +7496,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 68.667,
@@ -7327,7 +7533,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 69.0,
@@ -7363,7 +7570,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 69.333,
@@ -7399,7 +7607,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 69.667,
@@ -7435,7 +7644,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 70.0,
@@ -7471,7 +7681,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 70.333,
@@ -7507,7 +7718,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 70.667,
@@ -7543,7 +7755,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 71.0,
@@ -7579,7 +7792,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 71.333,
@@ -7615,7 +7829,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   },
   {
    "t": 71.667,
@@ -7651,7 +7866,8 @@
    "cup_or_food": 0.02,
    "phone_in_hand": 0.02,
    "laptop_unlocked": null,
-   "visitor_entered_ids": []
+   "visitor_entered_ids": [],
+   "desk_cash": 0.05
   }
  ],
  "meta": {

@@ -241,11 +241,21 @@ def _zone(scene: SceneTimeline, name: str) -> Optional[list[float]]:
 def personal_items(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
     """R09: верхняя одежда (и, по params.include_bag, личная сумка) на рабочем столе."""
     include_bag = bool(params.get("include_bag", False))
-    field_name = str(params.get("field", "outerwear_on_desk"))     # desk_coat — OWLv2-скан стола
-    raw = [_fmax(s.value(field_name), s.bag_on_desk if include_bag else None) for s in scene.states]
+    field_name = str(params.get("field", "outerwear_on_desk"))
+    # coat_field — пальто или куртка на столе по OWLv2-скану (desk_coat); его значение coat_full и выше
+    # считается полной уверенностью: OWLv2 называет пальто на столе слабо (Х-40: score 0,22 -> 0,41).
+    coat_field = params.get("coat_field")
+    coat_full = float(params.get("coat_full", 1.0))
+
+    def coat(s: SceneState) -> Optional[float]:
+        v = s.value(str(coat_field)) if coat_field else None
+        return None if v is None else min(1.0, float(v) / coat_full)
+
+    raw = [_fmax(s.value(field_name), coat(s), s.bag_on_desk if include_bag else None) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
-        items = ["верхняя одежда"] if _present(sc, iv, field_name) else []
+        seen = _present(sc, iv, field_name) or (coat_field and _present(sc, iv, str(coat_field), 0.3 * coat_full))
+        items = ["верхняя одежда"] if seen else []
         if include_bag and _present(sc, iv, "bag_on_desk"):   # без include_bag сумка не проверялась
             items.append("сумка")
         return {"what_visible": ", ".join(items) or "предмет одежды", "bbox": _zone(sc, "desk")}
