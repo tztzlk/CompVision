@@ -2,10 +2,14 @@
 
 Запуск из корня репозитория:
     PYTHONPATH=. python scripts/evaluate.py [--dataset dataset] [--annotations dataset/annotations.csv]
-        [--rules rules.yaml] [--tolerance 3.0] [--limit N] [--json out.json]
+        [--rules rules.yaml] [--tolerance 3.0] [--limit N] [--json out.json] [--from-cache data/scene_cache]
 
 Каждое видео (*.mov/*.MOV рекурсивно в --dataset) прогоняется через worker.runner.analyze напрямую:
 без HTTP и без БД, рабочий каталог — временный.
+--from-cache DIR: вместо восприятия берётся готовый SceneTimeline DIR/<имя файла видео>.json
+(scripts/build_scene_cache.py), дальше — worker.runner.analyze_scene: правила и вердикт за секунды,
+без моделей и GPU. Само видео всё равно нужно — из него вырезаются кадры-доказательства
+(без кадра нарушение отбрасывается). Время обработки в этом режиме не показательно.
 Эталон: annotations.csv (video_id,t_label_sec,what_visible,proposed_type,rule_id,confidence);
 video_id — как в open_labels.xlsx («X-10»; Х/X и суффикс « (1)» нормализуются). Видео в --dataset
 опознаётся по md5 содержимого (KNOWN_VIDEOS), а не по имени файла; неизвестный файл — по имени.
@@ -16,7 +20,10 @@ video_id — как в open_labels.xlsx («X-10»; Х/X и суффикс « (1)
   - вердикт на всё видео: TP/FN/FP/TN, precision, recall (видео с ошибкой анализа в матрицу не входят);
   - таймкод: доля эталонных событий, для которых есть предсказанный timecode_sec в пределах
     ±tolerance с, и средняя |ошибка| по совпавшим (берётся ближайший предсказанный таймкод);
-  - время обработки на видео и число видео дольше 300 с (лимит ТЗ).
+  - время обработки на видео и число видео дольше 300 с (лимит ТЗ);
+  - по правилам: на скольких видео без нарушения правило сработало (ложные тревоги), на скольких
+    с нарушением, сколько эталонных событий оно попало в ±tolerance и сколько его срабатываний
+    пришлось на первые EARLY_SEC с ролика (признак «состояние с первого кадра», а не событие).
 Код возврата: 0; 2 — не найдено ни одного видео; 1 — некорректный rules.yaml.
 """
 
@@ -33,10 +40,12 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from worker.runner import analyze, load_rules
+from worker.runner import analyze, analyze_scene, load_rules
+from worker.scene.contract import load_scene
 
 TIME_LIMIT_SEC = 300.0
 VIDEO_SUFFIX = ".mov"
+EARLY_SEC = 1.5
 
 
 @dataclass
@@ -48,6 +57,7 @@ class VideoReport:
     annotated: bool
     pred_violation: bool | None = None
     pred_timecodes: list[float] = field(default_factory=list)
+    pred_types: list[str] = field(default_factory=list)   # тип каждого нарушения, параллельно pred_timecodes
     matched: int = 0
     abs_errors: list[float] = field(default_factory=list)
     elapsed_sec: float = 0.0
@@ -185,12 +195,20 @@ def find_videos(dataset: Path) -> tuple[dict[str, Path], dict[str, tuple[str, ..
     return videos, aliases
 
 
-def evaluate_one(rep: VideoReport, video: Path, rules: list, tmp_root: Path, tolerance: float) -> None:
+def evaluate_one(rep: VideoReport, video: Path, rules: list, tmp_root: Path, tolerance: float,
+                 cache_dir: Path | None = None) -> None:
     work_dir = tmp_root / rep.video_id
     work_dir.mkdir(parents=True, exist_ok=True)
     t0 = time.monotonic()
     try:
-        result = analyze(video, rep.video_id, work_dir, rules)
+        if cache_dir is None:
+            result = analyze(video, rep.video_id, work_dir, rules)
+        else:
+            # Кэш назван по имени файла (build_scene_cache.py: video_id = stem как есть).
+            scene_path = cache_dir / f"{video.stem}.json"
+            if not scene_path.is_file():
+                raise FileNotFoundError(f"нет кэша сцены {scene_path}")
+            result = analyze_scene(load_scene(scene_path), rep.video_id, work_dir, rules, video)
     except Exception as exc:  # noqa: BLE001 — ошибка одного видео не останавливает прогон
         rep.elapsed_sec = time.monotonic() - t0
         rep.error = f"{type(exc).__name__}: {exc}"
@@ -201,6 +219,7 @@ def evaluate_one(rep: VideoReport, video: Path, rules: list, tmp_root: Path, tol
         return
     rep.pred_violation = result.verdict.value == "violation"
     rep.pred_timecodes = [v.timecode_sec for v in result.violations]
+    rep.pred_types = [v.type for v in result.violations]
     for t in rep.truth_timecodes:
         if not rep.pred_timecodes:
             break
@@ -243,6 +262,47 @@ def summarize(reports: list[VideoReport], tolerance: float) -> dict:
     }
 
 
+def summarize_rules(reports: list[VideoReport], rules: list, tolerance: float) -> list[dict]:
+    """Разбивка по правилам; тип нарушения сопоставляется с правилом по title."""
+    by_title = {r.title: r.id for r in rules}
+    stats: dict[str, dict] = {}
+
+    def row(rule_id: str, title: str) -> dict:
+        return stats.setdefault(rule_id, {
+            "rule_id": rule_id, "title": title, "fired": 0, "early": 0,
+            "videos_clean": 0, "videos_violation": 0, "events_hit": 0,
+        })
+
+    for rep in reports:
+        if rep.pred_violation is None:
+            continue
+        fired: dict[str, list[float]] = {}
+        for typ, t in zip(rep.pred_types, rep.pred_timecodes):
+            fired.setdefault(typ, []).append(t)
+        for typ, times in fired.items():
+            s = row(by_title.get(typ, "?"), typ)
+            s["fired"] += len(times)
+            s["early"] += sum(1 for t in times if t <= EARLY_SEC)
+            s["videos_violation" if rep.truth_violation else "videos_clean"] += 1
+            s["events_hit"] += sum(1 for tt in rep.truth_timecodes if any(abs(t - tt) <= tolerance for t in times))
+    for r in rules:
+        row(r.id, r.title)                     # правила без срабатываний тоже видны в таблице
+    return sorted(stats.values(), key=lambda s: (-s["videos_clean"], s["rule_id"]))
+
+
+def print_rules(rows: list[dict], clean_total: int, tolerance: float) -> None:
+    print()
+    hit_col = f"попал ±{tolerance:g} с"
+    early_col = f"в первые {EARLY_SEC:g} с"
+    head = f"{'правило':<28} {'ложн. (чистые видео)':>20} {'видео с наруш.':>14} {hit_col:>12} {early_col:>14}"
+    print(head)
+    print("-" * len(head))
+    for s in rows:
+        clean = "{} из {}".format(s["videos_clean"], clean_total)
+        early = "{} из {}".format(s["early"], s["fired"])
+        print(f"{s['rule_id'][:28]:<28} {clean:>20} {s['videos_violation']:>14} {s['events_hit']:>12} {early:>14}")
+
+
 def print_table(reports: list[VideoReport]) -> None:
     head = f"{'video_id':<28} {'эталон':<8} {'прогноз':<8} {'итог':<4} {'эталон t, с':<18} {'прогноз t, с':<18} {'совп.':<6} {'время, с':>8}"
     print(head)
@@ -258,7 +318,7 @@ def print_table(reports: list[VideoReport]) -> None:
             print(f"    ошибка: {r.error}")
 
 
-def print_summary(s: dict) -> None:
+def print_summary(s: dict, from_cache: bool = False) -> None:
     print()
     print(f"Видео: {s['videos']}  (ошибок анализа: {s['ERR']}, в матрицу не входят)")
     print(f"Вердикт по видео: TP={s['TP']} FN={s['FN']} FP={s['FP']} TN={s['TN']}  "
@@ -266,6 +326,9 @@ def print_summary(s: dict) -> None:
     print(f"Таймкод (±{s['tolerance_sec']:g} с): совпало {s['matched_events']}/{s['truth_events']} "
           f"эталонных событий = {_fmt(s['timecode_hit_rate'], pct=True)}; "
           f"средняя |ошибка| по совпавшим = {_fmt(s['timecode_mae_sec'])} с")
+    if from_cache:
+        print("Время обработки не показано: режим --from-cache, восприятие не запускалось")
+        return
     print(f"Время обработки: среднее {_fmt(s['time_mean_sec'])} с, максимум {_fmt(s['time_max_sec'])} с, "
           f"дольше {TIME_LIMIT_SEC:g} с: {s['over_time_limit']}")
 
@@ -279,7 +342,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--tolerance", type=float, default=3.0, help="допуск таймкода, с (по умолчанию 3.0)")
     ap.add_argument("--limit", type=int, default=None, help="обработать не больше N видео")
     ap.add_argument("--json", type=Path, default=None, help="сохранить отчёт в JSON")
+    ap.add_argument("--from-cache", type=Path, default=None, metavar="DIR",
+                    help="брать сцены из кэша scripts/build_scene_cache.py (без моделей и GPU)")
     args = ap.parse_args(argv)
+    if args.from_cache is not None and not args.from_cache.is_dir():
+        ap.error(f"--from-cache: каталог не найден: {args.from_cache}")
     if args.annotations is None:
         args.annotations = Path("dataset") / "annotations.csv"
     if args.tolerance < 0:
@@ -315,16 +382,19 @@ def main(argv: list[str] | None = None) -> int:
             rep = VideoReport(video_id="+".join(aliases[vid]), path=str(path), truth_violation=bool(tcs),
                               truth_timecodes=tcs, annotated=any(a in truth for a in aliases[vid]))
             print(f"[{i}/{len(items)}] {vid} ...", file=sys.stderr, flush=True)
-            evaluate_one(rep, path, rules, Path(tmp), args.tolerance)
+            evaluate_one(rep, path, rules, Path(tmp), args.tolerance, args.from_cache)
             reports.append(rep)
 
     print_table(reports)
     summary = summarize(reports, args.tolerance)
-    print_summary(summary)
+    print_summary(summary, from_cache=args.from_cache is not None)
+    by_rule = summarize_rules(reports, rules, args.tolerance)
+    print_rules(by_rule, summary["FP"] + summary["TN"], args.tolerance)
 
     if args.json is not None:
         payload = {
             "summary": summary,
+            "rules": by_rule,
             "videos": [{**asdict(r), "outcome": r.outcome} for r in reports],
         }
         args.json.parent.mkdir(parents=True, exist_ok=True)
