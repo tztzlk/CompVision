@@ -112,8 +112,8 @@ export function ViolationCard({ violation: v, index, onSeek, onOpenFrame, onFeed
         <footer className="card-feedback" aria-label="Оценка проверяющего">
           {fb.kind === "sent" ? (
             <span className={fb.label === "confirmed" ? "fb-done fb-ok" : "fb-done fb-no"} role="status">
-              {fb.label === "confirmed" ? "Нарушение подтверждено" : "Нарушение отклонено"}. Спасибо, отзыв учтём при
-              дообучении.
+              {fb.label === "confirmed" ? "Нарушение подтверждено" : "Нарушение отклонено"}. Спасибо, отзыв сохранён для
+              разбора ошибок.
             </span>
           ) : (
             <>

@@ -7,6 +7,8 @@
 //   содержит "offline" -> сервер «недоступен» во время опроса статуса
 //   иначе              -> done / violation, 3 нарушения
 // Задержка обработки ~6 с (через processing).
+// Кнопки отзыва в моке ВКЛЮЧЕНЫ (для вёрстки карточки); ?feedback=0 — скрыть, как на сдаче.
+// Мок ничего не отправляет и не сохраняет.
 import {
   ApiError,
   type AnalysisResult,
@@ -50,6 +52,14 @@ function scenarioFor(name: string): Scenario {
   if (n.includes("fail")) return "fail";
   if (n.includes("offline")) return "offline";
   return "violations";
+}
+
+function mockFeedbackEnabled(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get("feedback") !== "0";
+  } catch {
+    return true;
+  }
 }
 
 function randomId(): string {
@@ -171,6 +181,11 @@ export function createMockClient(): ApiClient {
         }
       }
       return job.result;
+    },
+
+    async getConfig(signal) {
+      await sleep(100, signal);
+      return { feedback_enabled: mockFeedbackEnabled() };
     },
 
     async sendFeedback(jobId, violationIndex, _label) {

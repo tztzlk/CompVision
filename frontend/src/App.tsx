@@ -88,6 +88,9 @@ export default function App() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOk, setPreviewOk] = useState(true);
   const [modal, setModal] = useState<{ src: string; caption: string } | null>(null);
+  // Кнопки отзыва — только если backend явно разрешил (FEEDBACK_ENABLED). По умолчанию скрыты:
+  // раздел 10 ТЗ запрещает использовать тестовые видео жюри для обучения.
+  const [feedbackEnabled, setFeedbackEnabled] = useState(false);
 
   const verdictRef = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLHeadingElement>(null);
@@ -114,6 +117,16 @@ export default function App() {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
   }, [active]);
+
+  // Настройки сервиса (GET /v1/config). Ошибка/недоступность — кнопки отзыва остаются скрытыми.
+  useEffect(() => {
+    const ctrl = new AbortController();
+    api
+      .getConfig(ctrl.signal)
+      .then((cfg) => setFeedbackEnabled(cfg.feedback_enabled))
+      .catch(() => setFeedbackEnabled(false));
+    return () => ctrl.abort();
+  }, []);
 
   // Отмена загрузки при размонтировании.
   useEffect(() => () => uploadCtrlRef.current?.abort(), []);
@@ -269,7 +282,7 @@ export default function App() {
       {MOCK_MODE && (
         <div className="mock-banner" role="note">
           МОК-режим: сервер не используется, результаты синтетические. Имя файла задаёт сценарий: «clean», «fail»,
-          «offline».
+          «offline». Кнопки отзыва показаны для вёрстки (скрыть: ?feedback=0).
         </div>
       )}
       <header className="app-header">
@@ -378,7 +391,7 @@ export default function App() {
             result={phase.result}
             onSeek={showPreview ? seek : null}
             onOpenFrame={openFrame}
-            onFeedback={(index, label) => api.sendFeedback(phase.jobId, index, label)}
+            onFeedback={feedbackEnabled ? (index, label) => api.sendFeedback(phase.jobId, index, label) : null}
           >
             <section className="panel result-meta" aria-label="Сведения о проверке">
               <dl className="meta">

@@ -2,7 +2,7 @@
 
 Файл БД: DATABASE_URL=sqlite:////data/app.db на общем volume app-data.
 backend: init_db, create_job, get_job, add_feedback (через фасад backend/app/db.py).
-обучение (scripts/retrain_from_feedback.py): list_feedback.
+разбор ошибок по отзывам (только собственный датасет команды, не тестовые видео жюри): list_feedback.
 worker:  init_db, claim_next_job, save_result, mark_failed, fail_stale (через worker/jobs.py).
 
 Соединения в режиме autocommit (isolation_level=None), WAL, busy_timeout=5000:
@@ -55,7 +55,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     finished_at  REAL
 );
 CREATE INDEX IF NOT EXISTS jobs_queue_idx ON jobs (status, started_at, created_at);
--- Обратная связь проверяющего по каждому нарушению (самообучение). Формат ответа жюри не меняется.
+-- Отзыв проверяющего по нарушению: для анализа ошибок на собственном датасете команды; пишется только
+-- при FEEDBACK_ENABLED=1 (раздел 10 ТЗ: тестовые видео жюри для обучения не используются). Формат ответа жюри не меняется.
 CREATE TABLE IF NOT EXISTS feedback (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id           TEXT NOT NULL REFERENCES jobs(job_id),
@@ -280,7 +281,7 @@ def add_feedback(
 
 
 def list_feedback(conn: sqlite3.Connection, since: float = 0.0) -> list[FeedbackRecord]:
-    """Все отзывы с created_at >= since, по времени (для переобучения порогов)."""
+    """Все отзывы с created_at >= since, по времени (для разбора ошибок детекторов на собственном датасете)."""
     rows = conn.execute(
         "SELECT job_id, violation_index, rule_id, timecode_sec, label, comment, created_at "
         "FROM feedback WHERE created_at >= ? ORDER BY created_at",

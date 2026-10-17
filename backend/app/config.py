@@ -1,7 +1,7 @@
 """Настройки backend из переменных окружения.
 
 Имена переменных совпадают с docker-compose.yml и .env.example:
-API_KEY, STORAGE_DIR, DATABASE_URL, MODELS_DIR, LOG_LEVEL, MAX_UPLOAD_MB, JOB_TIMEOUT_SEC.
+API_KEY, STORAGE_DIR, DATABASE_URL, MODELS_DIR, LOG_LEVEL, MAX_UPLOAD_MB, JOB_TIMEOUT_SEC, FEEDBACK_ENABLED.
 CORS_ALLOW_ORIGINS читается отдельно (load_cors_origins): CORS-слой подключается при импорте app.
 """
 
@@ -21,6 +21,10 @@ class Settings:
     log_level: str             # LOG_LEVEL=info
     max_upload_mb: int         # MAX_UPLOAD_MB=200
     job_timeout_sec: int       # JOB_TIMEOUT_SEC=300 — лимит ТЗ 5 минут (таймауты применяет worker)
+    # FEEDBACK_ENABLED=0 — сбор отзывов проверяющего выключен по умолчанию. Раздел 10 ТЗ: тестовые видео
+    # жюри нельзя использовать для обучения, поэтому на сдаче отзывы не собираются. Включать только
+    # на собственном датасете команды (анализ ошибок детекторов).
+    feedback_enabled: bool = False
 
     @property
     def max_upload_bytes(self) -> int:
@@ -36,6 +40,14 @@ def _positive_int(name: str, default: int) -> int:
     if value <= 0:
         raise RuntimeError(f"{name} должно быть > 0, получено {value}")
     return value
+
+
+_TRUE = frozenset({"1", "true", "yes"})
+
+
+def _flag(name: str) -> bool:
+    """Булев флаг: "1"/"true"/"yes" (без учёта регистра) — вкл, всё остальное и пусто — выкл."""
+    return os.environ.get(name, "").strip().lower() in _TRUE
 
 
 def load_settings() -> Settings:
@@ -56,6 +68,7 @@ def load_settings() -> Settings:
         log_level=os.environ.get("LOG_LEVEL", "info").strip().lower() or "info",
         max_upload_mb=_positive_int("MAX_UPLOAD_MB", 200),
         job_timeout_sec=_positive_int("JOB_TIMEOUT_SEC", 300),
+        feedback_enabled=_flag("FEEDBACK_ENABLED"),
     )
 
 

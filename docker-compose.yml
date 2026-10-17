@@ -38,6 +38,10 @@ services:
     env_file: *env-file
     environment:
       <<: *app-env
+      # Сбор отзывов проверяющего (кнопки «Подтвердить/Отклонить» в UI). По умолчанию ВЫКЛЮЧЕН:
+      # раздел 10 ТЗ — тестовые видео жюри нельзя использовать для обучения. 1 — только для своего датасета.
+      # UI узнаёт значение через GET /ui-api/v1/config, пересборка frontend не нужна.
+      FEEDBACK_ENABLED: ${FEEDBACK_ENABLED:-0}
     # Порт 8000 доступен только внутри сети compose (nginx во frontend ходит на http://backend:8000).
     expose:
       - "8000"

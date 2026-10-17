@@ -8,6 +8,7 @@ import {
   type AnalyzeResponse,
   type ApiClient,
   type ApiErrorKind,
+  type ServiceConfig,
   isAbortError,
 } from "./types";
 
@@ -100,6 +101,17 @@ export function createHttpClient(base: string = API_BASE_URL): ApiClient {
         throw new ApiError("bad_response", 200, null, "no status");
       }
       return data;
+    },
+
+    async getConfig(signal) {
+      const data = await request<ServiceConfig>(joinUrl(base, "/v1/config"), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal,
+        cache: "no-store",
+      });
+      // Включено только при явном true: любой другой ответ — кнопки отзыва скрыты.
+      return { feedback_enabled: data?.feedback_enabled === true };
     },
 
     async sendFeedback(jobId, violationIndex, label) {

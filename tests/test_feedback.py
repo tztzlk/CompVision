@@ -1,4 +1,8 @@
-"""POST /api/v1/jobs/{job_id}/feedback и таблица feedback (самообучение)."""
+"""POST /api/v1/jobs/{job_id}/feedback, GET /api/v1/config и таблица feedback.
+
+Сбор отзывов выключен по умолчанию (FEEDBACK_ENABLED): раздел 10 ТЗ запрещает использовать
+тестовые видео жюри для обучения. Отзывы — только для анализа ошибок на собственном датасете.
+"""
 
 from __future__ import annotations
 
@@ -20,8 +24,16 @@ KEY = "test-key-0123456789"
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.fixture()
-def client(tmp_path, monkeypatch):
+@pytest.fixture(params=["1"])
+def client(request, tmp_path, monkeypatch):
+    """TestClient с задачами aaaa… (done, 1 нарушение) и bbbb… (processing).
+
+    FEEDBACK_ENABLED по умолчанию "1"; тесты выключенного режима параметризуют фикстуру косвенно.
+    """
+    if request.param is None:
+        monkeypatch.delenv("FEEDBACK_ENABLED", raising=False)
+    else:
+        monkeypatch.setenv("FEEDBACK_ENABLED", request.param)
     url = f"sqlite:///{tmp_path / 'app.db'}"
     monkeypatch.setenv("API_KEY", KEY)
     monkeypatch.setenv("STORAGE_DIR", str(tmp_path / "storage"))
@@ -70,3 +82,30 @@ def test_job_response_unchanged(client):
     _post(client, "aaaaaaaaaaaa", {"violation_index": 0, "label": "confirmed"})
     body = client.get("/api/v1/jobs/aaaaaaaaaaaa", headers={"X-API-Key": KEY}).json()
     assert set(body) == {"job_id", "status", "verdict", "violations"}
+
+
+def _config(c):
+    return c.get("/api/v1/config", headers={"X-API-Key": KEY})
+
+
+def test_config_enabled(client):
+    assert _config(client).json() == {"feedback_enabled": True}
+    assert client.get("/api/v1/config").status_code == 401
+
+
+@pytest.mark.parametrize("client", [None, "0", "false", "no", ""], indirect=True)
+def test_feedback_disabled_by_default(client):
+    """Не задано или не «1/true/yes» -> 404 и в таблицу ничего не пишется."""
+    assert _config(client).json() == {"feedback_enabled": False}
+    r = _post(client, "aaaaaaaaaaaa", {"violation_index": 0, "label": "confirmed"})
+    assert r.status_code == 404 and "FEEDBACK_ENABLED" in r.json()["detail"]
+    with closing(db.connect(client.db_url)) as conn:
+        assert db.list_feedback(conn) == []
+    body = client.get("/api/v1/jobs/aaaaaaaaaaaa", headers={"X-API-Key": KEY}).json()
+    assert set(body) == {"job_id", "status", "verdict", "violations"}
+
+
+@pytest.mark.parametrize("client", ["true", "YES", " 1 "], indirect=True)
+def test_feedback_enabled_values(client):
+    assert _config(client).json() == {"feedback_enabled": True}
+    assert _post(client, "aaaaaaaaaaaa", {"violation_index": 0, "label": "confirmed"}).status_code == 200

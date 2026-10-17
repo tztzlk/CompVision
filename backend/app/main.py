@@ -8,9 +8,14 @@
     POST /api/v1/analyze                          — загрузить видео (поле file), вернуть job_id. Раздел 10 ТЗ.
     GET  /api/v1/jobs/{job_id}                    — статус processing/done/failed и результат. Раздел 10 ТЗ.
     GET  /api/v1/jobs/{job_id}/files/{filename}   — файл задачи (input.mov, frames/<name>.jpg).
-    POST /api/v1/jobs/{job_id}/feedback           — отзыв проверяющего по нарушению (самообучение):
-         {violation_index, label: confirmed|rejected, comment?}; 404 — нет задачи, 409 — задача не готова
-         или нет такого нарушения. Формат ответа GET /jobs/{job_id} не меняется.
+    GET  /api/v1/config                           — {"feedback_enabled": bool}: UI решает, показывать ли
+         кнопки отзыва (берётся из той же переменной FEEDBACK_ENABLED, что и у backend).
+    POST /api/v1/jobs/{job_id}/feedback           — отзыв проверяющего по нарушению:
+         {violation_index, label: confirmed|rejected, comment?}; 404 — сбор выключен (FEEDBACK_ENABLED,
+         по умолчанию выкл.) или нет задачи, 409 — задача не готова или нет такого нарушения.
+         Отзывы — для анализа ошибок детекторов на собственном датасете команды. Раздел 10 ТЗ:
+         тестовые видео жюри нельзя использовать для обучения, поэтому на сдаче сбор выключен.
+         Формат ответа GET /jobs/{job_id} не меняется.
 Все /api/* требуют заголовок X-API-Key == API_KEY; иначе 401 (проверка в middleware ДО чтения тела,
 OPTIONS-preflight пропускается). Затем ранний 413 по Content-Length. Не .mov/QuickTime -> 415.
 Слои (снаружи внутрь): CORSMiddleware -> _guard (ключ, 413) -> маршруты.
@@ -66,6 +71,12 @@ class FeedbackResponse(BaseModel):
     status: Literal["ok"] = "ok"
 
 
+class ConfigResponse(BaseModel):
+    """Ответ GET /api/v1/config: публичные для UI настройки (без секретов)."""
+
+    feedback_enabled: bool
+
+
 class _TooLarge(Exception):
     pass
 
@@ -86,7 +97,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     with closing(db.connect(settings.database_url)) as conn:
         db.init_db(conn)
     app.state.settings = settings
-    LOG.info("backend запущен: storage=%s, max_upload=%d МБ", settings.storage_dir, settings.max_upload_mb)
+    LOG.info(
+        "backend запущен: storage=%s, max_upload=%d МБ, отзывы=%s",
+        settings.storage_dir, settings.max_upload_mb, "вкл" if settings.feedback_enabled else "выкл",
+    )
     yield
 
 
@@ -228,9 +242,21 @@ def get_job_file(request: Request, job_id: str, filename: str) -> FileResponse:
     return FileResponse(target)
 
 
+@app.get("/api/v1/config", response_model=ConfigResponse)
+def get_config(request: Request) -> ConfigResponse:
+    """Настройки для UI. Под ключом, как всё /api/*; UI получает их через nginx /ui-api/."""
+    return ConfigResponse(feedback_enabled=_settings(request).feedback_enabled)
+
+
 @app.post("/api/v1/jobs/{job_id}/feedback", response_model=FeedbackResponse)
 def post_feedback(request: Request, job_id: str, body: FeedbackRequest) -> FeedbackResponse:
-    """Подтвердить или отклонить нарушение. Отзывы копятся в таблице feedback для переобучения."""
+    """Подтвердить или отклонить нарушение (таблица feedback) — для анализа ошибок на собственном датасете.
+
+    Выключено (FEEDBACK_ENABLED не задан — по умолчанию) -> 404, в БД ничего не пишется:
+    по разделу 10 ТЗ тестовые видео жюри нельзя использовать для обучения.
+    """
+    if not _settings(request).feedback_enabled:
+        raise HTTPException(status_code=404, detail="сбор отзывов выключен (FEEDBACK_ENABLED)")
     if not _JOB_ID_RE.match(job_id):
         raise HTTPException(status_code=404, detail="задача не найдена")
     with closing(db.connect(_settings(request).database_url)) as conn:

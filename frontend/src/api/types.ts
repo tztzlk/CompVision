@@ -34,6 +34,12 @@ export interface AnalysisResult {
   violations?: Violation[];
 }
 
+/** Публичные настройки сервиса для UI (GET /v1/config). */
+export interface ServiceConfig {
+  /** Принимает ли backend отзывы (FEEDBACK_ENABLED, по умолчанию false). */
+  feedback_enabled: boolean;
+}
+
 /** Отзыв проверяющего по нарушению (POST /v1/jobs/{job_id}/feedback). */
 export type FeedbackLabel = "confirmed" | "rejected";
 
@@ -72,6 +78,8 @@ export class ApiError extends Error {
 export interface ApiClient {
   analyze(file: File, signal?: AbortSignal): Promise<AnalyzeResponse>;
   getJob(jobId: string, signal?: AbortSignal): Promise<AnalysisResult>;
+  /** Настройки сервиса; кнопки отзыва показываются только при feedback_enabled === true. */
+  getConfig(signal?: AbortSignal): Promise<ServiceConfig>;
   /** violationIndex — индекс в violations[] ответа getJob (как прислал сервер). */
   sendFeedback(jobId: string, violationIndex: number, label: FeedbackLabel): Promise<void>;
 }
