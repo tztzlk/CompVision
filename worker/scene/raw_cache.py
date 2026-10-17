@@ -53,6 +53,7 @@ def save_raw(
     brightness: Optional[Sequence[float]] = None,
     item_checks: Optional[Sequence[tuple[float, Sequence[Detection]]]] = None,
     item_scan: Optional[Sequence[tuple[float, Sequence[Detection]]]] = None,
+    person_head: Optional[Sequence[Sequence[Any]]] = None,
 ) -> Path:
     """Записать входы assemble_timeline атомарно (через временный файл)."""
     data = {
@@ -75,6 +76,8 @@ def save_raw(
         "item_checks": [[round(float(t), 3), [_det(d) for d in dets]] for t, dets in (item_checks or [])],
         "item_scan": [[round(float(t), 3), [_det(d) for d in dets]] for t, dets in (item_scan or [])],
     }
+    if person_head:
+        data["person_head"] = [[int(fi), _box(b), round(float(pr), 4)] for fi, b, pr in person_head]
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_name(p.name + ".tmp")
@@ -137,6 +140,7 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
         state_samples=samples,
         config=_config(raw, config),
         meta=meta,
+        person_head=raw.get("person_head"),
     )
     brightness = raw.get("brightness")
     if brightness:

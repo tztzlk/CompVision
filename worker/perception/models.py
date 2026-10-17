@@ -215,6 +215,21 @@ class ZeroShotClassifier(_TorchModel):
         self._text_cache[prompts] = emb
         return emb
 
+    def image_embeddings(self, crops_bgr: Sequence[Any], *, batch_size: int = 32) -> Any:
+        """L2-нормированные get_image_features вырезок (numpy N×D) — вход голов worker.perception.heads."""
+        import numpy as np
+
+        torch = self._torch
+        out = []
+        with torch.inference_mode():
+            for start in range(0, len(crops_bgr), batch_size):
+                chunk = crops_bgr[start:start + batch_size]
+                inputs = self.processor(images=[_to_rgb(c) for c in chunk], return_tensors="pt")
+                with self._autocast():
+                    image = self.model.get_image_features(pixel_values=inputs["pixel_values"].to(self.device))
+                out.append(torch.nn.functional.normalize(image.float(), dim=-1).cpu().numpy())
+        return np.concatenate(out) if out else np.zeros((0, 0), dtype=np.float32)
+
     def __call__(
         self,
         crops_bgr: Sequence[Any],

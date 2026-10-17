@@ -281,12 +281,19 @@ def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[E
     """R10: сейф открыт, а кассир не у сейфа (рамка кассира не пересекается с зоной сейфа).
 
     С baseline_sec > 0 «открыт» — рост safe_open над уровнем первых секунд (_safe_change).
+    Если сцена посчитана с головой «сейф открыт» (meta.safe_head, SceneConfig.safe_head), параметры
+    head_<имя> заменяют <имя>: head_baseline_sec (по умолчанию 0) — голова различает дверцу, а не общий
+    вид вырезки, и на Х-20 дверца открыта уже на 2-й секунде, внутри окна «первых 3 с»; head_merge_gap_sec —
+    голова видит и короткие законные открытия (Х-25: 8–11 и 15–18 с), склейка через 5 с дала бы 10 с.
     away_mode=home — кассир у сейфа, только если он не на рабочем месте (дальше home_dist ширин
     рабочего места от его центра) и рамка задевает сейф на near_safe_overlap.
     require_away=false — не проверять, у сейфа ли кассир: когда кассир сидит лицом к камере, сейф
     у него за спиной и рамка сидящего кассира перекрывает зону сейфа (Х-20); тогда от того, что
     кассир просто стоит у сейфа и заслоняет его, защищает min_duration_sec.
     """
+    if "name" in (scene.meta.get("safe_head") or {}):
+        params = {**params, "baseline_sec": 0.0,
+                  **{k[len("head_"):]: v for k, v in params.items() if k.startswith("head_")}}
     safe_zone = _expand(scene.zones.get("safe"), float(params.get("safe_margin", 0.05)))
     near_share = float(params.get("near_safe_overlap", 0.15))
     require_away = bool(params.get("require_away", True))
@@ -644,6 +651,9 @@ def left_during_service(scene: SceneTimeline, params: Mapping[str, Any]) -> list
 
     Кассир у сейфа рабочее место не покидал: по п. 20 Правил № 231 сейф находится на рабочем месте.
     """
+    if "name" in (scene.meta.get("safe_head") or {}):
+        params = {**params, "baseline_sec": 0.0,
+                  **{k[len("head_"):]: v for k, v in params.items() if k.startswith("head_")}}
     safe_zone = _expand(scene.zones.get("safe"), float(params.get("safe_margin", 0.05)))
     near_share = float(params.get("near_safe_overlap", 0.15))
 

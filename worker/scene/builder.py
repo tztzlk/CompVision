@@ -145,6 +145,21 @@ class SceneConfig:
     # (Х-20, Х-22: иначе стол — полоса за стеклом в соседнем офисе).
     desk_by_people: bool = True
     mask_people_in_desk: bool = True
+    # Голова «сейф открыт» (worker.perception.heads, scripts/train_heads.py): путь к .npz относительно
+    # каталога моделей, например "heads/safe_open.npz". Пусто — safe_open считает zero-shot SigLIP.
+    # С головой zero-shot-значение остаётся в state_samples под именем safe_open_zero_shot.
+    safe_head: str = ""
+    # Голова «человек внутри кассы» (worker.perception.heads, scripts/train_heads.py person_inside):
+    # путь к .npz относительно каталога моделей; пусто — внутри/за стеклом решает только геометрия.
+    # Голова решает лишь спорные точки: геометрия «за стеклом», но низ рамки не выше верха стола больше
+    # чем на inside_head_band, рамка не мельче inside_height_ratio роста и голова >= inside_head_hi —
+    # человек в комнате (Х-33: посторонний за спиной кассира, ноги закрыты столом); геометрия «внутри»,
+    # а голова <= inside_head_lo — за стеклом (кассир в коридоре после ухода).
+    inside_head: str = ""
+    inside_head_hi: float = 0.9
+    inside_head_lo: float = 0.1
+    inside_head_band: float = 0.08
+    inside_head_max_dt: float = 0.7     # оценка головы берётся с ближайшей точки трека не дальше, с
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -229,13 +244,18 @@ def _reference_height(tracks: Sequence[Track]) -> float:
     return max(median(height(p.bbox) for p in t.points) for t in long_tracks)
 
 
+def _head_key(frame_index: int, bbox: Sequence[float]) -> tuple:
+    return (int(frame_index), *(round(float(v), 3) for v in bbox))
+
+
 def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config: SceneConfig,
-                  door: Optional[BBox] = None) -> list[bool]:
+                  door: Optional[BBox] = None, head: Optional[Mapping[tuple, float]] = None) -> list[bool]:
     """Внутри кассы ли человек в каждой точке трека (сглажено большинством по 3 точкам).
 
     Люди за стеклом и отражения — мелкие рамки, низ которых выше верхнего края стола.
     Человек, который весь трек остаётся в зоне стеклянной двери и ни разу не становится крупным,
     виден сквозь стекло (door — зона двери): он целиком снаружи.
+    head — вероятности головы «внутри кассы» по точкам (_head_key): правят спорные точки (SceneConfig.inside_head).
     """
     if door is not None and ref_height > 0:
         door_zone = pad(door, config.door_margin)
@@ -250,6 +270,20 @@ def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config:
             raw.append(point.bbox[3] >= desk[1] - config.floor_tolerance)
         else:
             raw.append(by_height or by_floor)
+    if head:
+        probs = [(p.t, head.get(_head_key(p.frame_index, p.bbox))) for p in track.points]
+        known = [(t, v) for t, v in probs if v is not None]
+        for i, point in enumerate(track.points):
+            near = min(known, key=lambda tv: abs(tv[0] - point.t), default=None)
+            if near is None or abs(near[0] - point.t) > config.inside_head_max_dt:
+                continue
+            ph = near[1]
+            if not raw[i] and ph >= config.inside_head_hi and desk is not None \
+                    and point.bbox[3] >= desk[1] - config.inside_head_band \
+                    and ref_height > 0 and height(point.bbox) >= config.inside_height_ratio * ref_height:
+                raw[i] = True
+            elif raw[i] and ph <= config.inside_head_lo:
+                raw[i] = False
     smoothed = []
     for i, value in enumerate(raw):
         window = raw[max(0, i - 1): i + 2]
@@ -670,6 +704,7 @@ def assemble_timeline(
     state_samples: Mapping[str, Sequence[tuple[float, Optional[float]]]],
     config: Optional[SceneConfig] = None,
     meta: Optional[Mapping[str, Any]] = None,
+    person_head: Optional[Sequence[Sequence[Any]]] = None,
 ) -> SceneTimeline:
     """Собрать SceneTimeline.
 
@@ -677,6 +712,7 @@ def assemble_timeline(
     списку на кадр; tracks — треки людей (frame_index = позиция кадра во frames); zones — стол,
     сейф, дверь, ноутбук (workplace считается здесь); state_samples — zero-shot-оценки
     {состояние: [(t, вероятность)]}, между оценками держится последнее значение.
+    person_head — [(кадр, рамка, p)] головы «внутри кассы» по точкам исходных треков (SceneConfig.inside_head).
     """
     cfg = config or SceneConfig()
     if len(objects) != len(frames):
@@ -694,7 +730,8 @@ def assemble_timeline(
 
     stitched = [t for t in stitch_tracks(tracks, cfg, door) if len(t.points) >= cfg.min_track_points]
     ref_height = _reference_height(stitched)
-    infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door)) for t in stitched]
+    head = {_head_key(fi, box): float(p) for fi, box, p in person_head} if person_head else None
+    infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door, head)) for t in stitched]
     for info in infos:
         _fill_frames(info, times, cfg)
 
