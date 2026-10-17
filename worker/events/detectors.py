@@ -241,10 +241,11 @@ def _zone(scene: SceneTimeline, name: str) -> Optional[list[float]]:
 def personal_items(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
     """R09: верхняя одежда (и, по params.include_bag, личная сумка) на рабочем столе."""
     include_bag = bool(params.get("include_bag", False))
-    raw = [_fmax(s.outerwear_on_desk, s.bag_on_desk if include_bag else None) for s in scene.states]
+    field_name = str(params.get("field", "outerwear_on_desk"))     # desk_coat — OWLv2-скан стола
+    raw = [_fmax(s.value(field_name), s.bag_on_desk if include_bag else None) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
-        items = ["верхняя одежда"] if _present(sc, iv, "outerwear_on_desk") else []
+        items = ["верхняя одежда"] if _present(sc, iv, field_name) else []
         if include_bag and _present(sc, iv, "bag_on_desk"):   # без include_bag сумка не проверялась
             items.append("сумка")
         return {"what_visible": ", ".join(items) or "предмет одежды", "bbox": _zone(sc, "desk")}
@@ -361,13 +362,25 @@ def _valuables_at_departure(scene: SceneTimeline, params: Mapping[str, Any]) -> 
     Сам уход не нарушение: в чистых Х-12, Х-23, Х-29 кассир уходит, убрав всё со стола."""
     states = scene.states
     events: list[Event] = []
+    laptop_counts = bool(params.get("laptop_counts", False))
+    laptop_p = float(params.get("laptop_p", 0.5))
     for i, s in enumerate(states):
         if not s.value("cashier_left_workplace"):
             continue
         found = _left_items(scene, s, params)
+        # Открытый ноутбук после ухода (laptop_unlocked, SigLIP по зоне ноутбука на кадрах, где кассир
+        # уже вдали): нормы в № 231 и № 14 пока не сверено — нарушением только при laptop_counts,
+        # иначе лишь дописывается в what_visible события с ценностями.
+        away = [k for k in range(i, len(states)) if states[k].value("cashier_away")][:6]
+        laptop = [states[k].laptop_unlocked for k in away if states[k].laptop_unlocked is not None]
+        laptop_open = bool(laptop) and median(laptop) >= laptop_p
+        if laptop_open and laptop_counts and not found and scene.zones.get("laptop"):
+            found = [("открытый ноутбук", median(laptop) - 0.5, tuple(scene.zones["laptop"]))]  # type: ignore[list-item]
         if not found:
             continue
         names = list(dict.fromkeys(name for name, _, _ in sorted(found, key=lambda f: -f[1])))
+        if laptop_open and "открытый ноутбук" not in names:
+            names.append("открытый ноутбук")
         best = max(found, key=lambda f: f[1])
         checks = sorted({float(t) for t, *_ in (s.value("left_items") or [])})
         idx = [i] + [min(range(len(states)), key=lambda k: abs(states[k].t - t)) for t in checks]
@@ -552,7 +565,8 @@ def entry_with_cash_on_desk(scene: SceneTimeline, params: Mapping[str, Any]) -> 
     cash_p = float(params.get("cash_p", 0.5))
     before_sec = float(params.get("before_sec", 2.0))
     min_dur = _param(params, "min_duration_sec")
-    cash = smooth([s.cash_on_desk for s in states], int(_param(params, "smooth_points")))
+    cash_field = str(params.get("field", "cash_on_desk"))           # desk_cash — OWLv2-скан стола
+    cash = smooth([s.value(cash_field) for s in states], int(_param(params, "smooth_points")))
 
     events: list[Event] = []
     for i, ids in _merge_entries(scene, _entries(scene), _param(params, "merge_gap_sec")):
@@ -582,7 +596,8 @@ def entry_with_cash_on_desk(scene: SceneTimeline, params: Mapping[str, Any]) -> 
 
 def collection_inside(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
     """R12: инкассаторская сумка в кассе, когда в комнате кроме кассира есть другой человек."""
-    raw = [_fmin(s.collection_bag, 1.0 if s.others else 0.0) for s in scene.states]
+    field_name = str(params.get("field", "collection_bag"))        # desk_collection_bag — OWLv2-скан
+    raw = [_fmin(s.value(field_name), 1.0 if s.others else 0.0) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
         return {"what_visible": "в кассе вошедший человек и инкассаторская сумка", "bbox": _zone(sc, "desk")}
@@ -592,7 +607,8 @@ def collection_inside(scene: SceneTimeline, params: Mapping[str, Any]) -> list[E
 
 def drink_at_workplace(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
     """R13: стакан или еда у кассира на рабочем месте."""
-    raw = [_fmin(s.cup_or_food, s.cashier_present) for s in scene.states]
+    field_name = str(params.get("field", "cup_or_food"))           # desk_cup — OWLv2-скан стола
+    raw = [_fmin(s.value(field_name), s.cashier_present) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
         tail = ", рядом наличные" if _present(sc, iv, "cash_on_desk") else ""

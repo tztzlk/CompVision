@@ -26,7 +26,8 @@ from worker.perception.states import COCO_LABELS_OF_INTEREST, ZONE_CROP_MARGIN, 
 from worker.perception.tracking import IoUTracker, Track
 from worker.perception.video import VideoError, imread_unicode, imwrite_unicode, iter_sampled_frames, probe_video
 from worker.perception.zones import all_zone_queries, infer_zones
-from worker.scene.builder import (FrameRef, SceneConfig, ITEM_QUERIES, assemble_timeline, item_check_times, track_height,
+from worker.scene.builder import (FrameRef, SceneConfig, ITEM_QUERIES, SCAN_QUERIES, assemble_timeline, item_check_times, track_height,
+                                  with_desk_items, people_at,
                                   with_brightness, with_left_items)
 from worker.scene.contract import SceneTimeline
 
@@ -105,6 +106,8 @@ def run_pipeline(
     mark = time.monotonic()
     item_checks = check_left_items(timeline, frames, bundle, cfg)
     timeline = with_left_items(timeline, item_checks)
+    item_scan = scan_desk_items(frames, bundle, cfg)
+    timeline = with_desk_items(timeline, item_scan, people_at(item_scan, frames, tracks))
     timings["items_sec"] = round(time.monotonic() - mark, 2)
     if raw_out is not None:
         from worker.scene.raw_cache import save_raw
@@ -112,7 +115,7 @@ def run_pipeline(
         save_raw(raw_out, video_id=vid, duration_sec=info.duration_sec or frames[-1].timestamp_sec,
                  frame_size=frame_size, frames=refs, tracks=tracks, objects=objects, zones=zones,
                  zone_info=zone_info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta,
-                 brightness=brightness, item_checks=item_checks)
+                 brightness=brightness, item_checks=item_checks, item_scan=item_scan)
     if pose_enabled():
         from worker.scene.pose_pass import run_pose_pass
 
@@ -206,6 +209,27 @@ def select_zones(
                               person_boxes=people if cfg.desk_by_people else None,
                               person_height=track_height(tracks))
     return zones, info
+
+
+def scan_desk_items(frames: Sequence[Frame], bundle: Any, cfg: SceneConfig) -> list[tuple[float, list[Detection]]]:
+    """OWLv2 по SCAN_QUERIES на кадрах раз в cfg.item_scan_sec: [(таймкод кадра, детекции)]."""
+    if cfg.item_scan_sec <= 0 or not frames:
+        return []
+    picks: list[int] = []
+    next_t = 0.0
+    for pos, frame in enumerate(frames):
+        if frame.timestamp_sec + 1e-6 >= next_t:
+            picks.append(pos)
+            next_t = frame.timestamp_sec + cfg.item_scan_sec
+    out: list[tuple[float, list[Detection]]] = []
+    for start in range(0, len(picks), 8):
+        chunk = [(frames[k].timestamp_sec, imread_unicode(frames[k].path)) for k in picks[start:start + 8]]
+        chunk = [(t, im) for t, im in chunk if im is not None]
+        if chunk:
+            dets = bundle.open_vocab([im for _, im in chunk], list(SCAN_QUERIES), score_threshold=cfg.zone_owl_score,
+                                     top_k=3)
+            out.extend((t, list(d)) for (t, _), d in zip(chunk, dets))
+    return out
 
 
 def check_left_items(timeline: SceneTimeline, frames: Sequence[Frame], bundle: Any, cfg: SceneConfig,

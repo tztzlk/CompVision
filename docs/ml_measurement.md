@@ -1,5 +1,28 @@
 # Замер ML-правок на машине с GPU
 
+## Раунд 2 (18.10) — зоны, уход с рабочего места, предметы OWLv2
+
+Что изменилось: сейф выбирается по геометрии (не на столешнице и не перед столом, не за стеклом, не
+подставка, не «принтер»), стол — по людям; уход кассира с рабочего места (`cashier_left_workplace`)
+и R02 по предметам OWLv2 на кадрах после ухода; сканирование стола OWLv2 раз в 2 с (поля `desk_*`);
+подписи v2 и маска людей — по умолчанию. Флаги `build_scene_cache.py` теперь меняют только то, что
+заданы явно (`--prompts v1|v2`, `--mask-people on|off`, `--desk-by-people on|off`).
+
+```
+docker compose stop worker
+PYTHONPATH=. .venv/bin/python scripts/build_scene_cache.py --device cuda --out data/scene_cache_r3 --raw-out data/raw_cache_r3
+docker compose up -d --build worker
+PYTHONPATH=. .venv/bin/python scripts/eval_cache.py --cache data/scene_cache_r3 --baseline data/eval_baseline_0d27b32.json --markdown
+PYTHONPATH=. .venv/bin/python scripts/zones_sheet.py --raw data/raw_cache_r3 --frames data/frames_r2 --out data/ml_results/zones_after.jpg
+```
+
+Без GPU:
+- правки builder и детекторов — `scripts/rebuild_from_raw.py --raw data/raw_cache_r3 --out ... --code-config`
+  (пороги builder из кода, а не из кэша), затем `eval_cache.py`;
+- правки выбора зон и подписей — `scripts/rezone_raw.py` (треки и RT-DETR из сырого кэша, OWLv2 и SigLIP
+  заново; на CPU ~1,5 мин на видео, на GPU — секунды). Кадры для него: `data/frames_r2/<video_id>/`,
+  те же 3 к/с, что и в пайплайне (`worker.perception.video.iter_sampled_frames`).
+
 ## Замер 2 — после 7d984da (сделать сейчас)
 
 Что изменилось после первого замера: выбор зон (стол на Х-20…Х-29, сейф на Х-1…Х-5, Х-12…Х-15, Х-22, Х-29, Х-47/48), люди за стеклом больше не считаются внутри, вход через дверь снова засчитывается, R11 по замеру на вашем сыром кэше даёт 0 ложных тревог и ловит Х-18 (17 с) и Х-30 (12,7 с). Оценки SigLIP (сейф, наличные, одежда) у видео со сменившейся зоной надо пересчитать на GPU, без этого R10 / R09 / R14 / R02 не оценить.

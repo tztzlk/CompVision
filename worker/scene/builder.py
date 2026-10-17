@@ -37,7 +37,8 @@ from worker.perception.tracking import Track, TrackPoint
 from worker.scene.contract import ZONE_NAMES, Person, SceneState, SceneTimeline
 
 __all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness",
-           "ITEM_QUERIES", "item_check_times", "with_left_items", "track_height"]
+           "ITEM_QUERIES", "item_check_times", "with_left_items", "track_height",
+           "SCAN_QUERIES", "DESK_ITEM_GROUPS", "with_desk_items", "people_at"]
 
 
 @dataclass(frozen=True)
@@ -116,6 +117,12 @@ class SceneConfig:
     # (через item_check_sec после первого кадра вдали), — SigLIP по всей вырезке стола мелкую пачку
     # денег не видит (на правильном столе cash_on_desk <= 0,004 и там, где деньги на кадре).
     item_check_sec: tuple[float, ...] = (0.7, 2.0)
+    # Сканирование стола OWLv2 раз в item_scan_sec (worker.scene.pipeline.scan_desk_items): поля
+    # desk_cash, desk_cup, desk_coat, desk_collection_bag — score лучшего предмета группы в зоне стола,
+    # приведённый к 0..1: (score - item_scan_floor) / item_scan_span. 0 — сканирование выключено.
+    item_scan_sec: float = 2.0
+    item_scan_floor: float = 0.1
+    item_scan_span: float = 0.3
     # предметы
     hand_margin: float = 0.15           # расширение рамки кассира: «предмет в руке»
     # зоны и zero-shot
@@ -530,6 +537,76 @@ ITEM_QUERIES: tuple[str, ...] = (
     "a stack of banknotes", "paper money", "a bag", "a handbag", "a tablet computer", "a cup",
     "a laptop", "a telephone", "a money counting machine", "a printer",
 )
+
+
+# Группы предметов сканирования стола: поле состояния -> запросы OWLv2. worn — предмет, который бывает
+# на человеке (одежда): рамка больше чем наполовину внутри рамки человека не считается.
+DESK_ITEM_GROUPS: dict[str, tuple[str, ...]] = {
+    "desk_cash": ("a stack of banknotes", "paper money"),
+    "desk_cup": ("a cup",),
+    "desk_coat": ("a coat", "a jacket"),
+    "desk_collection_bag": ("a green cash collection bag",),
+}
+_WORN = {"desk_coat"}
+_SCAN_DECOYS: tuple[str, ...] = ("a laptop", "a telephone", "a money counting machine", "a printer")
+SCAN_QUERIES: tuple[str, ...] = tuple(dict.fromkeys(
+    [q for qs in DESK_ITEM_GROUPS.values() for q in qs] + list(_SCAN_DECOYS)))
+
+
+def with_desk_items(timeline: SceneTimeline, scan: Sequence[tuple[float, Sequence[Detection]]],
+                    people: Optional[Mapping[float, Sequence[BBox]]] = None) -> SceneTimeline:
+    """Поля desk_* по сканированию стола: в каждом состоянии — значение последнего скана не позже него.
+    Предмет считается, если центр рамки в зоне стола (с запасом desk_margin), рамка не лежит почти
+    целиком внутри более-менее уверенного опознавателя (ноутбук, телефон, машинка, принтер), а одежда —
+    не на человеке (people: таймкод скана -> рамки людей)."""
+    desk = timeline.zones.get("desk")
+    cfg = timeline.meta.get("scene", {}).get("config", {})
+    floor = float(cfg.get("item_scan_floor", 0.1))
+    span = float(cfg.get("item_scan_span", 0.3))
+    margin = float(cfg.get("desk_margin", 0.15))
+    if desk is None or not scan:
+        return timeline
+    zone = expand(desk, margin)
+    values: list[tuple[float, dict[str, float]]] = []
+    for t, dets in sorted(scan, key=lambda x: x[0]):
+        decoys = [d for d in dets if d.label in _SCAN_DECOYS]
+        persons = (people or {}).get(round(t, 3), ())
+        row: dict[str, float] = {}
+        for field_name, queries in DESK_ITEM_GROUPS.items():
+            best = 0.0
+            for d in dets:
+                if d.label not in queries:
+                    continue
+                cx, cy = center(d.bbox_xyxy)
+                if not contains_point(zone, cx, cy):
+                    continue
+                if any(o.score >= 0.8 * d.score and ioa(d.bbox_xyxy, o.bbox_xyxy) >= 0.7 for o in decoys):
+                    continue
+                if field_name in _WORN and any(ioa(d.bbox_xyxy, pb) >= 0.5 for pb in persons):
+                    continue
+                best = max(best, d.score)
+            row[field_name] = round(max(0.0, min(1.0, (best - floor) / span)), 3)
+        values.append((t, row))
+    times = [t for t, _ in values]
+    states = []
+    for s in timeline.states:
+        i = bisect_right(times, s.t + 1e-6) - 1
+        row = values[max(i, 0)][1]
+        states.append(replace(s, extra={**s.extra, **row}))
+    return replace(timeline, states=tuple(states))
+
+
+def people_at(scan: Sequence[tuple[float, Sequence[Detection]]], frames: Sequence[Any],
+              tracks: Sequence[Track]) -> dict[float, list[BBox]]:
+    """Рамки людей в кадрах сканирования стола: {таймкод скана: [рамки]} (frames — с timestamp_sec или t)."""
+    stamps = [float(getattr(f, "timestamp_sec", getattr(f, "t", 0.0))) for f in frames]
+    out: dict[float, list[BBox]] = {}
+    for t, _ in scan:
+        if not stamps:
+            break
+        pos = min(range(len(stamps)), key=lambda k: abs(stamps[k] - t))
+        out[round(t, 3)] = [p.bbox for tr in tracks for p in tr.points if p.frame_index == pos]
+    return out
 
 
 def item_check_times(timeline: SceneTimeline) -> list[float]:

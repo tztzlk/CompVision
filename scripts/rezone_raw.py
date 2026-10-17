@@ -27,7 +27,7 @@ if str(ROOT) not in sys.path:
 
 from worker.perception import Detection, Frame  # noqa: E402
 from worker.scene.builder import FrameRef, SceneConfig  # noqa: E402
-from worker.scene.pipeline import _sample_states, check_left_items, select_zones  # noqa: E402
+from worker.scene.pipeline import _sample_states, check_left_items, scan_desk_items, select_zones  # noqa: E402
 from worker.scene.raw_cache import load_raw, rebuild_scene, save_raw  # noqa: E402
 from worker.perception.tracking import Track, TrackPoint  # noqa: E402
 
@@ -91,11 +91,12 @@ def main(argv: Optional[list[str]] = None) -> int:
                       frame_size=tuple(raw["frame_size"]), frames=refs, tracks=tracks, objects=objects, zones=zones,
                       zone_info=info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta,
                       brightness=raw.get("brightness"))
-        save_raw(out, **common)
+        item_scan = scan_desk_items(frames, bundle, cfg)
+        save_raw(out, **common, item_scan=item_scan)
         # предметы на столе после уходов кассира — по сцене, собранной текущим builder
         checks = check_left_items(rebuild_scene(load_raw(out), cfg), frames, bundle, cfg)
         if checks:
-            save_raw(out, **common, item_checks=checks)
+            save_raw(out, **common, item_checks=checks, item_scan=item_scan)
         z = {k: [round(v, 2) for v in b] if b else None for k, b in zones.items() if k in ("desk", "safe")}
         print(f"{vid}: {time.monotonic() - started:.0f} с, {z}", flush=True)
     return 0
