@@ -5,14 +5,16 @@ pydantic==2.10.4
 PyYAML==6.0.2
 
 # --- Восприятие (человек A). Все модели — Apache-2.0; Ultralytics (AGPL-3.0) не используется. ---
-# CUDA-сборка torch под базовый образ nvidia/cuda:12.4.1 (Linux) и под Windows с NVIDIA; Python 3.11.
-# Машина без NVIDIA: убрать строку --extra-index-url и суффикс +cu124 (поставится CPU-сборка).
---extra-index-url https://download.pytorch.org/whl/cu124
-torch==2.5.1+cu124
+# torch 2.5.1 с PyPI на Linux — это и есть CUDA 12.4-сборка (библиотеки CUDA ставятся пакетами nvidia-*-cu12
+# с pypi.org). Индекс download.pytorch.org не используем: он отправляет за nvidia-* на pypi.nvidia.com,
+# который из части сетей недоступен, и сборка образа падает. Windows с NVIDIA: torch==2.5.1+cu124
+# с --extra-index-url https://download.pytorch.org/whl/cu124.
+torch==2.5.1
 # RT-DETR (есть с 4.44), OWLv2, SigLIP
 transformers==4.46.3
-# токенизатор SigLIP
+# токенизатор SigLIP (sentencepiece + protobuf: без protobuf SigLIP падает с ImportError)
 sentencepiece==0.2.0
+protobuf==5.28.3
 # нужен Owlv2ImageProcessor (масштабирование кадра)
 scipy==1.14.1
 numpy==2.1.3
