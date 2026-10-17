@@ -44,10 +44,30 @@ from worker.perception.heads import PERSON_GEO_SCALE as GEO_SCALE  # noqa: E402
 HEADS: dict[str, dict[str, Any]] = {
     "safe_open": {"zone": "safe", "positive": "open", "negative": "closed", "zero_shot": "safe_open"},
     # Вырезки людей по трекам (scripts/embed_people.py); метки по (видео, трек, t); к эмбеддингу
-    # добавляется геометрия рамки (GEO_USED из embed_people.GEO_NAMES), масштабированная GEO_SCALE.
+    # добавляется геометрия рамки worker.perception.heads.person_geo по сырому кэшу, умноженная на GEO_SCALE.
     "person_inside": {"zone": "person", "positive": "1", "negative": "0", "zero_shot": None, "by_track": True},
 }
-GEO_USED = (0, 1, 2)                 # height_ratio, bottom_minus_desk_top, score (= heads.person_geo)
+
+
+def person_geo_lookup(raw_dir: Path) -> dict[tuple[str, int, int], list[float]]:
+    """(video_id, track_id, t в мс) -> heads.person_geo по сырому кэшу — та же геометрия, что в конвейере
+    (рамки исходных треков; у аугментаций геометрия берётся от оригинала, как видит её builder)."""
+    import json as _json
+
+    from worker.perception.heads import person_geo
+    from worker.perception.tracking import Track, TrackPoint
+    from worker.scene.builder import track_height
+
+    out: dict[tuple[str, int, float], list[float]] = {}
+    for path in Path(raw_dir).glob("*.json"):
+        raw = _json.loads(path.read_text(encoding="utf-8"))
+        tracks = [Track(int(t["id"]), [TrackPoint(int(a), float(b), tuple(c), float(d)) for a, b, c, d in t["points"]])
+                  for t in raw["tracks"]]
+        ref, desk, vid = track_height(tracks), raw["zones"].get("desk"), normalize_video_id(raw["video_id"])
+        for t in raw["tracks"]:
+            for _fi, tt, box, sc in t["points"]:
+                out[(vid, int(t["id"]), int(round(float(tt) * 1000)))] = person_geo(box, sc, ref, desk)
+    return out
 VARIANTS = ("orig", "flip", "persp", "crop", "light")
 
 
@@ -125,9 +145,11 @@ def predict(x: np.ndarray, w: np.ndarray, b: float) -> np.ndarray:
 
 
 def load_data(head: str, emb_root: Path, labels: dict[str, list[tuple[float, float, str]]],
-              aliases: dict[str, tuple[str, ...]]) -> list[dict[str, Any]]:
+              aliases: dict[str, tuple[str, ...]], raw_dir: Optional[Path] = None) -> list[dict[str, Any]]:
     spec = HEADS[head]
     items = []
+    geo_by = person_geo_lookup(raw_dir) if spec.get("by_track") and raw_dir is not None else {}
+    scale = np.asarray(GEO_SCALE, dtype=np.float32)
     for variant in VARIANTS:
         vdir = emb_root / spec["zone"] / variant
         for path in sorted(vdir.glob("*.npz")):
@@ -137,8 +159,11 @@ def load_data(head: str, emb_root: Path, labels: dict[str, list[tuple[float, flo
                 continue
             data = np.load(path)
             if spec.get("by_track"):
-                geo = data["geo"][:, list(GEO_USED)] * np.asarray(GEO_SCALE, dtype=np.float32)
-                for tr, t, e, g in zip(data["track"], data["t"], data["emb"], geo):
+                for tr, t, e in zip(data["track"], data["t"], data["emb"]):
+                    g = geo_by.get((vid, int(tr), int(round(float(t) * 1000))))
+                    if g is None:
+                        continue
+                    g = np.asarray(g, dtype=np.float32) * scale
                     s = label_at(labels.get((vid, int(tr)), []), float(t))
                     y = 1 if s == spec["positive"] else 0 if s == spec["negative"] else -1
                     items.append({"variant": variant, "video": vid, "group": group_of(vid, aliases), "t": float(t),
@@ -194,7 +219,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     spec = HEADS[args.head]
     labels = load_labels(args.labels or ROOT / "training" / "labels" / f"{args.head}.csv")
     aliases = {normalize_video_id(k): v for k, v in known_aliases().items()}
-    items = load_data(args.head, args.emb, labels, aliases)
+    items = load_data(args.head, args.emb, labels, aliases, args.raw)
     if not items:
         print("нет данных: сначала scripts/embed_zones.py embed и метки", file=sys.stderr)
         return 2

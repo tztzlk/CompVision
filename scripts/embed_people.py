@@ -61,9 +61,11 @@ def geo(bbox: Any, score: float, ref_h: float, desk: Optional[Any]) -> list[floa
             score, (x1 + x2) / 2, (y1 + y2) / 2, y2]
 
 
-def iter_people(raw: dict[str, Any], frames_dir: Path, every: float, variant: str
+def iter_people(raw: dict[str, Any], frames_dir: Path, every: float, variant: str, work_layout: bool = False
                 ) -> Iterator[tuple[int, float, Any, list[float]]]:
-    """(track_id, t, вырезка, геометрия) — геометрия всегда по исходным рамкам (как видит builder)."""
+    """(track_id, t, вырезка, геометрия) — геометрия всегда по исходным рамкам (как видит builder).
+
+    work_layout — кадры в рабочем каталоге build_scene_cache.py --keep-frames, frames_dir — сам каталог."""
     w, h = raw["frame_size"]
     ref_h = track_height(raw_tracks(raw))
     desk = raw["zones"].get("desk")
@@ -72,10 +74,15 @@ def iter_people(raw: dict[str, Any], frames_dir: Path, every: float, variant: st
         params = variant_params(variant)
         fn = make_transform(variant, params, w, h)
     cache: dict[int, Any] = {}
+    rel = {int(i): r for i, _t, r in raw["frames"]}
+    if work_layout:
+        from build_scene_cache import safe_dirname
+
+        base = frames_dir / safe_dirname(raw["video_id"])
     for tr in raw["tracks"]:
         for fi, t, b, s in sample_points(tr, every):
             if fi not in cache:
-                img = imread_unicode(frames_dir / f"{fi:06d}.jpg")
+                img = imread_unicode(base / rel[fi] if work_layout else frames_dir / f"{fi:06d}.jpg")
                 cache[fi] = fn(img) if (img is not None and fn is not None) else img
             img = cache[fi]
             if img is None:
@@ -151,7 +158,8 @@ def cmd_embed(args: argparse.Namespace) -> int:
             target = out_dir / f"{raw['video_id']}.npz"
             if target.exists() and not args.force:
                 continue
-            items = list(iter_people(raw, args.frames / raw["video_id"], args.every, variant))
+            frames_dir = args.frames if args.work_layout else args.frames / raw["video_id"]
+            items = list(iter_people(raw, frames_dir, args.every, variant, args.work_layout))
             if not items:
                 continue
             embs = []
@@ -184,6 +192,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     p.add_argument("--device", default="cpu")
     p.add_argument("--threads", type=int, default=6)
     p.add_argument("--force", action="store_true")
+    p.add_argument("--work-layout", action="store_true",
+                   help="--frames — рабочий каталог build_scene_cache.py --keep-frames (кэши аугментаций)")
     args = p.parse_args(argv)
     return cmd_embed(args) if args.cmd == "embed" else cmd_sheet(args)
 

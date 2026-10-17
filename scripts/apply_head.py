@@ -29,7 +29,20 @@ for extra in (ROOT, ROOT / "scripts"):
         sys.path.insert(0, str(extra))
 
 from eval_cache import known_aliases, normalize_video_id  # noqa: E402
-from train_heads import GEO_SCALE, GEO_USED, group_of  # noqa: E402
+from train_heads import GEO_SCALE, group_of  # noqa: E402
+
+
+def person_geo_lookup_one(raw: dict) -> dict[tuple[int, int], list[float]]:
+    """(track_id, t в мс) -> heads.person_geo для одного сырого кэша (t из .npz — float32)."""
+    from worker.perception.heads import person_geo
+    from worker.perception.tracking import Track, TrackPoint
+    from worker.scene.builder import track_height
+
+    tracks = [Track(int(t["id"]), [TrackPoint(int(a), float(b), tuple(c), float(d)) for a, b, c, d in t["points"]])
+              for t in raw["tracks"]]
+    ref, desk = track_height(tracks), raw["zones"].get("desk")
+    return {(int(t["id"]), int(round(float(tt) * 1000))): person_geo(box, sc, ref, desk)
+            for t in raw["tracks"] for _fi, tt, box, sc in t["points"]}
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -77,14 +90,17 @@ def main(argv: Optional[list[str]] = None) -> int:
         if pmodels is not None and (args.person_emb / f"{raw['video_id']}.npz").exists():
             pdata = np.load(args.person_emb / f"{raw['video_id']}.npz")
             fold = 0 if pmodels[2] is None else (pmodels[2].get(group_of(vid, aliases)) or 0)
-            feats = np.concatenate([pdata["emb"], pdata["geo"][:, list(GEO_USED)] * np.asarray(GEO_SCALE, dtype=np.float32)], 1)
-            pp = 1.0 / (1.0 + np.exp(-(feats @ pmodels[0][fold] + float(pmodels[1][fold]))))
-            points = {(int(t["id"]), round(float(pt[1]), 3)): pt for t in raw["tracks"] for pt in t["points"]}
+            geo_by = person_geo_lookup_one(raw)
+            points = {(int(t["id"]), int(round(float(pt[1]) * 1000))): pt for t in raw["tracks"] for pt in t["points"]}
             head_rows = []
-            for tr, t, pr in zip(pdata["track"], pdata["t"], pp):
-                pt = points.get((int(tr), round(float(t), 3)))
-                if pt is not None:
-                    head_rows.append([int(pt[0]), pt[2], round(float(pr), 4)])
+            for tr, t, e in zip(pdata["track"], pdata["t"], pdata["emb"]):
+                key = (int(tr), int(round(float(t) * 1000)))
+                pt, g = points.get(key), geo_by.get(key)
+                if pt is None or g is None:
+                    continue
+                x = np.concatenate([e, np.asarray(g, dtype=np.float32) * np.asarray(GEO_SCALE, dtype=np.float32)])
+                pr = 1.0 / (1.0 + np.exp(-(x @ pmodels[0][fold] + float(pmodels[1][fold]))))
+                head_rows.append([int(pt[0]), pt[2], round(float(pr), 4)])
             raw["person_head"] = head_rows
             raw["meta"] = {**(raw.get("meta") or {}), "inside_head": {"name": "person_inside", "oof": not args.final,
                                                                        "points": len(head_rows)}}

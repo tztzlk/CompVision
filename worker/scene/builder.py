@@ -146,15 +146,20 @@ class SceneConfig:
     desk_by_people: bool = True
     mask_people_in_desk: bool = True
     # Голова «сейф открыт» (worker.perception.heads, scripts/train_heads.py): путь к .npz относительно
-    # каталога моделей, например "heads/safe_open.npz". Пусто — safe_open считает zero-shot SigLIP.
-    # С головой zero-shot-значение остаётся в state_samples под именем safe_open_zero_shot.
-    safe_head: str = ""
+    # каталога моделей. Пусто — safe_open считает zero-shot SigLIP; нет файла — тоже zero-shot
+    # (предупреждение в meta.safe_head.error). С головой zero-shot-значение остаётся в state_samples
+    # под именем safe_open_zero_shot. Замер 18.10 (вне фолда, кэши r3 и аугментаций): на оригинале и
+    # flip без изменений, на persp возвращает Х-20 (R10), ложных 0 — включена по умолчанию.
+    safe_head: str = "heads/safe_open.npz"
     # Голова «человек внутри кассы» (worker.perception.heads, scripts/train_heads.py person_inside):
     # путь к .npz относительно каталога моделей; пусто — внутри/за стеклом решает только геометрия.
     # Голова решает лишь спорные точки: геометрия «за стеклом», но низ рамки не выше верха стола больше
     # чем на inside_head_band, рамка не мельче inside_height_ratio роста и голова >= inside_head_hi —
     # человек в комнате (Х-33: посторонний за спиной кассира, ноги закрыты столом); геометрия «внутри»,
-    # а голова <= inside_head_lo — за стеклом (кассир в коридоре после ухода).
+    # а голова <= inside_head_lo — за стеклом (кассир в коридоре после ухода); в зоне двери вторую
+    # правку не делаем — голова путает проём со стеклом, и терялся вход (Х-38 на flip).
+    # Замер 18.10: ошибок «внутри/за стеклом» по точкам 63 -> 30 (вне фолда), но по правилам без
+    # изменений на оригинале и всех аугментациях, Х-33 голова не ловит (0,13–0,17) — выключена.
     inside_head: str = ""
     inside_head_hi: float = 0.9
     inside_head_lo: float = 0.1
@@ -271,6 +276,7 @@ def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config:
         else:
             raw.append(by_height or by_floor)
     if head:
+        door_zone = pad(door, config.door_margin) if door is not None else None
         probs = [(p.t, head.get(_head_key(p.frame_index, p.bbox))) for p in track.points]
         known = [(t, v) for t, v in probs if v is not None]
         for i, point in enumerate(track.points):
@@ -282,7 +288,8 @@ def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config:
                     and point.bbox[3] >= desk[1] - config.inside_head_band \
                     and ref_height > 0 and height(point.bbox) >= config.inside_height_ratio * ref_height:
                 raw[i] = True
-            elif raw[i] and ph <= config.inside_head_lo:
+            elif raw[i] and ph <= config.inside_head_lo and not (door_zone and _near_door(point.bbox, door_zone, config)):
+                # в зоне двери не правим: там входят и выходят, а голова путает проём со стеклом (Х-38 flip)
                 raw[i] = False
     smoothed = []
     for i, value in enumerate(raw):

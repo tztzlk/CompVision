@@ -19,18 +19,22 @@ LOG = logging.getLogger("worker.perception.heads")
 
 
 # Голова «человек внутри кассы» (SceneConfig.inside_head): вход — эмбеддинг вырезки рамки человека
-# с полем PERSON_MARGIN и три числа геометрии (person_geo), умноженные на PERSON_GEO_SCALE —
-# к порядку величины компонент нормированного эмбеддинга.
+# с полем PERSON_MARGIN и четыре числа геометрии (person_geo), умноженные на PERSON_GEO_SCALE —
+# к порядку величины компонент нормированного эмбеддинга. Ширина рамки к росту — масштаб человека,
+# когда ноги закрыты столом или кассиром (Х-33: посторонний за спиной кассира шире людей в коридоре).
 PERSON_MARGIN = 0.1
-PERSON_GEO_SCALE = (0.5, 4.0, 0.5)
+PERSON_GEO_SCALE = (0.5, 4.0, 0.5, 0.5)
 
 
 def person_geo(bbox: Any, score: float, ref_height: float, desk: Optional[Any]) -> list[float]:
-    """[высота рамки / рост человека в кадре, низ рамки − верх стола, score] (доли кадра)."""
+    """[высота рамки / рост, низ рамки − верх стола, score, ширина рамки / рост] (доли кадра).
+
+    Рост — worker.scene.builder.track_height по трекам видео."""
     x1, y1, x2, y2 = bbox
     return [(y2 - y1) / ref_height if ref_height > 0 else 0.0,
             (y2 - desk[1]) if desk is not None else 0.0,
-            float(score)]
+            float(score),
+            (x2 - x1) / ref_height if ref_height > 0 else 0.0]
 
 
 def crop_person(image: Any, bbox: Any) -> Optional[Any]:
