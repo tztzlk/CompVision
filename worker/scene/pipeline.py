@@ -21,6 +21,7 @@ from typing import Any, Optional, Sequence
 
 from worker.perception import Detection, Frame
 from worker.perception.geometry import BBox, nms
+from worker.perception.heads import PERSON_GEO_SCALE, LinearHead, crop_person, load_head, person_geo
 from worker.perception.models import load_models
 from worker.perception.states import COCO_LABELS_OF_INTEREST, ZONE_CROP_MARGIN, crop_zone, enabled_states
 from worker.perception.tracking import IoUTracker, Track
@@ -77,8 +78,24 @@ def run_pipeline(
     timings["zones_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
-    samples = _sample_states(frames, zones, bundle, cfg, persons)
+    safe_head = load_head(Path(models_dir), cfg.safe_head)
+    head_errors: list[str] = []
+    samples = _sample_states(frames, zones, bundle, cfg, persons, safe_head=safe_head, head_errors=head_errors)
+    if head_errors:
+        safe_head = None
     timings["states_sec"] = round(time.monotonic() - mark, 2)
+
+    person_head = None
+    inside_head = load_head(Path(models_dir), cfg.inside_head)
+    if inside_head is not None:
+        mark = time.monotonic()
+        try:
+            person_head = person_inside_probs(frames, tracks, zones, bundle, inside_head)
+        except Exception as exc:     # не та размерность весов и т.п.: внутри/за стеклом — по геометрии
+            LOG.warning("голова %s: %s — внутри/за стеклом по геометрии", inside_head.name, exc)
+            head_errors.append(str(exc))
+            inside_head = None
+        timings["inside_head_sec"] = round(time.monotonic() - mark, 2)
 
     refs = [FrameRef(index=pos, t=f.timestamp_sec, frame=f"{FRAMES_SUBDIR}/{f.path.name}") for pos, f in enumerate(frames)]
     frame_size = (info.width, info.height) if info.width > 0 and info.height > 0 else size
@@ -90,6 +107,12 @@ def run_pipeline(
         "frames_analyzed": len(frames),
         "timings": timings,
     }
+    if cfg.inside_head:
+        meta["inside_head"] = ({"name": inside_head.name, "points": len(person_head or [])}
+                               if inside_head is not None else {"error": "; ".join(head_errors) or f"не загружена: {cfg.inside_head}"})
+    if cfg.safe_head:
+        meta["safe_head"] = ({"name": safe_head.name, **{k: safe_head.meta.get(k) for k in ("n", "pos", "cv")}}
+                             if safe_head is not None else {"error": "; ".join(head_errors) or f"не загружена: {cfg.safe_head}"})
     timeline = assemble_timeline(
         video_id=vid,
         duration_sec=info.duration_sec or frames[-1].timestamp_sec,
@@ -101,6 +124,7 @@ def run_pipeline(
         state_samples=samples,
         config=cfg,
         meta=meta,
+        person_head=person_head,
     )
     timeline = with_brightness(timeline, brightness)
     mark = time.monotonic()
@@ -115,7 +139,7 @@ def run_pipeline(
         save_raw(raw_out, video_id=vid, duration_sec=info.duration_sec or frames[-1].timestamp_sec,
                  frame_size=frame_size, frames=refs, tracks=tracks, objects=objects, zones=zones,
                  zone_info=zone_info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta,
-                 brightness=brightness, item_checks=item_checks, item_scan=item_scan)
+                 brightness=brightness, item_checks=item_checks, item_scan=item_scan, person_head=person_head)
     if pose_enabled():
         from worker.scene.pose_pass import run_pose_pass
 
@@ -253,6 +277,43 @@ def check_left_items(timeline: SceneTimeline, frames: Sequence[Frame], bundle: A
     return [(t, list(d)) for (t, _), d in zip(images, dets)]
 
 
+def person_inside_probs(frames: Sequence[Frame], tracks: Sequence[Track], zones: dict[str, Optional[BBox]],
+                        bundle: Any, head: LinearHead, every_sec: float = 1.0) -> list[tuple[int, BBox, float]]:
+    """Голова «внутри кассы» по точкам треков раз в every_sec на трек: [(кадр, рамка, p)].
+
+    Вход головы — эмбеддинг SigLIP вырезки рамки (heads.crop_person) и геометрия heads.person_geo
+    (рост — track_height, верх стола — zones["desk"]), как в scripts/embed_people.py при обучении.
+    """
+    import numpy as np
+
+    ref_h = track_height(tracks)
+    desk = zones.get("desk")
+    picks: list[tuple[int, BBox, float]] = []
+    for tr in tracks:
+        next_t = -1.0
+        for pt in tr.points:
+            if pt.t + 1e-6 >= next_t:
+                picks.append((pt.frame_index, pt.bbox, pt.score))
+                next_t = pt.t + every_sec
+    images: dict[int, Any] = {}
+    keep, crops, geos = [], [], []
+    for fi, box, score in picks:
+        if fi not in images:
+            images[fi] = imread_unicode(frames[fi].path)
+        img = images[fi]
+        crop = crop_person(img, box) if img is not None else None
+        if crop is None:
+            continue
+        keep.append((fi, box))
+        crops.append(crop)
+        geos.append(person_geo(box, score, ref_h, desk))
+    if not crops:
+        return []
+    feats = np.concatenate([bundle.zero_shot.image_embeddings(crops),
+                            np.asarray(geos, dtype=np.float32) * np.asarray(PERSON_GEO_SCALE, dtype=np.float32)], axis=1)
+    return [(fi, box, round(float(p), 4)) for (fi, box), p in zip(keep, head(feats))]
+
+
 def _mask_people(image: Any, people: Sequence[Detection]) -> Any:
     """Копия кадра, где рамки людей закрашены серым (люди не попадают в zero-shot-оценку стола)."""
     out = image.copy()
@@ -266,11 +327,18 @@ def _mask_people(image: Any, people: Sequence[Detection]) -> Any:
 def _sample_states(
     frames: Sequence[Frame], zones: dict[str, Optional[BBox]], bundle: Any, cfg: SceneConfig,
     persons: Optional[Sequence[Sequence[Detection]]] = None,
+    *,
+    safe_head: Optional[LinearHead] = None,
+    head_errors: Optional[list[str]] = None,
 ) -> dict[str, list[tuple[float, Optional[float]]]]:
     """Zero-shot-оценки состояний по вырезкам зон раз в cfg.state_every_sec: {состояние: [(t, p)]}.
 
     persons — рамки людей по кадрам; при cfg.mask_people_in_desk они закрашиваются в вырезке стола.
+    safe_head — голова «сейф открыт»: её вероятность становится safe_open, zero-shot — safe_open_zero_shot.
+    Ошибка инференса головы пишется в head_errors (если передан список), дальше — zero-shot.
     """
+    if head_errors is None:
+        head_errors = []
     states = enabled_states(cfg)
     by_zone: dict[str, list[str]] = {}
     for name, spec in states.items():
@@ -307,4 +375,16 @@ def _sample_states(
             for t, p in zip(times, probs):
                 for n in names:
                     samples[n].append((t, p.get(n)))
+            if zone == "safe" and safe_head is not None and "safe_open" in names:
+                try:
+                    head_p = safe_head(bundle.zero_shot.image_embeddings(crops))
+                except Exception as exc:     # не та размерность весов и т.п.: дальше zero-shot, задача не падает
+                    LOG.warning("голова %s: %s — safe_open остаётся zero-shot", safe_head.name, exc)
+                    head_errors.append(str(exc))
+                    safe_head = None
+                    done = samples.pop("safe_open_zero_shot", [])     # ряд целиком zero-shot, без смеси
+                    samples["safe_open"][:len(done)] = done
+                    continue
+                samples.setdefault("safe_open_zero_shot", []).extend(samples["safe_open"][-len(crops):])
+                samples["safe_open"][-len(crops):] = [(t, round(float(p), 4)) for t, p in zip(times, head_p)]
     return samples

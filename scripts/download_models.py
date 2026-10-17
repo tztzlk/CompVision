@@ -21,6 +21,11 @@
     python scripts/download_models.py --models-dir /data/models
     MODELS_DIR=/data/models python scripts/download_models.py
 
+Головы ``models/heads/safe_open.npz`` и ``person_inside.npz`` (логистическая регрессия поверх
+SigLIP, SceneConfig.safe_head / inside_head) этим скриптом не скачиваются: их получают
+``scripts/train_heads.py`` по меткам ``training/labels/`` из репозитория (порядок — README,
+«Лёгкие головы поверх SigLIP»). Без файлов головы worker работает на zero-shot и геометрии.
+
 Коды возврата: 0 — всё успешно (или список моделей пуст), 1 — хотя бы одна
 модель не скачана / не прошла проверку sha256, 2 — ошибка аргументов.
 """

@@ -58,6 +58,31 @@
 
 Отладка восприятия на машине с GPU: `PYTHONPATH=. python scripts/build_scene_cache.py` строит `data/scene_cache/<видео>.json` по всем роликам, `scripts/viz_scene.py` рисует по ним контактные листы с зонами, людьми и состояниями.
 
+#### Лёгкие головы поверх SigLIP
+
+Веса RT-DETR, OWLv2 и SigLIP не дообучаются. Поверх замороженной SigLIP обучены две логистические регрессии на эмбеддинге вырезки (`get_image_features`, 768 чисел); инференс — `numpy`, веса — маленькие `.npz` в `models/heads/`:
+
+| Голова | Флаг `SceneConfig` | Вход | Что меняет |
+|---|---|---|---|
+| `safe_open` | `safe_head = "heads/safe_open.npz"` | вырезка зоны сейфа раз в секунду | `safe_open` — вероятность головы вместо zero-shot (zero-shot остаётся в `state_samples.safe_open_zero_shot`); R10 берёт параметры `head_*` |
+| `person_inside` | `inside_head = "heads/person_inside.npz"` | вырезка рамки человека раз в секунду на трек + геометрия рамки | правит только спорные точки «внутри кассы / за стеклом» (`inside_head_hi/lo/band`) |
+
+Нет файла — предупреждение в лог и `meta.<голова>.error`, сцена считается как без головы.
+
+Как получить веса (метки — в репозитории, `training/labels/`; тестовые видео жюри не используются):
+
+```
+PYTHONPATH=. .venv/bin/python scripts/build_scene_cache.py --device cuda --out data/scene_cache_r3 \
+    --raw-out data/raw_cache_r3 --work data/scene_work_r3 --keep-frames        # кадры 3 к/с остаются в --work
+F="--raw data/raw_cache_r3 --frames data/scene_work_r3 --work-layout"
+PYTHONPATH=. .venv/bin/python scripts/embed_zones.py embed --zone safe $F    # оригинал + аугментации на тех же кадрах
+PYTHONPATH=. .venv/bin/python scripts/embed_people.py embed --variant orig $F
+PYTHONPATH=. .venv/bin/python scripts/train_heads.py safe_open              # -> models/heads/safe_open.npz
+PYTHONPATH=. .venv/bin/python scripts/train_heads.py person_inside --train-variants orig
+```
+
+Проверка — только фолдами по видео (дубликаты Х-4≡Х-47, Х-5≡Х-48 — одна группа, аугментированные копии — в фолде оригинала). Устойчивость к ракурсу и свету — `scripts/augment_videos.py` (flip / persp / crop / light), кэши по ним и `scripts/robustness_table.py`; головы подставляются в готовый сырой кэш без GPU через `scripts/apply_head.py`.
+
 #### Поза (экспериментально)
 
 Проход позы выключен по умолчанию: с `ENABLE_POSE=1` worker после сборки сцены ставит 17 точек кассиру и людям из `others` (`worker/perception/pose.py`) и пишет в состояния `cashier_kp`, `others_kp` и признаки `cashier_hand_in_safe`, `cashier_hands_on_desk`, `hand_to_hand` (+ `hand_to_hand_track`), `cashier_counting`, `cashier_hand_at_face`, `cashier_standing` (`worker/scene/pose_features.py`; пороги — в долях ширины плеч человека, не в пикселях). Детекторы по ним — `worker/events/pose_detectors.py`; правила с ними пока только в блоке «ЗАПЛАНИРОВАНО» `rules.yaml`. `POSE_EVERY_K=2` — поза на каждом втором состоянии, если не укладываемся по времени.
