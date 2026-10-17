@@ -1,0 +1,7662 @@
+{
+ "version": 1,
+ "video_id": "Х-4",
+ "duration_sec": 72.0,
+ "fps_sampled": 3.0,
+ "frame_size": [
+  464,
+  848
+ ],
+ "zones": {
+  "desk": [
+   0.05,
+   0.38,
+   0.62,
+   0.62
+  ],
+  "workplace": [
+   0.2,
+   0.45,
+   0.75,
+   0.8
+  ],
+  "safe": [
+   0.62,
+   0.28,
+   0.82,
+   0.55
+  ],
+  "door": [
+   0.0,
+   0.05,
+   0.3,
+   0.5
+  ],
+  "laptop": [
+   0.45,
+   0.3,
+   0.6,
+   0.4
+  ]
+ },
+ "states": [
+  {
+   "t": 0.0,
+   "frame": "frames/000000.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 0.333,
+   "frame": "frames/000001.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 0.667,
+   "frame": "frames/000002.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 1.0,
+   "frame": "frames/000003.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 1.333,
+   "frame": "frames/000004.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 1.667,
+   "frame": "frames/000005.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 2.0,
+   "frame": "frames/000006.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 2.333,
+   "frame": "frames/000007.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 2.667,
+   "frame": "frames/000008.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 3.0,
+   "frame": "frames/000009.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 3.333,
+   "frame": "frames/000010.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 3.667,
+   "frame": "frames/000011.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 4.0,
+   "frame": "frames/000012.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 4.333,
+   "frame": "frames/000013.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 4.667,
+   "frame": "frames/000014.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 5.0,
+   "frame": "frames/000015.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 5.333,
+   "frame": "frames/000016.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 5.667,
+   "frame": "frames/000017.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 6.0,
+   "frame": "frames/000018.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 6.333,
+   "frame": "frames/000019.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 6.667,
+   "frame": "frames/000020.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 7.0,
+   "frame": "frames/000021.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 7.333,
+   "frame": "frames/000022.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 7.667,
+   "frame": "frames/000023.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 8.0,
+   "frame": "frames/000024.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 8.333,
+   "frame": "frames/000025.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 8.667,
+   "frame": "frames/000026.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 9.0,
+   "frame": "frames/000027.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 9.333,
+   "frame": "frames/000028.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 9.667,
+   "frame": "frames/000029.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 10.0,
+   "frame": "frames/000030.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 10.333,
+   "frame": "frames/000031.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 10.667,
+   "frame": "frames/000032.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 11.0,
+   "frame": "frames/000033.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 11.333,
+   "frame": "frames/000034.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 11.667,
+   "frame": "frames/000035.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 12.0,
+   "frame": "frames/000036.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 12.333,
+   "frame": "frames/000037.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 12.667,
+   "frame": "frames/000038.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 13.0,
+   "frame": "frames/000039.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 13.333,
+   "frame": "frames/000040.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 13.667,
+   "frame": "frames/000041.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 14.0,
+   "frame": "frames/000042.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 14.333,
+   "frame": "frames/000043.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 14.667,
+   "frame": "frames/000044.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 15.0,
+   "frame": "frames/000045.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 15.333,
+   "frame": "frames/000046.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 15.667,
+   "frame": "frames/000047.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 16.0,
+   "frame": "frames/000048.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 16.333,
+   "frame": "frames/000049.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 16.667,
+   "frame": "frames/000050.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 17.0,
+   "frame": "frames/000051.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 17.333,
+   "frame": "frames/000052.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 17.667,
+   "frame": "frames/000053.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 18.0,
+   "frame": "frames/000054.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 18.333,
+   "frame": "frames/000055.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 18.667,
+   "frame": "frames/000056.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 19.0,
+   "frame": "frames/000057.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 19.333,
+   "frame": "frames/000058.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 19.667,
+   "frame": "frames/000059.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 20.0,
+   "frame": "frames/000060.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 20.333,
+   "frame": "frames/000061.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 20.667,
+   "frame": "frames/000062.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 21.0,
+   "frame": "frames/000063.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 21.333,
+   "frame": "frames/000064.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 21.667,
+   "frame": "frames/000065.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 22.0,
+   "frame": "frames/000066.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 22.333,
+   "frame": "frames/000067.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 22.667,
+   "frame": "frames/000068.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 23.0,
+   "frame": "frames/000069.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 23.333,
+   "frame": "frames/000070.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 23.667,
+   "frame": "frames/000071.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 24.0,
+   "frame": "frames/000072.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 24.333,
+   "frame": "frames/000073.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 24.667,
+   "frame": "frames/000074.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 25.0,
+   "frame": "frames/000075.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 25.333,
+   "frame": "frames/000076.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 25.667,
+   "frame": "frames/000077.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 26.0,
+   "frame": "frames/000078.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 26.333,
+   "frame": "frames/000079.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 26.667,
+   "frame": "frames/000080.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 27.0,
+   "frame": "frames/000081.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 27.333,
+   "frame": "frames/000082.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 27.667,
+   "frame": "frames/000083.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 28.0,
+   "frame": "frames/000084.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 28.333,
+   "frame": "frames/000085.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 28.667,
+   "frame": "frames/000086.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 29.0,
+   "frame": "frames/000087.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 29.333,
+   "frame": "frames/000088.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 29.667,
+   "frame": "frames/000089.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 30.0,
+   "frame": "frames/000090.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 30.333,
+   "frame": "frames/000091.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 30.667,
+   "frame": "frames/000092.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 31.0,
+   "frame": "frames/000093.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 31.333,
+   "frame": "frames/000094.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 31.667,
+   "frame": "frames/000095.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 32.0,
+   "frame": "frames/000096.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 32.333,
+   "frame": "frames/000097.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 32.667,
+   "frame": "frames/000098.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 33.0,
+   "frame": "frames/000099.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 33.333,
+   "frame": "frames/000100.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 33.667,
+   "frame": "frames/000101.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 34.0,
+   "frame": "frames/000102.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 34.333,
+   "frame": "frames/000103.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 34.667,
+   "frame": "frames/000104.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 35.0,
+   "frame": "frames/000105.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 35.333,
+   "frame": "frames/000106.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 35.667,
+   "frame": "frames/000107.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 36.0,
+   "frame": "frames/000108.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 36.333,
+   "frame": "frames/000109.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 36.667,
+   "frame": "frames/000110.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 37.0,
+   "frame": "frames/000111.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 37.333,
+   "frame": "frames/000112.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 37.667,
+   "frame": "frames/000113.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 38.0,
+   "frame": "frames/000114.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 38.333,
+   "frame": "frames/000115.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 38.667,
+   "frame": "frames/000116.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 39.0,
+   "frame": "frames/000117.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 39.333,
+   "frame": "frames/000118.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 39.667,
+   "frame": "frames/000119.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 40.0,
+   "frame": "frames/000120.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 40.333,
+   "frame": "frames/000121.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 40.667,
+   "frame": "frames/000122.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 41.0,
+   "frame": "frames/000123.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 41.333,
+   "frame": "frames/000124.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 41.667,
+   "frame": "frames/000125.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 42.0,
+   "frame": "frames/000126.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 42.333,
+   "frame": "frames/000127.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 42.667,
+   "frame": "frames/000128.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 43.0,
+   "frame": "frames/000129.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 43.333,
+   "frame": "frames/000130.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 43.667,
+   "frame": "frames/000131.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 44.0,
+   "frame": "frames/000132.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 44.333,
+   "frame": "frames/000133.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 44.667,
+   "frame": "frames/000134.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 45.0,
+   "frame": "frames/000135.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 45.333,
+   "frame": "frames/000136.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 45.667,
+   "frame": "frames/000137.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 46.0,
+   "frame": "frames/000138.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 46.333,
+   "frame": "frames/000139.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 46.667,
+   "frame": "frames/000140.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 47.0,
+   "frame": "frames/000141.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 47.333,
+   "frame": "frames/000142.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 47.667,
+   "frame": "frames/000143.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 48.0,
+   "frame": "frames/000144.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 48.333,
+   "frame": "frames/000145.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 48.667,
+   "frame": "frames/000146.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 49.0,
+   "frame": "frames/000147.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 49.333,
+   "frame": "frames/000148.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 49.667,
+   "frame": "frames/000149.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 50.0,
+   "frame": "frames/000150.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 50.333,
+   "frame": "frames/000151.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 50.667,
+   "frame": "frames/000152.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 51.0,
+   "frame": "frames/000153.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 51.333,
+   "frame": "frames/000154.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 51.667,
+   "frame": "frames/000155.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 2,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 0.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 52.0,
+   "frame": "frames/000156.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": true,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 52.333,
+   "frame": "frames/000157.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 52.667,
+   "frame": "frames/000158.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 53.0,
+   "frame": "frames/000159.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 53.333,
+   "frame": "frames/000160.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 53.667,
+   "frame": "frames/000161.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 54.0,
+   "frame": "frames/000162.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 54.333,
+   "frame": "frames/000163.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 54.667,
+   "frame": "frames/000164.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 55.0,
+   "frame": "frames/000165.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 55.333,
+   "frame": "frames/000166.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 55.667,
+   "frame": "frames/000167.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 56.0,
+   "frame": "frames/000168.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 56.333,
+   "frame": "frames/000169.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 56.667,
+   "frame": "frames/000170.jpg",
+   "persons_in_room": 1,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 57.0,
+   "frame": "frames/000171.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": true,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": [
+    9
+   ]
+  },
+  {
+   "t": 57.333,
+   "frame": "frames/000172.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 57.667,
+   "frame": "frames/000173.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 58.0,
+   "frame": "frames/000174.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 58.333,
+   "frame": "frames/000175.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 58.667,
+   "frame": "frames/000176.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 59.0,
+   "frame": "frames/000177.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 59.333,
+   "frame": "frames/000178.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 59.667,
+   "frame": "frames/000179.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 60.0,
+   "frame": "frames/000180.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 60.333,
+   "frame": "frames/000181.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 60.667,
+   "frame": "frames/000182.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 61.0,
+   "frame": "frames/000183.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 61.333,
+   "frame": "frames/000184.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 61.667,
+   "frame": "frames/000185.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 62.0,
+   "frame": "frames/000186.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 62.333,
+   "frame": "frames/000187.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 62.667,
+   "frame": "frames/000188.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 63.0,
+   "frame": "frames/000189.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 63.333,
+   "frame": "frames/000190.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 63.667,
+   "frame": "frames/000191.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 64.0,
+   "frame": "frames/000192.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 64.333,
+   "frame": "frames/000193.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 64.667,
+   "frame": "frames/000194.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 65.0,
+   "frame": "frames/000195.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 65.333,
+   "frame": "frames/000196.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 65.667,
+   "frame": "frames/000197.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.75,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 66.0,
+   "frame": "frames/000198.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 66.333,
+   "frame": "frames/000199.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 66.667,
+   "frame": "frames/000200.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 67.0,
+   "frame": "frames/000201.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 67.333,
+   "frame": "frames/000202.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 67.667,
+   "frame": "frames/000203.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 68.0,
+   "frame": "frames/000204.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 68.333,
+   "frame": "frames/000205.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 68.667,
+   "frame": "frames/000206.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 69.0,
+   "frame": "frames/000207.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 69.333,
+   "frame": "frames/000208.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 69.667,
+   "frame": "frames/000209.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 70.0,
+   "frame": "frames/000210.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 70.333,
+   "frame": "frames/000211.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 70.667,
+   "frame": "frames/000212.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 71.0,
+   "frame": "frames/000213.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 71.333,
+   "frame": "frames/000214.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  },
+  {
+   "t": 71.667,
+   "frame": "frames/000215.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.95,
+   "cashier_bbox": [
+    0.3,
+    0.4,
+    0.6,
+    0.85
+   ],
+   "others": [
+    {
+     "track_id": 9,
+     "bbox": [
+      0.15,
+      0.15,
+      0.35,
+      0.45
+     ],
+     "first_seen_t": 57.0
+    }
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.02,
+   "door_open": 0.02,
+   "cash_on_desk": 0.05,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.02,
+   "cup_or_food": 0.02,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null,
+   "visitor_entered_ids": []
+  }
+ ],
+ "meta": {
+  "device": "fixture",
+  "elapsed_sec": 0.0,
+  "models": {}
+ }
+}

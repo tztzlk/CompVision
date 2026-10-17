@@ -67,12 +67,46 @@ def x15(t: float) -> dict:
 
 
 def x18(t: float) -> dict:
-    # клиент в комнате с начала; на ~19.7 с входит третий человек
+    # клиент в комнате с начала; на 20 с через дверь входит третий человек (трек 7)
     others = [{"track_id": 3, "bbox": [0.35, 0.20, 0.55, 0.45], "first_seen_t": 0.0}]
-    if t >= 19.7:
-        others.append({"track_id": 7, "bbox": [0.05, 0.10, 0.25, 0.55], "first_seen_t": 19.7})
-    return {"persons_in_room": 1 + len(others), "others": others,
-            "person_entered": 19.6 <= t < 20.1, "cash_on_desk": 0.6, "door_open": 0.8 if 19.0 <= t < 21.0 else 0.05}
+    if t >= 19.9:
+        others.append({"track_id": 7, "bbox": [0.05, 0.10, 0.25, 0.55], "first_seen_t": 20.0})
+    entered = 19.9 <= t < 20.1
+    return {"persons_in_room": 1 + len(others), "others": others, "person_entered": entered,
+            "visitor_entered_ids": [7] if entered else [], "cash_on_desk": 0.05,
+            "door_open": 0.8 if 19.0 <= t < 21.0 else 0.05}
+
+
+CLIENT_SEAT = [0.15, 0.15, 0.35, 0.45]      # напротив кассира, по другую сторону стола
+
+
+def x3(t: float) -> dict:
+    # трудный негатив: на 4 с клиент входит и садится напротив кассира; на столе пусто
+    others = [{"track_id": 4, "bbox": CLIENT_SEAT, "first_seen_t": 4.0}] if t >= 3.9 else []
+    entered = 3.9 <= t < 4.1
+    return {"persons_in_room": 1 + len(others), "others": others, "person_entered": entered,
+            "visitor_entered_ids": [4] if entered else [], "cash_on_desk": 0.03}
+
+
+def x4(t: float) -> dict:
+    # на 52 с предыдущий клиент уходит, на 57 с входит следующий и садится напротив; на столе наличные
+    others = []
+    if t < 52.0:
+        others.append({"track_id": 2, "bbox": CLIENT_SEAT, "first_seen_t": 0.0})
+    if t >= 56.9:
+        others.append({"track_id": 9, "bbox": CLIENT_SEAT, "first_seen_t": 57.0})
+    entered = 56.9 <= t < 57.1
+    return {"persons_in_room": 1 + len(others), "others": others, "person_entered": entered,
+            "person_exited": 51.9 <= t < 52.1, "visitor_entered_ids": [9] if entered else [],
+            "cash_on_desk": 0.75 if 40.0 <= t < 66.0 else 0.05}
+
+
+def x30(t: float) -> dict:
+    # кассир один; на 12,5 с входит человек и встаёт рядом с кассиром, на его стороне стола
+    others = [{"track_id": 6, "bbox": [0.33, 0.40, 0.57, 0.80], "first_seen_t": 12.667}] if t >= 12.6 else []
+    entered = 12.6 <= t < 12.7
+    return {"persons_in_room": 1 + len(others), "others": others, "person_entered": entered,
+            "visitor_entered_ids": [6] if entered else [], "cash_on_desk": 0.05}
 
 
 def x23(t: float) -> dict:
@@ -88,6 +122,9 @@ SCENES = {
     "scene_X15.json": timeline("Х-15", 22.0, x15),
     "scene_X18.json": timeline("Х-18", 26.0, x18),
     "scene_X23.json": timeline("Х-23", 20.0, x23),
+    "scene_X3.json": timeline("Х-3", 20.0, x3),
+    "scene_X4.json": timeline("Х-4", 72.0, x4),
+    "scene_X30.json": timeline("Х-30", 20.0, x30),
 }
 
 if __name__ == "__main__":

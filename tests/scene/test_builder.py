@@ -22,6 +22,7 @@ SAFE = (0.70, 0.30, 0.85, 0.55)
 SEATED = (0.30, 0.35, 0.55, 0.80)
 AT_DOOR = (0.05, 0.20, 0.25, 0.62)
 ENTERING = (0.02, 0.10, 0.20, 0.55)
+IN_ROOM = (0.40, 0.40, 0.60, 0.90)          # вошедший прошёл от двери в комнату и стоит у стола
 BEHIND_GLASS = (0.30, 0.10, 0.36, 0.25)
 
 
@@ -34,7 +35,7 @@ def _scene(*, tracks=None, objects=None, zones=None, samples=None, config=None):
         tracks = [
             _track(1, range(0, N), lambda k: SEATED if k < 21 else AT_DOOR),          # кассир
             _track(2, range(15, 18), lambda k: ENTERING),                              # посторонний входит
-            _track(5, range(19, N), lambda k: ENTERING),                               # ...и рвётся на кадре 18
+            _track(5, range(19, N), lambda k: ENTERING if k < 21 else IN_ROOM),        # ...рвётся на кадре 18
             _track(3, range(0, N), lambda k: BEHIND_GLASS),                            # за стеклом
         ]
     frames = [FrameRef(k, TIMES[k], f"frames/{k:06d}.jpg") for k in range(N)]
@@ -65,6 +66,41 @@ class BuilderTest(unittest.TestCase):
         self.assertEqual(other.track_id, 2)
         self.assertEqual(other.first_seen_t, TIMES[15])
         self.assertFalse(any(s.person_exited for s in scene.states))     # никто не ушёл до конца ролика
+        self.assertEqual(scene.states[15].value("visitor_entered_ids"), [2])
+        self.assertFalse(any(s.value("cashier_returned") for s in scene.states))
+
+    def test_no_entry_without_going_into_room(self) -> None:
+        """Человек только мелькнул в проёме двери — это не вход."""
+        tracks = [
+            _track(1, range(0, N), lambda k: SEATED),
+            _track(2, range(15, 22), lambda k: ENTERING),
+        ]
+        scene = _scene(tracks=tracks)
+        self.assertFalse(any(s.person_entered for s in scene.states))
+
+    def test_redetection_mid_room_is_not_entry(self) -> None:
+        """Клиента перекрыли на 3 с, трек начался заново на том же месте — это тот же человек."""
+        client = (0.35, 0.20, 0.55, 0.45)
+        tracks = [
+            _track(1, range(0, N), lambda k: SEATED),
+            _track(2, range(0, 10), lambda k: client),
+            _track(7, range(19, N), lambda k: client),
+        ]
+        scene = _scene(tracks=tracks)
+        self.assertFalse(any(s.person_entered for s in scene.states))
+        self.assertEqual({p.track_id for s in scene.states for p in s.others}, {2})
+
+    def test_cashier_leaving_through_door(self) -> None:
+        tracks = [_track(1, range(0, 24), lambda k: SEATED if k < 15 else (IN_ROOM if k < 20 else ENTERING))]
+        scene = _scene(tracks=tracks)
+        left = [s.t for s in scene.states if s.value("cashier_left_room")]
+        self.assertEqual(left, [TIMES[23]])
+        self.assertFalse(any(s.value("visitor_exited_ids") for s in scene.states))
+
+    def test_no_door_no_entries(self) -> None:
+        scene = _scene(zones={"desk": DESK, "door": None, "safe": SAFE, "laptop": None})
+        self.assertFalse(any(s.person_entered or s.person_exited for s in scene.states))
+        self.assertTrue(any("дверь не найдена" in w for w in scene.meta["scene"]["warnings"]))
 
     def test_cashier_presence_drops_when_leaving(self) -> None:
         scene = _scene()

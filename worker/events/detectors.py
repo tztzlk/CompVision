@@ -199,7 +199,7 @@ def _zone(scene: SceneTimeline, name: str) -> Optional[list[float]]:
 
 
 def personal_items(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R01: верхняя одежда (и, по params.include_bag, личная сумка) на рабочем столе."""
+    """R09: верхняя одежда (и, по params.include_bag, личная сумка) на рабочем столе."""
     include_bag = bool(params.get("include_bag", False))
     raw = [_fmax(s.outerwear_on_desk, s.bag_on_desk if include_bag else None) for s in scene.states]
 
@@ -213,7 +213,7 @@ def personal_items(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Even
 
 
 def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R02: сейф открыт, а кассир не у сейфа (рамка кассира не пересекается с зоной сейфа)."""
+    """R10: сейф открыт, а кассир не у сейфа (рамка кассира не пересекается с зоной сейфа)."""
     safe_zone = _expand(scene.zones.get("safe"), float(params.get("safe_margin", 0.05)))
     near_share = float(params.get("near_safe_overlap", 0.15))
     raw: Series = []
@@ -234,7 +234,7 @@ def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[E
 
 
 def valuables_unattended(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R03: кассира нет на рабочем месте, на столе наличные или сумка."""
+    """R02: кассира нет на рабочем месте, на столе наличные или сумка."""
     raw = [_fmin(_away(s), _fmax(s.cash_on_desk, s.bag_on_desk)) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
@@ -248,71 +248,163 @@ def valuables_unattended(scene: SceneTimeline, params: Mapping[str, Any]) -> lis
     return _events_from_series(scene, raw, params, describe)
 
 
-def outsider_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R04: вход человека в кассу, когда (а) в комнате становится больше max_persons_normal,
-    (б) кассир в этот момент работает с наличными или (в) вход сразу после выхода другого человека.
+def _entries(scene: SceneTimeline) -> list[tuple[int, tuple[int, ...]]]:
+    """Входы посетителей через дверь: (индекс состояния, id вошедших треков).
 
-    Момент входа — person_entered или first_seen_t нового трека в others. Вошедший должен
-    оставаться в комнате не меньше min_duration_sec.
+    Новый кэш: поле visitor_entered_ids (вход не-кассира с переходом в комнату, worker.scene.builder).
+    Кэш без этого поля — по person_entered, id вошедших неизвестны.
+    """
+    states = scene.states
+    if any("visitor_entered_ids" in s.extra for s in states):
+        return [(i, tuple(s.value("visitor_entered_ids") or ())) for i, s in enumerate(states)
+                if s.value("visitor_entered_ids")]
+    return [(i, ()) for i, s in enumerate(states) if s.person_entered]
+
+
+def _merge_entries(scene: SceneTimeline, entries: list[tuple[int, tuple[int, ...]]],
+                   gap: float) -> list[tuple[int, tuple[int, ...]]]:
+    """Входы ближе gap секунд к предыдущему считаются одним (id вошедших объединяются)."""
+    merged: list[tuple[int, tuple[int, ...]]] = []
+    for i, ids in entries:
+        if merged and scene.states[i].t - scene.states[merged[-1][0]].t <= gap:
+            j, prev = merged[-1]
+            merged[-1] = (j, tuple(sorted(set(prev) | set(ids))))
+        else:
+            merged.append((i, ids))
+    return merged
+
+
+def _stays(scene: SceneTimeline, i: int, seconds: float) -> Optional[list[int]]:
+    """Индексы состояний [t, t + seconds], если вошедший остался в кассе (в комнате не меньше двух
+    человек всё это время); None — не остался или нет данных."""
+    states = scene.states
+    t = states[i].t
+    after = [k for k in range(i, len(states)) if states[k].t <= t + seconds]
+    counts = [states[k].persons_in_room for k in after if states[k].persons_in_room is not None]
+    if not counts or min(counts) < 2:
+        return None
+    return after
+
+
+def _side(scene: SceneTimeline, box: BBox) -> Optional[float]:
+    """Сторона стола, на которой человек: проекция центра рамки на ось «центр стола -> рабочее место
+    кассира» в долях длины этой оси. ~1 — место кассира, < 0 — напротив (место клиента).
+    Считается в пикселях: кадр не квадратный. None — нет стола или рабочего места."""
+    desk, workplace = scene.zones.get("desk"), scene.zones.get("workplace")
+    if desk is None or workplace is None:
+        return None
+    w, h = scene.frame_size
+    cx, cy = (desk[0] + desk[2]) / 2 * w, (desk[1] + desk[3]) / 2 * h
+    vx, vy = (workplace[0] + workplace[2]) / 2 * w - cx, (workplace[1] + workplace[3]) / 2 * h - cy
+    norm = vx * vx + vy * vy
+    if norm <= 1e-9:
+        return None
+    px, py = (box[0] + box[2]) / 2 * w, (box[1] + box[3]) / 2 * h
+    return ((px - cx) * vx + (py - cy) * vy) / norm
+
+
+def _on_side(scene: SceneTimeline, box: BBox, threshold: float) -> bool:
+    side = _side(scene, box)
+    return side is not None and side >= threshold
+
+
+def outsider_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
+    """R11: посторонний в кассе — после входа через дверь
+
+    (а) в комнате больше max_persons_normal человек (кассир, клиент и ещё один) не меньше
+        min_duration_sec, или
+    (б) вошедший не садится на место клиента, а стоит на стороне кассира (_side >= cashier_side)
+        суммарно не меньше stand_sec в первые observe_sec после входа.
+
+    Вход — только через дверь (visitor_entered_ids); клиент, который садится напротив кассира,
+    — не посторонний. Вход при наличных на столе — отдельное правило R14 (entry_with_cash_on_desk).
     """
     states = scene.states
     if not states:
         return []
     max_normal = int(params.get("max_persons_normal", 2))
-    cash_p = float(params.get("cash_p", 0.5))
-    after_exit = float(params.get("after_exit_sec", 5.0))
+    observe = float(params.get("observe_sec", 6.0))
+    cashier_side = float(params.get("cashier_side", 0.3))
+    stand = float(params.get("stand_sec", 2.0))
     min_dur = _param(params, "min_duration_sec")
-    gap = _param(params, "merge_gap_sec")
-
-    entries: list[float] = [s.t for s in states if s.person_entered]
-    for s in states:
-        entries.extend(p.first_seen_t for p in s.others if p.first_seen_t > states[0].t + 0.5)
-    entries.sort()
-    moments: list[float] = []
-    for t in entries:
-        if not moments or t - moments[-1] > gap:
-            moments.append(t)
-    exits = [s.t for s in states if s.person_exited]
-    cash = smooth([s.cash_on_desk for s in states], int(_param(params, "smooth_points")))
+    step = 1.0 / scene.fps_sampled
 
     events: list[Event] = []
-    for t in moments:
-        before = [i for i, s in enumerate(states) if t - 2.0 <= s.t < t]
-        after = [i for i, s in enumerate(states) if t <= s.t <= t + max(min_dur, 1.0)]
-        if not after:
-            continue
-        counts = [states[i].persons_in_room for i in after if states[i].persons_in_room is not None]
-        if not counts or min(counts) < 2:
+    for i, ids in _merge_entries(scene, _entries(scene), _param(params, "merge_gap_sec")):
+        after = _stays(scene, i, max(min_dur, 1.0))
+        if after is None:
             continue                                   # вошедший не задержался в кассе
-        reasons: list[tuple[float, str]] = []
-        if max(counts) > max_normal:
-            reasons.append((0.85, f"в кассе {max(counts)} человека"))
-        cash_before = [cash[i] for i in before if cash[i] is not None]
-        if cash_before and max(cash_before) >= cash_p:
-            reasons.append((max(cash_before), "на столе наличные, с которыми работает кассир"))
-        if any(0.0 < t - e <= after_exit for e in exits):
-            reasons.append((0.6, "вход сразу после выхода предыдущего посетителя"))
+        t = states[i].t
+        reasons: list[tuple[float, str, Optional[int]]] = []
+        counts = [states[k].persons_in_room for k in after if states[k].persons_in_room is not None]
+        if counts and min(counts) > max_normal:
+            reasons.append((0.85, f"в кассе {min(counts)} человека: кроме кассира и клиента ещё один", after[0]))
+        if ids:
+            window = [k for k in range(i, len(states)) if states[k].t <= t + observe]
+            on_side = [k for k in window for p in states[k].others
+                       if p.track_id in ids and _on_side(scene, p.bbox, cashier_side)]
+            if len(set(on_side)) * step >= stand:
+                reasons.append((0.7, "вошедший стоит на стороне кассира, а не на месте клиента", on_side[0]))
         if not reasons:
             continue
-        conf = max(r[0] for r in reasons)
-        i0 = after[0]
-        idx = list(dict.fromkeys([i0, *(i for i in after if states[i].t >= t + 1.0)][:2]))
+        conf, what, k_evidence = max(reasons, key=lambda r: r[0])
+        idx = list(dict.fromkeys([after[0], *(k for k in after if states[k].t >= t + 1.0), k_evidence]))[:3]
+        box = next((p.bbox for k in idx for p in states[k].others if p.track_id in ids), None)
         events.append(Event(
             rule_id="",
             timecode_sec=round(t, 1),
             confidence=round(conf, 3),
-            evidence_timestamps_sec=[round(states[i].t, 3) for i in idx],
+            evidence_timestamps_sec=[round(states[k].t, 3) for k in idx],
             facts={
-                "what_visible": "; ".join(r[1] for r in reasons),
-                "bbox": _zone(scene, "door"),
-                "frames": [states[i].frame for i in idx],
+                "what_visible": "; ".join(dict.fromkeys(r[1] for r in reasons)),
+                "bbox": list(box) if box else _zone(scene, "door"),
+                "frames": [states[k].frame for k in idx],
+            },
+        ))
+    return events
+
+
+def entry_with_cash_on_desk(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
+    """R14: посетитель входит через дверь, а на рабочем столе ещё лежат наличные (cash_on_desk
+    за 2 с до входа >= cash_p). По п. 20 Правил № 231 на рабочем месте — только наличные
+    обслуживаемого клиента, ранее принятые хранятся в сейфе/ящиках. Вошедший остаётся в кассе
+    не меньше min_duration_sec. Таймкод — момент входа (Х-4, 57 с; Х-38, 33 с)."""
+    states = scene.states
+    if not states:
+        return []
+    cash_p = float(params.get("cash_p", 0.5))
+    before_sec = float(params.get("before_sec", 2.0))
+    min_dur = _param(params, "min_duration_sec")
+    cash = smooth([s.cash_on_desk for s in states], int(_param(params, "smooth_points")))
+
+    events: list[Event] = []
+    for i, ids in _merge_entries(scene, _entries(scene), _param(params, "merge_gap_sec")):
+        t = states[i].t
+        after = _stays(scene, i, max(min_dur, 1.0))
+        if after is None:
+            continue
+        before = [cash[k] for k, s in enumerate(states) if t - before_sec <= s.t <= t and cash[k] is not None]
+        if not before or max(before) < cash_p:
+            continue
+        k_cash = max((k for k, s in enumerate(states) if t - before_sec <= s.t <= t and cash[k] is not None),
+                     key=lambda k: cash[k])  # type: ignore[arg-type]
+        idx = list(dict.fromkeys([k_cash, after[0], *(k for k in after if states[k].t >= t + 1.0)]))[:3]
+        events.append(Event(
+            rule_id="",
+            timecode_sec=round(t, 1),
+            confidence=round(max(before), 3),
+            evidence_timestamps_sec=[round(states[k].t, 3) for k in idx],
+            facts={
+                "what_visible": "на рабочем столе наличные, в кассу входит посетитель",
+                "bbox": _zone(scene, "desk"),
+                "frames": [states[k].frame for k in idx],
             },
         ))
     return events
 
 
 def collection_inside(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R05: инкассаторская сумка в кассе, когда в комнате кроме кассира есть другой человек."""
+    """R12: инкассаторская сумка в кассе, когда в комнате кроме кассира есть другой человек."""
     raw = [_fmin(s.collection_bag, 1.0 if s.others else 0.0) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
@@ -322,7 +414,7 @@ def collection_inside(scene: SceneTimeline, params: Mapping[str, Any]) -> list[E
 
 
 def drink_at_workplace(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R06: стакан или еда у кассира на рабочем месте."""
+    """R13: стакан или еда у кассира на рабочем месте."""
     raw = [_fmin(s.cup_or_food, s.cashier_present) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
@@ -333,7 +425,7 @@ def drink_at_workplace(scene: SceneTimeline, params: Mapping[str, Any]) -> list[
 
 
 def phone_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R07: телефон в руке кассира."""
+    """R06: телефон в руке кассира."""
     raw = [_fmin(s.phone_in_hand, s.cashier_present) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
@@ -343,8 +435,19 @@ def phone_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> list[
 
 
 def left_during_service(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R08: в кассе посетитель, кассира нет на рабочем месте."""
-    raw = [_fmin(_away(s), (1.0 if s.others else 0.0) if s.persons_in_room is not None else None)
+    """R01: в кассе посетитель, кассира нет на рабочем месте.
+
+    Кассир у сейфа рабочее место не покидал: по п. 20 Правил № 231 сейф находится на рабочем месте.
+    """
+    safe_zone = _expand(scene.zones.get("safe"), float(params.get("safe_margin", 0.05)))
+    near_share = float(params.get("near_safe_overlap", 0.15))
+
+    def away(s: SceneState) -> Optional[float]:
+        if safe_zone is not None and s.cashier_bbox is not None and _overlap(s.cashier_bbox, safe_zone) >= near_share:
+            return 0.0
+        return _away(s)
+
+    raw = [_fmin(away(s), (1.0 if s.others else 0.0) if s.persons_in_room is not None else None)
            for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
@@ -358,6 +461,7 @@ DETECTORS: dict[str, Callable[[SceneTimeline, Mapping[str, Any]], list[Event]]] 
     "storage_left_open": storage_left_open,
     "valuables_unattended": valuables_unattended,
     "outsider_in_cash_room": outsider_in_cash_room,
+    "entry_with_cash_on_desk": entry_with_cash_on_desk,
     "collection_inside": collection_inside,
     "drink_at_workplace": drink_at_workplace,
     "phone_in_cash_room": phone_in_cash_room,

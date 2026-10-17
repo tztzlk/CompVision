@@ -22,7 +22,7 @@ def test_rules_yaml_loads_all_enabled(rules):
     ids = [r.id for r in rules]
     assert ids == ["R01_left_during_service", "R02_cash_unattended", "R06_phone_at_workplace",
                    "R09_personal_items", "R10_storage_left_open", "R11_outsider_in_cash_room",
-                   "R12_collection_inside", "R13_drink_at_workplace"]
+                   "R14_cash_on_desk_at_entry", "R12_collection_inside", "R13_drink_at_workplace"]
     assert all(r.detector in det.DETECTORS for r in rules)
     assert {r.detector for r in rules} == set(det.DETECTORS)   # каждый детектор реестра в работе
     assert all(r.source.url.startswith("https://adilet.zan.kz/") for r in rules)
@@ -31,7 +31,8 @@ def test_rules_yaml_loads_all_enabled(rules):
 @pytest.mark.parametrize(
     ("name", "rule_id", "t_label"),
     [("X20", "R10_storage_left_open", 5.0), ("X40", "R09_personal_items", 17.0),
-     ("X15", "R02_cash_unattended", 15.0), ("X18", "R11_outsider_in_cash_room", 20.0)],
+     ("X15", "R02_cash_unattended", 15.0), ("X18", "R11_outsider_in_cash_room", 20.0),
+     ("X30", "R11_outsider_in_cash_room", 13.0), ("X4", "R14_cash_on_desk_at_entry", 57.0)],
 )
 def test_positive_fixtures(rules, name, rule_id, t_label):
     events = _events(rules, name)
@@ -43,8 +44,10 @@ def test_positive_fixtures(rules, name, rule_id, t_label):
     assert len(ev.facts["frames"]) == len(ev.evidence_timestamps_sec)
 
 
-def test_hard_negative_x23(rules):
-    assert _events(rules, "X23") == []
+@pytest.mark.parametrize("name", ["X23", "X3"])
+def test_hard_negatives(rules, name):
+    """Х-23: кассир у закрытого сейфа; Х-3: клиент входит и садится напротив, на столе пусто."""
+    assert _events(rules, name) == []
 
 
 def test_result_is_valid(rules, tmp_path, synthetic_video):

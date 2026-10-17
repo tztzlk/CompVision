@@ -28,6 +28,7 @@ from worker.perception.geometry import (
     expand,
     height,
     ioa,
+    iou,
     median_box,
     pad,
 )
@@ -56,6 +57,10 @@ class SceneConfig:
     track_new_score: float = 0.5
     stitch_gap_sec: float = 1.0         # трек, пропавший не дольше, склеивается со следующим
     stitch_center_dist: float = 0.15
+    # Трек, появившийся далеко от двери, — тот же человек, которого перекрыли (клиента за кассиром,
+    # кассира у сейфа): склеивается с треком, потерянным на том же месте, и при разрыве до этого.
+    stitch_far_gap_sec: float = 8.0
+    stitch_far_iou: float = 0.3
     min_track_points: int = 2
     # внутри кассы / за стеклом
     inside_height_ratio: float = 0.5    # высота рамки >= доли типичной высоты человека в кассе
@@ -73,6 +78,7 @@ class SceneConfig:
     entry_grace_sec: float = 0.7        # кто в кадре с самого начала — не «вошёл»
     exit_grace_sec: float = 0.7
     min_event_track_sec: float = 0.6    # трек внутри короче — не порождает вход/выход
+    min_room_sec: float = 1.0           # после входа человек пробыл в комнате вне зоны двери не меньше
     # предметы
     hand_margin: float = 0.15           # расширение рамки кассира: «предмет в руке»
     # зоны и zero-shot
@@ -115,22 +121,31 @@ class _TrackInfo:
 # --------------------------------------------------------------------------- треки
 
 
-def stitch_tracks(tracks: Sequence[Track], config: SceneConfig) -> list[Track]:
+def stitch_tracks(tracks: Sequence[Track], config: SceneConfig, door: Optional[BBox] = None) -> list[Track]:
     """Склеить трек с более ранним, если тот пропал не дольше stitch_gap_sec назад рядом.
 
+    Трек, который начинается далеко от двери (door — зона двери; None — правило не действует),
+    склеивается и с треком, потерянным до stitch_far_gap_sec назад на том же месте (IoU рамок):
+    люди не появляются посреди комнаты — это тот же человек после перекрытия.
     Возвращает новые объекты Track (входные не меняются); id склеенного — id более раннего.
     """
+    door_zone = pad(door, config.door_margin) if door else None
     ordered = sorted((Track(t.track_id, list(t.points)) for t in tracks if t.points), key=lambda tr: tr.first_t)
     merged: list[Track] = []
     for track in ordered:
         best: Optional[Track] = None
         best_dist = math.inf
+        far_from_door = door_zone is not None and not _near_door(track.points[0].bbox, door_zone, config)
         for candidate in merged:
             gap = track.first_t - candidate.last_t
-            if gap <= 0 or gap > config.stitch_gap_sec:
+            if gap <= 0:
                 continue
-            dist = center_dist(candidate.points[-1].bbox, track.points[0].bbox)
-            if dist <= config.stitch_center_dist and dist < best_dist:
+            last, first = candidate.points[-1].bbox, track.points[0].bbox
+            dist = center_dist(last, first)
+            near = gap <= config.stitch_gap_sec and dist <= config.stitch_center_dist
+            same_place = (far_from_door and gap <= config.stitch_far_gap_sec
+                          and (iou(last, first) >= config.stitch_far_iou or dist <= config.stitch_center_dist))
+            if (near or same_place) and dist < best_dist:
                 best, best_dist = candidate, dist
         if best is None:
             merged.append(track)
@@ -147,11 +162,19 @@ def _reference_height(tracks: Sequence[Track]) -> float:
     return max(median(height(p.bbox) for p in t.points) for t in long_tracks)
 
 
-def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config: SceneConfig) -> list[bool]:
+def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config: SceneConfig,
+                  door: Optional[BBox] = None) -> list[bool]:
     """Внутри кассы ли человек в каждой точке трека (сглажено большинством по 3 точкам).
 
     Люди за стеклом и отражения — мелкие рамки, низ которых выше верхнего края стола.
+    Человек, который весь трек остаётся в зоне стеклянной двери и ни разу не становится крупным,
+    виден сквозь стекло (door — зона двери): он целиком снаружи.
     """
+    if door is not None and ref_height > 0:
+        door_zone = pad(door, config.door_margin)
+        small = all(height(p.bbox) < config.inside_height_ratio * ref_height for p in track.points)
+        if small and all(_near_door(p.bbox, door_zone, config) for p in track.points):
+            return [False] * len(track.points)
     raw = []
     for point in track.points:
         by_height = ref_height > 0 and height(point.bbox) >= config.inside_height_ratio * ref_height
@@ -237,26 +260,46 @@ def _mark_extra_cashiers(infos: Sequence[_TrackInfo], cashier: _TrackInfo, workp
 
 def _near_door(box: BBox, door_zone: Optional[BBox], config: SceneConfig) -> bool:
     if door_zone is None:
-        return True        # дверь не найдена: вход/выход — по появлению и исчезновению трека
+        return False       # дверь не найдена: входов и выходов нет (предупреждение в meta.scene.warnings)
     cx, cy = center(box)
     return contains_point(door_zone, cx, cy) or ioa(box, door_zone) >= config.door_min_ioa
 
 
+@dataclass(frozen=True)
+class DoorEvent:
+    """Вход или выход через дверь: позиция кадра, трек, кассир ли это."""
+
+    pos: int
+    track_id: int
+    cashier: bool
+
+
 def _door_events(infos: Sequence[_TrackInfo], door: Optional[BBox], duration: float,
-                 config: SceneConfig) -> tuple[set[int], set[int]]:
-    """Позиции кадров, где кто-то вошёл (первая точка внутри у двери) и вышел (последняя у двери)."""
+                 config: SceneConfig) -> tuple[list[DoorEvent], list[DoorEvent]]:
+    """Входы и выходы через дверь.
+
+    Вход: первая точка трека внутри у двери, и человек хотя бы min_room_sec находится в комнате
+    вне зоны двери. Выход — последняя точка у двери при том же условии. Человек, который только
+    мелькнул в проёме или прошёл за стеклом, не входил.
+    """
     door_zone = pad(door, config.door_margin) if door else None
-    entered: set[int] = set()
-    exited: set[int] = set()
+    entered: list[DoorEvent] = []
+    exited: list[DoorEvent] = []
+    if door_zone is None:
+        return entered, exited
     for info in infos:
         points = info.inside_points()
         if not points or points[-1].t - points[0].t < config.min_event_track_sec:
             continue
+        in_room = [p for p in points if not _near_door(p.bbox, door_zone, config)]
+        if not in_room or in_room[-1].t - in_room[0].t + 1e-6 < config.min_room_sec:
+            continue
         first, last = points[0], points[-1]
+        cashier = info.role == "cashier"
         if first.t > config.entry_grace_sec and _near_door(first.bbox, door_zone, config):
-            entered.add(first.frame_index)
+            entered.append(DoorEvent(first.frame_index, info.track.track_id, cashier))
         if last.t < duration - config.exit_grace_sec and _near_door(last.bbox, door_zone, config):
-            exited.add(last.frame_index)
+            exited.append(DoorEvent(last.frame_index, info.track.track_id, cashier))
     return entered, exited
 
 
@@ -339,11 +382,11 @@ def assemble_timeline(
     if desk is None:
         warnings.append("стол не найден: кассир выбран по размеру и длительности трека, предметы на столе = null")
     if door is None:
-        warnings.append("дверь не найдена: вход и выход определяются по появлению и исчезновению трека")
+        warnings.append("дверь не найдена: входы и выходы не определяются")
 
-    stitched = [t for t in stitch_tracks(tracks, cfg) if len(t.points) >= cfg.min_track_points]
+    stitched = [t for t in stitch_tracks(tracks, cfg, door) if len(t.points) >= cfg.min_track_points]
     ref_height = _reference_height(stitched)
-    infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg)) for t in stitched]
+    infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door)) for t in stitched]
     for info in infos:
         _fill_frames(info, times, cfg)
 
@@ -355,7 +398,12 @@ def assemble_timeline(
         cashier.role = "cashier"
         workplace = _workplace(cashier, desk, cfg)
         _mark_extra_cashiers(infos, cashier, workplace, cfg)
-    entered, exited = _door_events(infos, door, duration, cfg)
+    entered_ev, exited_ev = _door_events(infos, door, duration, cfg)
+    entered = {e.pos for e in entered_ev}
+    exited = {e.pos for e in exited_ev}
+
+    def _ids(events: Sequence[DoorEvent], pos: int, cashier: bool) -> list[int]:
+        return sorted(e.track_id for e in events if e.pos == pos and e.cashier == cashier)
 
     raw_presence: list[Optional[float]] = []
     per_frame: list[tuple[int, Optional[BBox], tuple[Person, ...]]] = []
@@ -414,6 +462,13 @@ def assemble_timeline(
             ),
             phone_in_hand=_max_near(dets, PHONE_LABELS, hand_zone, cfg.object_score) if hand_zone else None,
             laptop_unlocked=zero_shot.get("laptop_unlocked"),
+            # Новые поля (правило 7 контракта): входы и выходы посетителей (не кассира) и уход кассира.
+            extra={
+                "visitor_entered_ids": _ids(entered_ev, pos, False),
+                "visitor_exited_ids": _ids(exited_ev, pos, False),
+                "cashier_left_room": bool(_ids(exited_ev, pos, True)),
+                "cashier_returned": bool(_ids(entered_ev, pos, True)),
+            },
         ))
 
     out_zones: dict[str, Optional[BBox]] = {name: zones.get(name) for name in ZONE_NAMES}
