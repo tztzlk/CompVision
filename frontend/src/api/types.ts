@@ -41,7 +41,7 @@ export interface AnalyzeResponse {
 
 /** Класс ошибки, понятный UI. */
 export type ApiErrorKind =
-  | "unauthorized" // 401
+  | "unauthorized" // 401: nginx не подставил верный API_KEY (ошибка конфигурации сервера)
   | "too_large" // 413
   | "unsupported" // 415
   | "not_found" // 404
@@ -66,8 +66,8 @@ export class ApiError extends Error {
 
 /** Единый интерфейс API-клиента: настоящая реализация (client.ts) и мок (mock.ts). */
 export interface ApiClient {
-  analyze(file: File, apiKey: string, signal?: AbortSignal): Promise<AnalyzeResponse>;
-  getJob(jobId: string, apiKey: string, signal?: AbortSignal): Promise<AnalysisResult>;
+  analyze(file: File, signal?: AbortSignal): Promise<AnalyzeResponse>;
+  getJob(jobId: string, signal?: AbortSignal): Promise<AnalysisResult>;
 }
 
 export function isAbortError(e: unknown): boolean {

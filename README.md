@@ -6,9 +6,9 @@
 
 ## Архитектура
 
-Три контейнера, наружу открыт один порт (`FRONTEND_PORT`, по умолчанию `8080`):
+Три контейнера, наружу открыт один порт (`FRONTEND_PORT`, по умолчанию `8080`). Backend и worker работают в сети Docker без выхода в интернет (`internal: true`): у них нет маршрута наружу, поэтому локальность по п. 7 ТЗ обеспечена технически, а не только обещана. Интернет нужен только при сборке образов и для однократного скачивания весов на хосте.
 
-- **frontend** — Vite SPA, раздаётся nginx. nginx проксирует `/api` и `/health` на backend; UI и API живут на одном адресе.
+- **frontend** — Vite SPA, раздаётся nginx. nginx проксирует `/api` и `/health` на backend; UI и API живут на одном адресе. Интерфейс ходит на `/ui-api`: nginx переписывает путь в `/api` и сам подставляет `X-API-Key`, поэтому проверяющему ключ не нужен.
 - **backend** — FastAPI. Умеет три вещи: создать задачу (`POST /api/v1/analyze`), прочитать задачу (`GET /api/v1/jobs/{job_id}`) и отдать файл задачи (`GET /api/v1/jobs/{job_id}/files/{filename}`). К очереди (захват задач, ошибки, таймауты) не обращается. Все запросы к `/api` защищены заголовком `X-API-Key`.
 - **worker** — GPU-контейнер, единственный владелец очереди: забирает задачи из общей SQLite, извлекает кадры через ffmpeg, прогоняет локальные модели из `/models` (только чтение), пишет результат в базу, переводит зависшие дольше `JOB_TIMEOUT_SEC` задачи в `failed`. Нормативные правила читает из `rules.yaml` (`RULES_PATH`).
 - **shared/** — общий для backend и worker Python-пакет: схемы ответа (`shared/schemas.py`) и весь SQL очереди (`shared/db.py`, sqlite3 + WAL). Копируется в оба образа; сборка обоих идёт из корня репозитория с единым корневым `.dockerignore`.
@@ -70,7 +70,7 @@ openssl rand -hex 32   # сгенерировать API_KEY и вписать в
 
 | Переменная        | По умолчанию | Назначение |
 |-------------------|--------------|------------|
-| `API_KEY`         | — (обязательна) | Ключ для жюри. Передаётся в заголовке `X-API-Key`; запросы без верного ключа отклоняются. |
+| `API_KEY`         | — (обязательна) | Ключ для жюри. Передаётся в заголовке `X-API-Key`; запросы без верного ключа отклоняются. Его же nginx подставляет в запросы интерфейса. |
 | `FRONTEND_PORT`   | `8080`       | Единственный порт, открытый наружу (UI и API). |
 | `WORKER_DEVICE`   | `cuda`       | Устройство инференса: `cuda` или `cpu`. |
 | `LOG_LEVEL`       | `info`       | Уровень логирования backend и worker. |
@@ -195,6 +195,30 @@ PYTHONPATH=. python -m worker.main                                          # т
 
 Наружу открыт только порт `FRONTEND_PORT`. Для HTTPS поставьте перед ним reverse-proxy (Caddy, nginx) или туннель. UI и API доступны по одному адресу: `https://<host>/` и `https://<host>/api/v1/...`. Жюри передаются адрес сервиса и значение `API_KEY`.
 
+### 9. Веб-интерфейс
+
+Откройте `http://localhost:8080/` и загрузите `.mov`. Вводить ключ не нужно: интерфейс ходит на `/ui-api`, а nginx подставляет `API_KEY` сам. В браузер и в сборку ключ не попадает.
+
+Путь `/ui-api` работает без ключа для любого, кто видит адрес сервиса. Это осознанный выбор: по FAQ п. 27 авторизация в интерфейсе не требуется. Путь `/api` для жюри по-прежнему требует ключ.
+
+Для `npm run dev` задайте ключ в окружении, dev-прокси Vite подставит его так же, как nginx: `API_KEY=<ключ> npm run dev`.
+
+Моковый режим для вёрстки без сервера включается параметром `?mock=1` в адресе или переменной `VITE_MOCK=1` при `npm run dev`. Сценарий задаёт имя файла: `clean` даёт «нарушение не обнаружено», `fail` даёт ошибку обработки, `offline` имитирует недоступный сервер.
+
+```bash
+cd frontend && npm ci && VITE_MOCK=1 npm run dev
+```
+
+### 10. Оценка на датасете
+
+Скрипт прогоняет пайплайн напрямую, без HTTP и базы, и сравнивает результат с `dataset/annotations.csv`. Он печатает TP, FN, FP, TN по вердикту на видео и долю эталонных таймкодов, попавших в ±3 с.
+
+```bash
+PYTHONPATH=. python scripts/evaluate.py --dataset dataset/ --tolerance 3 --json eval.json
+```
+
+Нужны ffmpeg и зависимости из `worker/requirements.txt`. Пока пайплайна нет, оценивается мок: он ставит нарушение на каждое видео.
+
 ## Структура репозитория
 
 ```text
@@ -210,7 +234,7 @@ PYTHONPATH=. python -m worker.main                                          # т
 │   └── main.py              # точка входа: python -m worker.main
 ├── frontend/                # Vite SPA + nginx (прокси /api, /health → backend), свой .dockerignore
 │   ├── Dockerfile
-│   ├── nginx.conf
+│   ├── nginx.conf.template  # nginx: /api для жюри, /ui-api для интерфейса с подстановкой ключа
 │   ├── package.json         # npm run build → dist/
 │   ├── package-lock.json    # фиксированные версии npm-зависимостей
 │   └── src/
@@ -235,7 +259,7 @@ docker compose exec worker nvidia-smi
 
 Если команда не работает — установите NVIDIA Container Toolkit и перезапустите Docker (`sudo systemctl restart docker`). Проверьте, что блок `deploy` у `worker` в `docker-compose.yml` не закомментирован и `WORKER_DEVICE=cuda`.
 
-**413 Request Entity Too Large при загрузке.** Увеличьте `client_max_body_size` в `frontend/nginx.conf` и `MAX_UPLOAD_MB` в `.env`, затем пересоберите frontend.
+**413 Request Entity Too Large при загрузке.** Увеличьте `client_max_body_size` в `frontend/nginx.conf.template` и `MAX_UPLOAD_MB` в `.env`, затем пересоберите frontend.
 
 **Изменили `rules.yaml`, а результат прежний.** Правила читаются при старте worker: `docker compose restart worker`.
 

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError, isAbortError, MOCK_MODE, type AnalysisResult } from "./api";
-import { ApiKeyField } from "./components/ApiKeyField";
 import { ImageModal } from "./components/ImageModal";
 import { ResultView } from "./components/ResultView";
 import { StatusPanel } from "./components/StatusPanel";
@@ -11,7 +10,6 @@ import { formatClock, formatSize, isMovFile } from "./format";
 const POLL_INTERVAL_MS = 2000;
 /** Подряд неудачных опросов (сеть/5xx), после которых показываем ошибку. */
 const MAX_POLL_FAILURES = 5;
-const KEY_STORAGE = "compvision.apiKey";
 
 type Retry = "poll" | "upload" | "none";
 
@@ -31,29 +29,12 @@ type Phase =
       startedAt: number | null;
     };
 
-function readStoredKey(): string {
-  try {
-    return sessionStorage.getItem(KEY_STORAGE) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function storeKey(value: string) {
-  try {
-    if (value) sessionStorage.setItem(KEY_STORAGE, value);
-    else sessionStorage.removeItem(KEY_STORAGE);
-  } catch {
-    /* хранилище недоступно — ключ живёт только в памяти */
-  }
-}
-
 function describeError(e: ApiError, stage: "upload" | "poll"): { title: string; text: string; retry: Retry } {
   switch (e.kind) {
     case "unauthorized":
       return {
-        title: "API-ключ не принят",
-        text: "Сервер ответил 401: ключ отсутствует или неверен. Введите действующий ключ в поле «API-ключ» и повторите.",
+        title: "Сервис не настроен",
+        text: "Сервер отклонил запрос (401): на сервере не настроен ключ доступа. Обратитесь к администратору сервиса.",
         retry: stage === "poll" ? "poll" : "upload",
       };
     case "too_large":
@@ -99,8 +80,6 @@ function describeError(e: ApiError, stage: "upload" | "poll"): { title: string; 
 }
 
 export default function App() {
-  const [apiKey, setApiKey] = useState<string>(readStoredKey);
-  const [keyRejected, setKeyRejected] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
@@ -110,25 +89,10 @@ export default function App() {
   const [previewOk, setPreviewOk] = useState(true);
   const [modal, setModal] = useState<{ src: string; caption: string } | null>(null);
 
-  const apiKeyRef = useRef(apiKey);
-  apiKeyRef.current = apiKey;
-  const keyInputRef = useRef<HTMLInputElement>(null);
   const verdictRef = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLHeadingElement>(null);
   const previewRef = useRef<VideoPreviewHandle>(null);
   const uploadCtrlRef = useRef<AbortController | null>(null);
-
-  const changeKey = useCallback((value: string) => {
-    setApiKey(value);
-    storeKey(value.trim());
-    setKeyRejected(false);
-  }, []);
-
-  const rejectKey = useCallback(() => {
-    setKeyRejected(true);
-    storeKey("");
-    window.setTimeout(() => keyInputRef.current?.focus(), 0);
-  }, []);
 
   // Локальное превью исходного файла.
   useEffect(() => {
@@ -173,7 +137,7 @@ export default function App() {
 
     async function tick() {
       try {
-        const res = await api.getJob(jobId, apiKeyRef.current.trim(), ctrl.signal);
+        const res = await api.getJob(jobId, ctrl.signal);
         if (cancelled) return;
         failures = 0;
         setServerWarning(false);
@@ -196,7 +160,6 @@ export default function App() {
           }
         }
         setServerWarning(false);
-        if (err.kind === "unauthorized") rejectKey();
         const d = describeError(err, "poll");
         setPhase({ kind: "error", ...d, detail: err.detail, jobId, startedAt: pollStartedAt });
       }
@@ -208,12 +171,12 @@ export default function App() {
       window.clearTimeout(timer);
       ctrl.abort();
     };
-  }, [pollJobId, pollAttempt, pollStartedAt, rejectKey]);
+  }, [pollJobId, pollAttempt, pollStartedAt]);
 
   // Фокус на результат/ошибку при смене экрана.
   useEffect(() => {
     if (phase.kind === "done" || phase.kind === "failed") verdictRef.current?.focus();
-    if (phase.kind === "error" && !keyRejected) errorRef.current?.focus();
+    if (phase.kind === "error") errorRef.current?.focus();
   }, [phase.kind]);
 
   const chooseFile = useCallback((f: File) => {
@@ -230,11 +193,6 @@ export default function App() {
 
   const submit = useCallback(async () => {
     if (!file || fileError) return;
-    const key = apiKeyRef.current.trim();
-    if (!key) {
-      rejectKey();
-      return;
-    }
     uploadCtrlRef.current?.abort();
     const ctrl = new AbortController();
     uploadCtrlRef.current = ctrl;
@@ -242,19 +200,18 @@ export default function App() {
     setServerWarning(false);
     setPhase({ kind: "uploading", startedAt });
     try {
-      const res = await api.analyze(file, key, ctrl.signal);
+      const res = await api.analyze(file, ctrl.signal);
       if (ctrl.signal.aborted) return;
       setPhase({ kind: "processing", jobId: res.job_id, startedAt, attempt: 0 });
     } catch (e) {
       if (isAbortError(e) || ctrl.signal.aborted) return;
       const err = e instanceof ApiError ? e : new ApiError("unavailable", null, null);
-      if (err.kind === "unauthorized") rejectKey();
       const d = describeError(err, "upload");
       setPhase({ kind: "error", ...d, detail: err.detail, jobId: null, startedAt: null });
     } finally {
       if (uploadCtrlRef.current === ctrl) uploadCtrlRef.current = null;
     }
-  }, [file, fileError, rejectKey]);
+  }, [file, fileError]);
 
   const reset = useCallback(() => {
     uploadCtrlRef.current?.abort();
@@ -278,7 +235,6 @@ export default function App() {
   const closeModal = useCallback(() => setModal(null), []);
   const seek = useCallback((sec: number) => previewRef.current?.seek(sec), []);
 
-  const hasKey = apiKey.trim().length > 0;
   const elapsedSec =
     phase.kind === "uploading" || phase.kind === "processing" ? Math.max(0, (now - phase.startedAt) / 1000) : 0;
   const showPreview = phase.kind === "done" && !!previewUrl && previewOk;
@@ -313,7 +269,7 @@ export default function App() {
       {MOCK_MODE && (
         <div className="mock-banner" role="note">
           МОК-режим: сервер не используется, результаты синтетические. Имя файла задаёт сценарий: «clean», «fail»,
-          «offline»; ключ «invalid» имитирует 401.
+          «offline».
         </div>
       )}
       <header className="app-header">
@@ -333,10 +289,8 @@ export default function App() {
           {liveStatus}
         </div>
 
-        <ApiKeyField ref={keyInputRef} value={apiKey} onChange={changeKey} rejected={keyRejected} />
-
         {phase.kind === "idle" && (
-          <UploadForm file={file} error={fileError} canSubmit={hasKey} onFile={chooseFile} onSubmit={submit} />
+          <UploadForm file={file} error={fileError} canSubmit onFile={chooseFile} onSubmit={submit} />
         )}
 
         {(phase.kind === "uploading" || phase.kind === "processing") && file && (
@@ -398,12 +352,12 @@ export default function App() {
             )}
             <div className="actions">
               {phase.retry === "poll" && (
-                <button type="button" className="btn btn-primary" onClick={retryPoll} disabled={!hasKey}>
+                <button type="button" className="btn btn-primary" onClick={retryPoll}>
                   Проверить снова
                 </button>
               )}
               {phase.retry === "upload" && file && (
-                <button type="button" className="btn btn-primary" onClick={submit} disabled={!hasKey}>
+                <button type="button" className="btn btn-primary" onClick={submit}>
                   Отправить снова
                 </button>
               )}

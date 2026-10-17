@@ -31,6 +31,9 @@ services:
       # Контекст — корень репозитория: в образ копируется общий пакет shared/ (см. корневой .dockerignore).
       context: .
       dockerfile: backend/Dockerfile
+      # Сборка в сети хоста: на этой машине NAT моста Docker не выпускает контейнеры в интернет,
+      # а при сборке нужны apt/pip/npm. Работающим сервисам интернет не нужен (офлайн по ТЗ п.7).
+      network: host
     image: fortebank-cv/backend:local
     env_file: *env-file
     environment:
@@ -41,6 +44,9 @@ services:
     volumes:
       - app-data:/data
       - ./models:/models:ro
+    # Только внутренняя сеть: выхода в интернет нет (ТЗ п.7), снаружи недоступен.
+    networks:
+      - internal
     restart: unless-stopped
     healthcheck:
       test:
@@ -58,6 +64,9 @@ services:
       # Контекст — корень репозитория: в образ копируется общий пакет shared/ (см. корневой .dockerignore).
       context: .
       dockerfile: worker/Dockerfile
+      # Сборка в сети хоста: на этой машине NAT моста Docker не выпускает контейнеры в интернет,
+      # а при сборке нужны apt/pip/npm. Работающим сервисам интернет не нужен (офлайн по ТЗ п.7).
+      network: host
     image: fortebank-cv/worker:local
     env_file: *env-file
     environment:
@@ -78,6 +87,9 @@ services:
     shm_size: "2gb"
     # SIGTERM -> worker дорабатывает текущую задачу и выходит; без этого через 10 с придёт SIGKILL.
     stop_grace_period: 120s
+    # Только внутренняя сеть: worker физически не может ничего скачать или отправить наружу.
+    networks:
+      - internal
     restart: unless-stopped
     # --- GPU ---
     # Требует NVIDIA Container Toolkit на хосте. Для docker compose v2 блок deploy работает без swarm.
@@ -96,21 +108,42 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # Сборка в сети хоста: на этой машине NAT моста Docker не выпускает контейнеры в интернет,
+      # а при сборке нужны apt/pip/npm. Работающим сервисам интернет не нужен (офлайн по ТЗ п.7).
+      network: host
       args:
-        VITE_API_BASE_URL: /api
+        # UI ходит на /ui-api/: nginx переписывает в /api/ и сам подставляет X-API-Key.
+        VITE_API_BASE_URL: /ui-api
     image: fortebank-cv/frontend:local
+    environment:
+      # Ключ нужен nginx, чтобы подставлять его в запросы интерфейса (frontend/nginx.conf.template).
+      API_KEY: ${API_KEY:?API_KEY is required - set it in .env}
+      # envsubst подставляет только API_KEY и не трогает переменные nginx ($host и т.п.).
+      NGINX_ENVSUBST_FILTER: "^API_KEY$"
     # Единственный сервис, опубликованный наружу.
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
       backend:
         condition: service_healthy
+    # internal — чтобы видеть backend; edge — чтобы опубликовать порт наружу.
+    networks:
+      - internal
+      - edge
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 15s
       timeout: 5s
       retries: 5
+
+networks:
+  # Сеть без выхода в интернет: backend, worker и nginx общаются между собой,
+  # но ни один контейнер в ней не может обратиться наружу. Это и есть офлайн-режим по ТЗ п.7.
+  internal:
+    internal: true
+  # Обычная сеть только для публикации порта frontend (FRONTEND_PORT) наружу.
+  edge: {}
 
 volumes:
   # Общий named volume для backend и worker (оба видят один и тот же /data):

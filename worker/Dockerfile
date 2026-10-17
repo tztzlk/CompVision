@@ -34,10 +34,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Python 3.11 из deadsnakes PPA без software-properties-common (экономим ~100 МБ):
 # ключ PPA + файл в sources.list.d. curl/gnupg нужны только для ключа — удаляем в том же слое.
 # ffmpeg — декодирование видео; libgl1/libglib2.0-0 — runtime-зависимости opencv-python.
-RUN apt-get update \
+# Репозиторий CUDA из базового образа не нужен (CUDA уже внутри) и лишь добавляет точку отказа сети.
+# Acquire::Retries — повторы при обрывах связи.
+RUN rm -f /etc/apt/sources.list.d/cuda*.list \
+    && echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
+    && apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
     && mkdir -p /etc/apt/keyrings \
-    && curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF23C5A6CF475977595C89F51BA6932366A755776" \
+    && curl -fsSL --retry 5 --retry-all-errors "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF23C5A6CF475977595C89F51BA6932366A755776" \
         | gpg --dearmor -o /etc/apt/keyrings/deadsnakes.gpg \
     && echo "deb [signed-by=/etc/apt/keyrings/deadsnakes.gpg] https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu jammy main" \
         > /etc/apt/sources.list.d/deadsnakes.list \
@@ -57,7 +61,7 @@ RUN apt-get update \
 # (wheel'ы pip/setuptools поставляются пакетом python3.11-venv) и выводим его в PATH:
 # python / pip в образе по умолчанию = Python 3.11 из venv, системный /usr/bin/python3 не трогаем.
 RUN python3.11 -m venv /opt/venv \
-    && /opt/venv/bin/python -m pip install --no-cache-dir --upgrade pip setuptools wheel
+    && /opt/venv/bin/python -m pip install --no-cache-dir --retries 10 --timeout 60 --upgrade pip setuptools wheel
 ENV VIRTUAL_ENV=/opt/venv \
     PATH=/opt/venv/bin:$PATH
 
@@ -72,7 +76,7 @@ WORKDIR /app
 # Зависимости отдельным слоем ДО кода (torch/ultralytics и т.п. — тяжёлый слой, кэшируется).
 # CUDA-сборки torch берутся через --extra-index-url внутри requirements.txt (если нужно).
 COPY worker/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --retries 10 --timeout 60 -r requirements.txt
 
 # Общий код backend/worker (схемы ответа, SQL) -> /app/shared.
 COPY --chown=app:app shared ./shared

@@ -1,4 +1,7 @@
 // Настоящий HTTP-клиент по разделу 9 контракта.
+// Ключ браузер НЕ отправляет: UI ходит на /ui-api/, nginx переписывает путь в /api/
+// и сам подставляет X-API-Key из API_KEY (frontend/nginx.conf.template). Путь /api/ для жюри
+// по-прежнему требует ключ в заголовке.
 import {
   ApiError,
   type AnalysisResult,
@@ -8,7 +11,7 @@ import {
   isAbortError,
 } from "./types";
 
-export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "/api";
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? "/ui-api";
 
 function joinUrl(base: string, path: string): string {
   return base.replace(/\/+$/, "") + path;
@@ -73,12 +76,11 @@ async function request<T>(url: string, init: RequestInit): Promise<T> {
 
 export function createHttpClient(base: string = API_BASE_URL): ApiClient {
   return {
-    async analyze(file, apiKey, signal) {
+    async analyze(file, signal) {
       const form = new FormData();
       form.append("file", file, file.name);
       const data = await request<AnalyzeResponse>(joinUrl(base, "/v1/analyze"), {
         method: "POST",
-        headers: { "X-API-Key": apiKey },
         body: form,
         signal,
       });
@@ -88,10 +90,10 @@ export function createHttpClient(base: string = API_BASE_URL): ApiClient {
       return data;
     },
 
-    async getJob(jobId, apiKey, signal) {
+    async getJob(jobId, signal) {
       const data = await request<AnalysisResult>(
         joinUrl(base, `/v1/jobs/${encodeURIComponent(jobId)}`),
-        { method: "GET", headers: { "X-API-Key": apiKey, Accept: "application/json" }, signal, cache: "no-store" },
+        { method: "GET", headers: { Accept: "application/json" }, signal, cache: "no-store" },
       );
       if (!data || typeof data.status !== "string") {
         throw new ApiError("bad_response", 200, null, "no status");

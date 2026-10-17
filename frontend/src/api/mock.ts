@@ -6,7 +6,7 @@
 //   содержит "fail"    -> failed
 //   содержит "offline" -> сервер «недоступен» во время опроса статуса
 //   иначе              -> done / violation, 3 нарушения
-// Ключ "invalid" имитирует 401. Задержка обработки ~6 с (через processing).
+// Задержка обработки ~6 с (через processing).
 import {
   ApiError,
   type AnalysisResult,
@@ -143,28 +143,20 @@ function buildViolations(): Violation[] {
 export function createMockClient(): ApiClient {
   const jobs = new Map<string, MockJob>();
 
-  function checkKey(apiKey: string) {
-    if (!apiKey || apiKey.trim().toLowerCase() === "invalid") {
-      throw new ApiError("unauthorized", 401, "Неверный или отсутствующий API-ключ (мок)");
-    }
-  }
-
   return {
-    async analyze(file, apiKey, signal) {
+    async analyze(file, signal) {
       await sleep(600, signal);
-      checkKey(apiKey);
       const id = randomId();
       jobs.set(id, { id, scenario: scenarioFor(file.name), createdAt: Date.now(), result: null });
       return { job_id: id, status: "processing" };
     },
 
-    async getJob(jobId, apiKey, signal) {
+    async getJob(jobId, signal) {
       await sleep(250, signal);
       const job = jobs.get(jobId);
       if (job?.scenario === "offline") {
         throw new ApiError("unavailable", 503, null, "mock offline");
       }
-      checkKey(apiKey);
       if (!job) throw new ApiError("not_found", 404, "Задача не найдена (мок)");
       if (Date.now() - job.createdAt < PROCESSING_MS) {
         return { job_id: jobId, status: "processing", violations: [] };
