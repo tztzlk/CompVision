@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 from dataclasses import dataclass
 from statistics import mean, median
@@ -357,6 +358,8 @@ def outsider_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> li
 
     Вход — только через дверь (visitor_entered_ids); клиент, который садится напротив кассира,
     — не посторонний. Вход при наличных на столе — отдельное правило R14 (entry_with_cash_on_desk).
+    Условие (а) проверяется и без засчитанного входа: в комнате больше max_persons_normal человек
+    не меньше third_min_sec подряд (вход третьего мог не попасть в кадр или не распознаться).
     """
     states = scene.states
     if not states:
@@ -368,8 +371,9 @@ def outsider_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> li
     min_dur = _param(params, "min_duration_sec")
     step = 1.0 / scene.fps_sampled
 
+    gap = _param(params, "merge_gap_sec")
     events: list[Event] = []
-    for i, ids in _merge_entries(scene, _entries(scene), _param(params, "merge_gap_sec")):
+    for i, ids in _merge_entries(scene, _entries(scene), gap):
         after = _stays(scene, i, max(min_dur, 1.0))
         if after is None:
             continue                                   # вошедший не задержался в кассе
@@ -400,6 +404,22 @@ def outsider_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> li
                 "frames": [states[k].frame for k in idx],
             },
         ))
+
+    third_min = float(params.get("third_min_sec", 0.0))
+    if third_min > 0:
+        crowd = [None if s.persons_in_room is None else (1.0 if s.persons_in_room > max_normal else 0.0)
+                 for s in states]
+
+        def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
+            n = max(sc.states[k].persons_in_room or 0 for k in range(iv.start, iv.end + 1))
+            return {"what_visible": f"в кассе {n} человека: кроме кассира и клиента ещё один",
+                    "bbox": _zone(sc, "workplace")}
+
+        crowd_params = {**params, "p_on": 0.5, "p_off": 0.5, "smooth_points": 3, "min_duration_sec": third_min}
+        for ev in _events_from_series(scene, crowd, crowd_params, describe):
+            if all(abs(ev.timecode_sec - e.timecode_sec) > gap for e in events):
+                events.append(dataclasses.replace(ev, confidence=0.85))
+    events.sort(key=lambda e: e.timecode_sec)
     return events
 
 

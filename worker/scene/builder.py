@@ -83,7 +83,14 @@ class SceneConfig:
     entry_grace_sec: float = 0.7        # кто в кадре с самого начала — не «вошёл»
     exit_grace_sec: float = 0.7
     min_event_track_sec: float = 0.6    # трек внутри короче — не порождает вход/выход
-    min_room_sec: float = 1.0           # после входа человек пробыл в комнате вне зоны двери не меньше
+    # Что считать входом через дверь (замер 17.10: «room» оставил входы в 4 видео из 42 — люди,
+    # вставшие у края стола рядом с дверью, не выходят из её расширенной зоны):
+    #   "stay" — первая точка у двери и человек пробыл внутри не меньше min_room_sec;
+    #   "move" — то же, плюс центр рамки сместился от точки входа хотя бы на entry_move × высоту рамки;
+    #   "room" — то же, плюс человек хотя бы min_room_sec вне зоны двери.
+    entry_mode: str = "stay"
+    min_room_sec: float = 1.0
+    entry_move: float = 0.5
     # предметы
     hand_margin: float = 0.15           # расширение рамки кассира: «предмет в руке»
     # зоны и zero-shot
@@ -290,6 +297,23 @@ def _near_door(box: BBox, door_zone: Optional[BBox], config: SceneConfig) -> boo
     return contains_point(door_zone, cx, cy) or ioa(box, door_zone) >= config.door_min_ioa
 
 
+def _went_in(points: Sequence[TrackPoint], door_zone: BBox, config: SceneConfig) -> bool:
+    """Человек действительно был в комнате, а не мелькнул в проёме (режим — SceneConfig.entry_mode)."""
+    if points[-1].t - points[0].t + 1e-6 < config.min_room_sec:
+        return False
+    if config.entry_mode == "room":
+        in_room = [p for p in points if not _near_door(p.bbox, door_zone, config)]
+        return bool(in_room) and in_room[-1].t - in_room[0].t + 1e-6 >= config.min_room_sec
+    if config.entry_mode == "move":
+        for end in (points[0], points[-1]):
+            others = points[1:] if end is points[0] else points[:-1]
+            h = max(height(end.bbox), 1e-6)
+            if any(center_dist(end.bbox, p.bbox) >= config.entry_move * h for p in others):
+                return True
+        return False
+    return True
+
+
 @dataclass(frozen=True)
 class DoorEvent:
     """Вход или выход через дверь: позиция кадра, трек, кассир ли это."""
@@ -303,9 +327,9 @@ def _door_events(infos: Sequence[_TrackInfo], door: Optional[BBox], duration: fl
                  config: SceneConfig) -> tuple[list[DoorEvent], list[DoorEvent]]:
     """Входы и выходы через дверь.
 
-    Вход: первая точка трека внутри у двери, и человек хотя бы min_room_sec находится в комнате
-    вне зоны двери. Выход — последняя точка у двери при том же условии. Человек, который только
-    мелькнул в проёме или прошёл за стеклом, не входил.
+    Вход: первая точка трека внутри у двери, и человек пробыл внутри не меньше min_room_sec;
+    режим entry_mode добавляет условие «сместился в комнату» (см. SceneConfig). Выход —
+    последняя точка у двери при том же условии.
     """
     door_zone = pad(door, config.door_margin) if door else None
     entered: list[DoorEvent] = []
@@ -316,8 +340,7 @@ def _door_events(infos: Sequence[_TrackInfo], door: Optional[BBox], duration: fl
         points = info.inside_points()
         if not points or points[-1].t - points[0].t < config.min_event_track_sec:
             continue
-        in_room = [p for p in points if not _near_door(p.bbox, door_zone, config)]
-        if not in_room or in_room[-1].t - in_room[0].t + 1e-6 < config.min_room_sec:
+        if not _went_in(points, door_zone, config):
             continue
         first, last = points[0], points[-1]
         cashier = info.role == "cashier"

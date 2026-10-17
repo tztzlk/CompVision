@@ -144,3 +144,13 @@ def test_light_jump_is_not_event(rules):
 
     jumped = dataclasses.replace(scene, states=tuple(lit(s) for s in scene.states))
     assert det.personal_items(jumped, r09.params) == []
+
+
+def test_third_person_without_entry(rules):
+    """Х-18 на кэше v1: в комнате трое, а вход не засчитан — R11 всё равно срабатывает."""
+    r11 = next(r for r in rules if r.id == "R11_outsider_in_cash_room")
+    scene = load_scene(FIXTURES / "scene_X18.json")
+    no_entry = tuple(dataclasses.replace(s, person_entered=False,
+                                         extra={**s.extra, "visitor_entered_ids": []}) for s in scene.states)
+    events = det.outsider_in_cash_room(dataclasses.replace(scene, states=no_entry), r11.params)
+    assert [round(e.timecode_sec) for e in events] == [20]

@@ -69,14 +69,18 @@ class BuilderTest(unittest.TestCase):
         self.assertEqual(scene.states[15].value("visitor_entered_ids"), [2])
         self.assertFalse(any(s.value("cashier_returned") for s in scene.states))
 
-    def test_no_entry_without_going_into_room(self) -> None:
-        """Человек только мелькнул в проёме двери — это не вход."""
+    def test_entry_modes(self) -> None:
+        """Х-18: вошедший встаёт у края стола рядом с дверью и не выходит из её зоны.
+        «stay» (по умолчанию) засчитывает вход; «room» — нет; мелькнувший на 0,3 с не входит ни в каком."""
         tracks = [
             _track(1, range(0, N), lambda k: SEATED),
             _track(2, range(15, 22), lambda k: ENTERING),
         ]
-        scene = _scene(tracks=tracks)
-        self.assertFalse(any(s.person_entered for s in scene.states))
+        self.assertTrue(any(s.person_entered for s in _scene(tracks=tracks).states))
+        strict = _scene(tracks=tracks, config=SceneConfig(fps=FPS, entry_mode="room"))
+        self.assertFalse(any(s.person_entered for s in strict.states))
+        glimpse = [_track(1, range(0, N), lambda k: SEATED), _track(2, range(15, 17), lambda k: ENTERING)]
+        self.assertFalse(any(s.person_entered for s in _scene(tracks=glimpse).states))
 
     def test_redetection_mid_room_is_not_entry(self) -> None:
         """Клиента перекрыли на 3 с, трек начался заново на том же месте — это тот же человек."""
