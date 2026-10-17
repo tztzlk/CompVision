@@ -14,9 +14,9 @@
 
 Примеры запуска
 ---------------
-    python scripts/download_models.py                 # скачать всё, что ещё не скачано (~1,5 ГБ)
+    python scripts/download_models.py                 # скачать всё, что ещё не скачано (~1,9 ГБ, из них ViTPose ~0,33 ГБ)
     python scripts/download_models.py --list          # показать список моделей и выйти
-    python scripts/download_models.py --only rtdetr   # только группа (rtdetr, owlv2, siglip) или файл
+    python scripts/download_models.py --only rtdetr   # только группа (rtdetr, owlv2, siglip, vitpose) или файл
     python scripts/download_models.py --force         # перекачать даже уже существующие
     python scripts/download_models.py --models-dir /data/models
     MODELS_DIR=/data/models python scripts/download_models.py
@@ -136,6 +136,15 @@ MODELS: list[ModelSpec] = [
                    ("special_tokens_map.json", None, 0.01),
                    ("spiece.model", "1e5036bed065526c3c212dfbe288752391797c4bb1a284aa18c9a0b23fcaf8ec", 0.8),
                    ("model.safetensors", "2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8", 812.7),
+               ]),
+    # ViTPose base (simple decoder): 17 точек COCO людей — только при ENABLE_POSE=1
+    # (worker/perception/pose.py). Apache-2.0 и ревизия проверены по API Hugging Face 17.10.2026.
+    # Нужен transformers >= 4.48 (в worker/requirements.txt пока 4.46.3 — см. README, «Поза»).
+    *_hf_files("vitpose", "usyd-community/vitpose-base-simple", "a93ac0c67e0b7e2c55287d21d4c460c8f3c54d45",
+               "vitpose-base-simple", [
+                   ("config.json", None, 0.01),
+                   ("preprocessor_config.json", None, 0.01),
+                   ("model.safetensors", "85375373893ddd3641f3912821073e53f5435f9e966e1dca59d004454bfe4fdf", 327.8),
                ]),
 ]
 
