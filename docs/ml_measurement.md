@@ -1,6 +1,23 @@
 # Замер ML-правок на машине с GPU
 
+## Замер 2 — после 7d984da (сделать сейчас)
+
+Что изменилось после первого замера: выбор зон (стол на Х-20…Х-29, сейф на Х-1…Х-5, Х-12…Х-15, Х-22, Х-29, Х-47/48), люди за стеклом больше не считаются внутри, вход через дверь снова засчитывается, R11 по замеру на вашем сыром кэше даёт 0 ложных тревог и ловит Х-18 (17 с) и Х-30 (12,7 с). Оценки SigLIP (сейф, наличные, одежда) у видео со сменившейся зоной надо пересчитать на GPU, без этого R10 / R09 / R14 / R02 не оценить.
+
+```
+git pull origin main
+PYTHONPATH=. python scripts/build_scene_cache.py --out data/scene_cache_m2 --raw-out data/raw_cache_m2
+PYTHONPATH=. python scripts/eval_cache.py --cache data/scene_cache_m2 --json data/eval_m2.json > data/eval_m2.txt
+PYTHONPATH=. python scripts/build_scene_cache.py --prompts v2 --mask-people     --out data/scene_cache_m2v2 --raw-out data/raw_cache_m2v2
+PYTHONPATH=. python scripts/eval_cache.py --cache data/scene_cache_m2v2 --json data/eval_m2v2.json > data/eval_m2v2.txt
+tar czf data/ml_results_m2.tar.gz data/eval_m2* data/raw_cache_m2 data/raw_cache_m2v2
+```
+
+Прислать `data/ml_results_m2.tar.gz`. `--desk-by-people` больше не нужен: стол выбирается правильно и без него.
+
 Правки ML (коммиты e14a6ce…25d4dcc в `main`) написаны и проверены тестами на синтетике без GPU. Цифры по видео снимаются здесь, по кэшу сцен. Все команды запускаются из корня репозитория.
+
+## Замер 1 (17.10, 23:25) — для истории
 
 ## 0. Обновиться и прогнать тесты
 
