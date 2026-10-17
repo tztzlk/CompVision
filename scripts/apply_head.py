@@ -114,11 +114,11 @@ def main(argv: Optional[list[str]] = None) -> int:
                     fold = 0
                 w, b = models[0][fold], float(models[1][fold])
             probs = 1.0 / (1.0 + np.exp(-(data["emb"] @ w + b)))
-            by_t = {round(float(t), 1): float(pr) for t, pr in zip(data["t"], probs)}
+            by_t = {int(round(float(t) * 1000)): float(pr) for t, pr in zip(data["t"], probs)}
             zs = samples["safe_open"]
             new = []
             for t, pz in zs:
-                ph = by_t.get(round(float(t), 1))
+                ph = by_t.get(int(round(float(t) * 1000)))
                 new.append([t, round(ph, 4) if ph is not None else None])
                 n_rep += ph is not None
             samples["safe_open_zero_shot"] = zs

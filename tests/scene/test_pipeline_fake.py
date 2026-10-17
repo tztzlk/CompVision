@@ -101,5 +101,53 @@ class PipelineFakeTest(unittest.TestCase):
         self.assertTrue(rebuilt.meta["rebuilt_from_raw"])
 
 
+class _ZeroShotWithEmbeddings:
+    """zero_shot поддельной связки, у которого есть и image_embeddings (вход голов)."""
+
+    def __init__(self, dim: int) -> None:
+        self.dim = dim
+
+    def __call__(self, crops, prompt_sets):
+        return [{name: (0.9 if name == "safe_open" else 0.1) for name in prompt_sets} for _ in crops]
+
+    def image_embeddings(self, crops):
+        import numpy as np
+
+        e = np.zeros((len(crops), self.dim), dtype=np.float32)
+        e[:, 0] = 1.0
+        return e
+
+
+class PipelineHeadTest(unittest.TestCase):
+    def _run(self, head_dim: int, emb_dim: int):
+        import json
+
+        import numpy as np
+
+        bundle = FakeBundle()
+        bundle.zero_shot = _ZeroShotWithEmbeddings(emb_dim)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "models" / "heads").mkdir(parents=True)
+            w = np.zeros(head_dim, dtype=np.float32)
+            w[0] = -10.0                                   # эмбеддинг (1, 0, …) -> «закрыт»
+            np.savez(root / "models" / "heads" / "safe_open.npz", w=w, b=np.float32(3.0), meta=json.dumps({}))
+            video = root / "Х-голова.avi"
+            make_video(video, seconds=3.0, size=(232, 424))
+            with mock.patch("worker.scene.pipeline.load_models", return_value=bundle):
+                return build_scene(video, root / "job", root / "models", "cpu",
+                                   config=SceneConfig(fps=3.0, safe_head="heads/safe_open.npz"))
+
+    def test_safe_head_replaces_zero_shot(self) -> None:
+        scene = self._run(8, 8)
+        self.assertLess(scene.states[4].safe_open, 0.01)          # sigmoid(-10 + 3)
+        self.assertEqual(scene.meta["safe_head"]["name"], "safe_open")
+
+    def test_wrong_head_size_falls_back_to_zero_shot(self) -> None:
+        scene = self._run(5, 8)                                   # веса не той размерности
+        self.assertEqual(scene.states[4].safe_open, 0.9)          # zero-shot, задача не упала
+        self.assertIn("error", scene.meta["safe_head"])
+
+
 if __name__ == "__main__":
     unittest.main()

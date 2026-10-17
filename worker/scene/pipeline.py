@@ -79,14 +79,22 @@ def run_pipeline(
 
     mark = time.monotonic()
     safe_head = load_head(Path(models_dir), cfg.safe_head)
-    samples = _sample_states(frames, zones, bundle, cfg, persons, safe_head=safe_head)
+    head_errors: list[str] = []
+    samples = _sample_states(frames, zones, bundle, cfg, persons, safe_head=safe_head, head_errors=head_errors)
+    if head_errors:
+        safe_head = None
     timings["states_sec"] = round(time.monotonic() - mark, 2)
 
     person_head = None
     inside_head = load_head(Path(models_dir), cfg.inside_head)
     if inside_head is not None:
         mark = time.monotonic()
-        person_head = person_inside_probs(frames, tracks, zones, bundle, inside_head)
+        try:
+            person_head = person_inside_probs(frames, tracks, zones, bundle, inside_head)
+        except Exception as exc:     # не та размерность весов и т.п.: внутри/за стеклом — по геометрии
+            LOG.warning("голова %s: %s — внутри/за стеклом по геометрии", inside_head.name, exc)
+            head_errors.append(str(exc))
+            inside_head = None
         timings["inside_head_sec"] = round(time.monotonic() - mark, 2)
 
     refs = [FrameRef(index=pos, t=f.timestamp_sec, frame=f"{FRAMES_SUBDIR}/{f.path.name}") for pos, f in enumerate(frames)]
@@ -101,10 +109,10 @@ def run_pipeline(
     }
     if cfg.inside_head:
         meta["inside_head"] = ({"name": inside_head.name, "points": len(person_head or [])}
-                               if inside_head is not None else {"error": f"не загружена: {cfg.inside_head}"})
+                               if inside_head is not None else {"error": "; ".join(head_errors) or f"не загружена: {cfg.inside_head}"})
     if cfg.safe_head:
         meta["safe_head"] = ({"name": safe_head.name, **{k: safe_head.meta.get(k) for k in ("n", "pos", "cv")}}
-                             if safe_head is not None else {"error": f"не загружена: {cfg.safe_head}"})
+                             if safe_head is not None else {"error": "; ".join(head_errors) or f"не загружена: {cfg.safe_head}"})
     timeline = assemble_timeline(
         video_id=vid,
         duration_sec=info.duration_sec or frames[-1].timestamp_sec,
@@ -321,12 +329,16 @@ def _sample_states(
     persons: Optional[Sequence[Sequence[Detection]]] = None,
     *,
     safe_head: Optional[LinearHead] = None,
+    head_errors: Optional[list[str]] = None,
 ) -> dict[str, list[tuple[float, Optional[float]]]]:
     """Zero-shot-оценки состояний по вырезкам зон раз в cfg.state_every_sec: {состояние: [(t, p)]}.
 
     persons — рамки людей по кадрам; при cfg.mask_people_in_desk они закрашиваются в вырезке стола.
     safe_head — голова «сейф открыт»: её вероятность становится safe_open, zero-shot — safe_open_zero_shot.
+    Ошибка инференса головы пишется в head_errors (если передан список), дальше — zero-shot.
     """
+    if head_errors is None:
+        head_errors = []
     states = enabled_states(cfg)
     by_zone: dict[str, list[str]] = {}
     for name, spec in states.items():
@@ -364,7 +376,15 @@ def _sample_states(
                 for n in names:
                     samples[n].append((t, p.get(n)))
             if zone == "safe" and safe_head is not None and "safe_open" in names:
-                head_p = safe_head(bundle.zero_shot.image_embeddings(crops))
+                try:
+                    head_p = safe_head(bundle.zero_shot.image_embeddings(crops))
+                except Exception as exc:     # не та размерность весов и т.п.: дальше zero-shot, задача не падает
+                    LOG.warning("голова %s: %s — safe_open остаётся zero-shot", safe_head.name, exc)
+                    head_errors.append(str(exc))
+                    safe_head = None
+                    done = samples.pop("safe_open_zero_shot", [])     # ряд целиком zero-shot, без смеси
+                    samples["safe_open"][:len(done)] = done
+                    continue
                 samples.setdefault("safe_open_zero_shot", []).extend(samples["safe_open"][-len(crops):])
                 samples["safe_open"][-len(crops):] = [(t, round(float(p), 4)) for t, p in zip(times, head_p)]
     return samples

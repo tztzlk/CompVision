@@ -198,7 +198,7 @@ def zero_shot_lookup(raw_dir: Path, key: str) -> dict[str, dict[float, float]]:
     out: dict[str, dict[float, float]] = {}
     for path in raw_dir.glob("*.json"):
         raw = json.loads(path.read_text(encoding="utf-8"))
-        out[normalize_video_id(raw["video_id"])] = {round(float(t), 1): p for t, p in raw["state_samples"].get(key, [])
+        out[normalize_video_id(raw["video_id"])] = {int(round(float(t) * 1000)): p for t, p in raw["state_samples"].get(key, [])
                                                     if p is not None}
     return out
 
@@ -268,7 +268,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     zs_y, zs_p = [], []
     for it in items:
         if it["variant"] == "orig" and it["y"] >= 0:
-            val = zs.get(it["video"], {}).get(round(it["t"], 1))
+            val = zs.get(it["video"], {}).get(int(round(it["t"] * 1000)))
             if val is not None:
                 zs_y.append(it["y"])
                 zs_p.append(val)
