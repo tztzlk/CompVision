@@ -44,8 +44,12 @@ def run_pipeline(
     *,
     video_id: Optional[str] = None,
     config: Optional[SceneConfig] = None,
+    raw_out: Optional[Path] = None,
 ) -> SceneTimeline:
-    """Видео -> SceneTimeline (см. worker.scene.build_scene)."""
+    """Видео -> SceneTimeline (см. worker.scene.build_scene).
+
+    raw_out — файл сырого кэша (worker.scene.raw_cache): входы сборки сцены для правок builder без GPU.
+    """
     cfg = config or SceneConfig()
     started = time.monotonic()
     video_path, work_dir = Path(video_path), Path(work_dir)
@@ -67,7 +71,7 @@ def run_pipeline(
     timings["tracking_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
-    zones, zone_info = _find_zones(frames, objects, bundle, cfg)
+    zones, zone_info, owl = _find_zones(frames, objects, bundle, cfg)
     timings["zones_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
@@ -96,6 +100,12 @@ def run_pipeline(
         config=cfg,
         meta=meta,
     )
+    if raw_out is not None:
+        from worker.scene.raw_cache import save_raw
+
+        save_raw(raw_out, video_id=vid, duration_sec=info.duration_sec or frames[-1].timestamp_sec,
+                 frame_size=frame_size, frames=refs, tracks=tracks, objects=objects, zones=zones,
+                 zone_info=zone_info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta)
     if pose_enabled():
         from worker.scene.pose_pass import run_pose_pass
 
@@ -164,12 +174,14 @@ def _keyframe_positions(count: int, keyframes: int) -> list[int]:
 
 def _find_zones(
     frames: Sequence[Frame], objects: Sequence[Sequence[Detection]], bundle: Any, cfg: SceneConfig,
-) -> tuple[dict[str, Optional[BBox]], dict[str, dict[str, object]]]:
+) -> tuple[dict[str, Optional[BBox]], dict[str, dict[str, object]], list[list[Detection]]]:
+    """Зоны, сведения об их источнике и сырые детекции OWLv2 по ключевым кадрам (для сырого кэша)."""
     positions = _keyframe_positions(len(frames), cfg.zone_keyframes)
     images = [image for image in (imread_unicode(frames[p].path) for p in positions) if image is not None]
     owl = (bundle.open_vocab(images, all_zone_queries(), score_threshold=cfg.zone_min_score, top_k=cfg.zone_top_k)
            if images else [])
-    return infer_zones(owl, objects, min_score=cfg.zone_min_score)
+    zones, info = infer_zones(owl, objects, min_score=cfg.zone_min_score)
+    return zones, info, owl
 
 
 def _sample_states(

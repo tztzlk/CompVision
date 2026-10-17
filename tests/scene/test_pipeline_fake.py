@@ -83,6 +83,23 @@ class PipelineFakeTest(unittest.TestCase):
         self.assertIn("elapsed_sec", loaded.meta)
         self.assertIn("decode_detect_sec", loaded.meta["timings"])
 
+    def test_raw_cache_rebuilds_same_states(self) -> None:
+        from worker.scene import scene_to_dict
+        from worker.scene.raw_cache import load_raw, rebuild_scene
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "Х-сырой.avi"
+            make_video(video, seconds=3.0, size=(232, 424))
+            raw_path = root / "raw" / "Х-сырой.json"
+            with mock.patch("worker.scene.pipeline.load_models", return_value=FakeBundle()):
+                scene = build_scene(video, root / "job", root / "models", "cpu",
+                                    config=SceneConfig(fps=3.0), raw_out=raw_path)
+            rebuilt = rebuild_scene(load_raw(raw_path))
+        self.assertEqual(scene_to_dict(rebuilt)["states"], scene_to_dict(scene)["states"])
+        self.assertEqual(scene_to_dict(rebuilt)["zones"], scene_to_dict(scene)["zones"])
+        self.assertTrue(rebuilt.meta["rebuilt_from_raw"])
+
 
 if __name__ == "__main__":
     unittest.main()

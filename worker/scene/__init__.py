@@ -53,12 +53,14 @@ def build_scene(
     *,
     video_id: Optional[str] = None,
     config: Optional[SceneConfig] = None,
+    raw_out: Optional[Path] = None,
 ) -> SceneTimeline:
     """Видео -> SceneTimeline. Кадры пишет в work_dir/frames/, модели загружает один раз на процесс.
 
     video_id по умолчанию — имя файла без расширения. В worker файл задачи называется input.mov,
     поэтому runner передаёт job_id (или исходное имя). device: "cuda" | "cpu" (без CUDA — cpu).
+    raw_out — куда записать сырой кэш восприятия (worker.scene.raw_cache), None — не писать.
     """
     from worker.scene.pipeline import run_pipeline
 
-    return run_pipeline(video_path, work_dir, models_dir, device, video_id=video_id, config=config)
+    return run_pipeline(video_path, work_dir, models_dir, device, video_id=video_id, config=config, raw_out=raw_out)

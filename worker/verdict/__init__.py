@@ -11,6 +11,7 @@ from typing import Any, Mapping
 
 from shared.schemas import AnalysisResult, EvidenceFrame, JobStatus, RuleRef, Verdict, Violation
 from worker.events import Event, Rule
+from worker.events.selection import MAX_VIOLATIONS, select_events
 
 __all__ = [
     "encode_frame",
@@ -28,9 +29,7 @@ LOG = logging.getLogger("worker.verdict")
 
 _JPEG_MAGIC = b"\xff\xd8"
 FFMPEG_TIMEOUT_SEC = 60
-MAX_VIOLATIONS = 5          # больше нарушений в ответе только мешают проверяющему
 MAX_FRAMES = 3              # ограничение схемы: 1–3 кадра на нарушение
-DEFAULT_MIN_CONFIDENCE = 0.5
 
 
 def encode_frame(frame_path: Path, timestamp_sec: float) -> EvidenceFrame:
@@ -180,33 +179,6 @@ def to_violation(event: Event, rule: Rule, work_dir: Path, video_path: Path | No
         evidence_frames=frames,
         rule=rule_ref(rule),
     )
-
-
-def _min_confidence(rule: Rule) -> float:
-    try:
-        return float(rule.params.get("min_confidence", DEFAULT_MIN_CONFIDENCE))
-    except (TypeError, ValueError):
-        LOG.warning("правило %s: некорректный min_confidence, беру %.2f", rule.id, DEFAULT_MIN_CONFIDENCE)
-        return DEFAULT_MIN_CONFIDENCE
-
-
-def select_events(events: list[Event], rules: list[Rule]) -> list[tuple[Event, Rule]]:
-    """События выше params.min_confidence своего правила, самые уверенные первыми.
-
-    События неизвестных правил отбрасываются. Используется build_result и scripts/evaluate.py
-    (анализ готовой сцены из data/scene_cache, без вырезки кадров).
-    """
-    by_id = {r.id: r for r in rules}
-    kept: list[tuple[Event, Rule]] = []
-    for ev in events:
-        rule = by_id.get(ev.rule_id)
-        if rule is None:
-            LOG.warning("событие неизвестного правила %s пропущено", ev.rule_id)
-            continue
-        if ev.confidence >= _min_confidence(rule):
-            kept.append((ev, rule))
-    kept.sort(key=lambda er: -er[0].confidence)
-    return kept
 
 
 def build_result(

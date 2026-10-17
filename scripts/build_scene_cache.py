@@ -7,6 +7,7 @@
     PYTHONPATH=. python scripts/build_scene_cache.py
     PYTHONPATH=. python scripts/build_scene_cache.py --only Х-20 --only Х-40 --keep-frames
     PYTHONPATH=. python scripts/build_scene_cache.py --device cpu --fps 2
+    PYTHONPATH=. python scripts/build_scene_cache.py --raw-out data/raw_cache   # + сырой кэш для builder
 
 Видео ищутся рекурсивно (*.mov) в --dataset; video_id = имя файла без расширения как есть
 (у X-1, X-2 латинская X, у остальных кириллическая Х). Кадры — во временном каталоге
@@ -91,6 +92,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p.add_argument("--fps", type=float, default=SceneConfig().fps, help="частота анализа кадров")
     p.add_argument("--only", action="append", metavar="VIDEO_ID", help="только это видео (флаг повторяемый)")
     p.add_argument("--keep-frames", action="store_true", help="не удалять кадры (для scripts/viz_scene.py)")
+    p.add_argument("--raw-out", type=Path, default=None,
+                   help="каталог сырого кэша (data/raw_cache): правки builder потом без GPU, scripts/rebuild_from_raw.py")
     p.add_argument("-v", "--verbose", action="store_true")
     return p.parse_args(argv)
 
@@ -129,7 +132,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         work = args.work / safe_dirname(vid)
         started = time.monotonic()
         try:
-            scene = build_scene(video, work, args.models_dir, device, video_id=vid, config=config)
+            extra = {"raw_out": args.raw_out / f"{vid}.json"} if args.raw_out else {}
+            scene = build_scene(video, work, args.models_dir, device, video_id=vid, config=config, **extra)
             out = save_scene(scene, args.out / f"{vid}.json")
         except Exception as exc:  # noqa: BLE001 — одно видео не должно останавливать прогон
             LOG.error("[%d/%d] %s: ошибка: %s: %s", i, len(videos), vid, type(exc).__name__, exc)
