@@ -77,6 +77,7 @@ class SceneConfig:
     workplace_margin: float = 0.05
     presence_ioa: float = 0.5           # доля рамки кассира в рабочей зоне, при которой presence = 1
     cashier_extra_ioa: float = 0.4      # трек вне времени основного кассира на его месте — тоже кассир
+    cashier_overlap_sec: float = 1.0    # ...даже если пересекается с ним по времени не дольше (разрыв трека, Х-35)
     # Признаки роли кассира сверх «близость к столу × размер» (размер обманывает, когда клиентский
     # стул ближе к камере, чем кассир, — как в Х-44): к сейфу подходит кассир, клиент — нет.
     cashier_safe_bonus: float = 2.0     # множитель счёта трека, который подходил к сейфу
@@ -284,7 +285,8 @@ def _workplace(cashier: _TrackInfo, desk: Optional[BBox], config: SceneConfig) -
 
 def _mark_extra_cashiers(infos: Sequence[_TrackInfo], cashier: _TrackInfo, workplace: Optional[BBox],
                          config: SceneConfig) -> None:
-    """Трек, не пересекающийся по времени с кассиром и сидящий на его месте, — тот же кассир."""
+    """Трек, не пересекающийся по времени с кассиром (допуск cashier_overlap_sec: трекер начинает
+    новый трек на месте кассира, пока старый ещё доживает) и сидящий на его месте, — тот же кассир."""
     if workplace is None:
         return
     main = cashier.track
@@ -292,7 +294,8 @@ def _mark_extra_cashiers(infos: Sequence[_TrackInfo], cashier: _TrackInfo, workp
         points = info.inside_points()
         if info.role == "cashier" or not points:
             continue
-        if not (points[-1].t < main.first_t or points[0].t > main.last_t):
+        tol = config.cashier_overlap_sec
+        if not (points[-1].t < main.first_t + tol or points[0].t > main.last_t - tol):
             continue
         if median(ioa(p.bbox, workplace) for p in points) >= config.cashier_extra_ioa:
             info.role = "cashier"

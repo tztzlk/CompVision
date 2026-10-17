@@ -327,19 +327,21 @@ def _stays(scene: SceneTimeline, i: int, seconds: float) -> Optional[list[int]]:
 
 
 def _side(scene: SceneTimeline, box: BBox) -> Optional[float]:
-    """Сторона стола, на которой человек: проекция центра рамки на ось «центр стола -> рабочее место
-    кассира» в долях длины этой оси. ~1 — место кассира, < 0 — напротив (место клиента).
-    Считается в пикселях: кадр не квадратный. None — нет стола или рабочего места."""
+    """Сторона стола, на которой человек: проекция точки у ног (середина нижнего края рамки) на ось
+    «центр стола -> точка у ног рабочего места кассира» в долях длины этой оси. ~1 — место кассира,
+    < 0 — напротив (место клиента). По центрам рамок ось вырождалась, когда кассир сидит спиной к
+    камере и его рамка накрывает стол (Х-39). Считается в пикселях: кадр не квадратный.
+    None — нет стола или рабочего места."""
     desk, workplace = scene.zones.get("desk"), scene.zones.get("workplace")
     if desk is None or workplace is None:
         return None
     w, h = scene.frame_size
     cx, cy = (desk[0] + desk[2]) / 2 * w, (desk[1] + desk[3]) / 2 * h
-    vx, vy = (workplace[0] + workplace[2]) / 2 * w - cx, (workplace[1] + workplace[3]) / 2 * h - cy
+    vx, vy = (workplace[0] + workplace[2]) / 2 * w - cx, workplace[3] * h - cy
     norm = vx * vx + vy * vy
     if norm <= 1e-9:
         return None
-    px, py = (box[0] + box[2]) / 2 * w, (box[1] + box[3]) / 2 * h
+    px, py = (box[0] + box[2]) / 2 * w, box[3] * h
     return ((px - cx) * vx + (py - cy) * vy) / norm
 
 
@@ -373,8 +375,9 @@ def outsider_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> li
 
     gap = _param(params, "merge_gap_sec")
     events: list[Event] = []
+    third_min = float(params.get("third_min_sec", 0.0))
     for i, ids in _merge_entries(scene, _entries(scene), gap):
-        after = _stays(scene, i, max(min_dur, 1.0))
+        after = _stays(scene, i, max(min_dur, third_min, 1.0))
         if after is None:
             continue                                   # вошедший не задержался в кассе
         t = states[i].t
@@ -405,7 +408,6 @@ def outsider_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> li
             },
         ))
 
-    third_min = float(params.get("third_min_sec", 0.0))
     if third_min > 0:
         crowd = [None if s.persons_in_room is None else (1.0 if s.persons_in_room > max_normal else 0.0)
                  for s in states]

@@ -154,3 +154,15 @@ def test_third_person_without_entry(rules):
                                          extra={**s.extra, "visitor_entered_ids": []}) for s in scene.states)
     events = det.outsider_in_cash_room(dataclasses.replace(scene, states=no_entry), r11.params)
     assert [round(e.timecode_sec) for e in events] == [20]
+
+
+def test_side_by_foot_points():
+    """Х-39: кассир спиной к камере накрывает стол, клиент сидит напротив — сторона клиента (< 0);
+    по центрам рамок ось вырождалась и клиент попадал на «сторону кассира»."""
+    scene = load_scene(FIXTURES / "scene_X3.json")
+    scene = dataclasses.replace(scene, zones={**scene.zones, "desk": (0.15, 0.43, 0.71, 0.64),
+                                              "workplace": (0.33, 0.40, 0.61, 0.65)})
+    client = (0.46, 0.19, 0.58, 0.44)
+    assert det._side(scene, client) < 0
+    beside_cashier = (0.30, 0.40, 0.45, 0.70)
+    assert det._side(scene, beside_cashier) > 0.3
