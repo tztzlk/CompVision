@@ -18,9 +18,20 @@ def _events(rules, name: str):
     return detect_events(rules, load_scene(FIXTURES / f"scene_{name}.json"))
 
 
+def test_rules_yaml_loads_all_enabled(rules):
+    ids = [r.id for r in rules]
+    assert ids == ["R01_left_during_service", "R02_cash_unattended", "R06_phone_at_workplace",
+                   "R09_personal_items", "R10_storage_left_open", "R11_outsider_in_cash_room",
+                   "R12_collection_inside", "R13_drink_at_workplace"]
+    assert all(r.detector in det.DETECTORS for r in rules)
+    assert {r.detector for r in rules} == set(det.DETECTORS)   # каждый детектор реестра в работе
+    assert all(r.source.url.startswith("https://adilet.zan.kz/") for r in rules)
+
+
 @pytest.mark.parametrize(
     ("name", "rule_id", "t_label"),
-    [("X20", "R02", 5.0), ("X40", "R01", 17.0), ("X15", "R03", 15.0), ("X18", "R04", 20.0)],
+    [("X20", "R10_storage_left_open", 5.0), ("X40", "R09_personal_items", 17.0),
+     ("X15", "R02_cash_unattended", 15.0), ("X18", "R11_outsider_in_cash_room", 20.0)],
 )
 def test_positive_fixtures(rules, name, rule_id, t_label):
     events = _events(rules, name)
@@ -78,6 +89,6 @@ def test_broken_detector_does_not_fail_job(rules, monkeypatch):
 
     monkeypatch.setitem(det.DETECTORS, "storage_left_open", boom)
     events = _events(rules, "X20")
-    assert events == []          # R02 упал, остальные отработали и ничего не нашли
+    assert events == []          # R10 упал, остальные отработали и ничего не нашли
     rules2 = [dataclasses.replace(r) for r in rules]
-    assert _events(rules2, "X40")[0].rule_id == "R01"
+    assert _events(rules2, "X40")[0].rule_id == "R09_personal_items"
