@@ -230,21 +230,24 @@ class ZeroShotClassifier(_TorchModel):
         index = {p: i for i, p in enumerate(prompts)}
         groups = {name: ([index[p] for p in (*pos, *neg)], len(pos)) for name, (pos, neg) in prompt_sets.items()}
         text = self._text_embeddings(prompts)
-        scale = self.model.logit_scale.exp().float()
         result: list[dict[str, float]] = []
-        for start in range(0, len(crops_bgr), batch_size):
-            chunk = crops_bgr[start:start + batch_size]
-            inputs = self.processor(images=[_to_rgb(c) for c in chunk], return_tensors="pt")
-            with torch.inference_mode(), self._autocast():
-                image = self.model.get_image_features(pixel_values=inputs["pixel_values"].to(self.device))
-            image = torch.nn.functional.normalize(image.float(), dim=-1)
-            logits = scale * image @ text.T            # logit_bias SigLIP общий для всех подписей и в softmax сокращается
-            for row in logits:
-                probs: dict[str, float] = {}
-                for name, (idx, n_pos) in groups.items():
-                    soft = torch.softmax(row[idx], dim=-1)
-                    probs[name] = round(float(soft[:n_pos].sum()), 4)
-                result.append(probs)
+        # inference_mode на всё вычисление: logit_scale — параметр с requires_grad, без этого
+        # torch строит граф автоградиента на каждой вырезке (лишняя память и предупреждения).
+        with torch.inference_mode():
+            scale = self.model.logit_scale.exp().float()
+            for start in range(0, len(crops_bgr), batch_size):
+                chunk = crops_bgr[start:start + batch_size]
+                inputs = self.processor(images=[_to_rgb(c) for c in chunk], return_tensors="pt")
+                with self._autocast():
+                    image = self.model.get_image_features(pixel_values=inputs["pixel_values"].to(self.device))
+                image = torch.nn.functional.normalize(image.float(), dim=-1)
+                logits = scale * image @ text.T        # logit_bias SigLIP общий для всех подписей и в softmax сокращается
+                for row in logits:
+                    probs: dict[str, float] = {}
+                    for name, (idx, n_pos) in groups.items():
+                        soft = torch.softmax(row[idx], dim=-1)
+                        probs[name] = round(float(soft[:n_pos].sum()), 4)
+                    result.append(probs)
         return result
 
 

@@ -205,7 +205,7 @@ def personal_items(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Even
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
         items = ["верхняя одежда"] if _present(sc, iv, "outerwear_on_desk") else []
-        if _present(sc, iv, "bag_on_desk"):
+        if include_bag and _present(sc, iv, "bag_on_desk"):   # без include_bag сумка не проверялась
             items.append("сумка")
         return {"what_visible": ", ".join(items) or "предмет одежды", "bbox": _zone(sc, "desk")}
 

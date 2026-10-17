@@ -92,3 +92,13 @@ def test_broken_detector_does_not_fail_job(rules, monkeypatch):
     assert events == []          # R10 упал, остальные отработали и ничего не нашли
     rules2 = [dataclasses.replace(r) for r in rules]
     assert _events(rules2, "X40")[0].rule_id == "R09_personal_items"
+
+
+def test_personal_items_description_mentions_only_checked_items():
+    """R09 с include_bag=false: сумка не входит в ряд нарушения, значит и в описании её нет (раздел 5 ТЗ)."""
+    scene = load_scene(FIXTURES / "scene_X40.json")
+    scene = dataclasses.replace(scene, states=[dataclasses.replace(s, bag_on_desk=0.9) for s in scene.states])
+    no_bag = det.personal_items(scene, {"include_bag": False})
+    assert no_bag and all("сумка" not in ev.facts["what_visible"] for ev in no_bag)
+    with_bag = det.personal_items(scene, {"include_bag": True})
+    assert with_bag and "сумка" in with_bag[0].facts["what_visible"]

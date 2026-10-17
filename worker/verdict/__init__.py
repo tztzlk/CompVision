@@ -194,7 +194,7 @@ def select_events(events: list[Event], rules: list[Rule]) -> list[tuple[Event, R
     """События выше params.min_confidence своего правила, самые уверенные первыми.
 
     События неизвестных правил отбрасываются. Используется build_result и scripts/evaluate.py
-    (режим --scene-cache, без вырезки кадров).
+    (анализ готовой сцены из data/scene_cache, без вырезки кадров).
     """
     by_id = {r.id: r for r in rules}
     kept: list[tuple[Event, Rule]] = []

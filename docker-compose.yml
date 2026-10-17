@@ -16,7 +16,8 @@ x-app-env: &app-env
   # Офлайн-режим: запрещаем HuggingFace/torch ходить в сеть, веса берутся из /models.
   HF_HUB_OFFLINE: "1"
   TRANSFORMERS_OFFLINE: "1"
-  HF_HOME: /models/hf
+  # Кэш HF — в записываемом /tmp: /models смонтирован read-only, а веса грузятся по пути (local_files_only).
+  HF_HOME: /tmp/hf-home
   TORCH_HOME: /models/torch
   # Ключ для жюри (заголовок X-API-Key). Без него запуск падает с понятной ошибкой.
   API_KEY: ${API_KEY:?API_KEY is required - set it in .env}

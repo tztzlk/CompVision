@@ -4,7 +4,7 @@
         — единственная функция, которую вызывают worker/main.py и scripts/evaluate.py;
     process_video(...) — пайплайн: scene.build_scene -> events.detect_events -> verdict.build_result;
     analyze_scene(...) — та же вторая половина на готовом SceneTimeline (кэш data/scene_cache,
-        scripts/evaluate.py --scene-cache: подбор порогов без моделей и GPU).
+        готовится scripts/build_scene_cache.py: подбор порогов без моделей и GPU).
 
 work_dir — каталог задачи (в worker: STORAGE_DIR/<job_id>; кадры — work_dir/frames/<name>.jpg).
 Без HTTP и без БД: функция чистая относительно хранилища задач.
