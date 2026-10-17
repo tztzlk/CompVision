@@ -105,3 +105,25 @@ def test_personal_items_description_mentions_only_checked_items():
     assert no_bag and all("сумка" not in ev.facts["what_visible"] for ev in no_bag)
     with_bag = det.personal_items(scene, {"include_bag": True})
     assert with_bag and "сумка" in with_bag[0].facts["what_visible"]
+
+
+def test_state_from_first_frame_is_not_event(rules):
+    """R10: «сейф открыт» с первого кадра, кассир к сейфу не подходил — обычный вид сейфа
+    (было: R10 на 0-й секунде). Запасной порог: очень уверенное «открыт» всё же выводится."""
+    r10 = next(r for r in rules if r.id == "R10_storage_left_open")
+    scene = load_scene(FIXTURES / "scene_X15.json")
+
+    def with_safe(p):
+        return dataclasses.replace(scene, states=tuple(dataclasses.replace(s, safe_open=p) for s in scene.states))
+
+    assert det.storage_left_open(with_safe(0.8), r10.params) == []
+    assert det.storage_left_open(with_safe(0.99), r10.params)[0].timecode_sec == 0.0
+
+
+def test_safe_left_open_after_cashier_was_there(rules):
+    """Тот же «открытый» сейф, но кассир подходил к нему (Х-23: 8–12 с) и отошёл — событие в момент ухода."""
+    r10 = next(r for r in rules if r.id == "R10_storage_left_open")
+    scene = load_scene(FIXTURES / "scene_X23.json")
+    scene = dataclasses.replace(scene, states=tuple(dataclasses.replace(s, safe_open=0.8) for s in scene.states))
+    events = det.storage_left_open(scene, r10.params)
+    assert [round(e.timecode_sec) for e in events] == [12]

@@ -10,6 +10,9 @@
   3. гистерезис: интервал начинается при p >= p_on и заканчивается при p < p_off;
      None не меняет состояние и не продлевает интервал;
   4. интервалы короче min_duration_sec отбрасываются, ближе merge_gap_sec — склеиваются;
+     интервал, который начался в первые start_sec секунд ролика (состояние видно с первого кадра,
+     а не появилось), остаётся, только если средняя p на нём >= start_p_on (по умолчанию
+     start_sec = 0 — правило выключено; включено у R09 и R10, см. rules.yaml);
   5. таймкод = начало интервала, confidence = средняя p на интервале,
      кадры: начало, +1 с, момент максимальной p (не больше трёх, без повторов).
 """
@@ -114,6 +117,18 @@ def _evidence(scene: SceneTimeline, iv: Interval, values: Series) -> tuple[list[
     return [round(states[i].t, 3) for i in idx], [states[i].frame for i in idx]
 
 
+def _from_start(iv: Interval, values: Series, times: Sequence[float], start_sec: float, start_p_on: float) -> bool:
+    """Интервал начался в первые start_sec секунд и его средняя p ниже start_p_on — состояние видно
+    с первого кадра, а не появилось: это не событие."""
+    if times[iv.start] - times[0] >= start_sec:
+        return False
+    on = [v for v in values[iv.start: iv.end + 1] if v is not None]
+    if on and mean(on) >= start_p_on:
+        return False
+    LOG.debug("интервал с %.1f с: состояние видно с начала ролика, p ниже start_p_on", times[iv.start])
+    return True
+
+
 def _events_from_series(
     scene: SceneTimeline,
     raw: Series,
@@ -126,6 +141,11 @@ def _events_from_series(
     values = smooth(raw, int(_param(params, "smooth_points")))
     times = [s.t for s in scene.states]
     intervals = hysteresis(values, _param(params, "p_on"), _param(params, "p_off"))
+    # До склейки: иначе интервал «с первого кадра» поглотит соседний, начавшийся позже (кассир
+    # отошёл от сейфа), и отсечётся вместе с ним.
+    start_sec = float(params.get("start_sec", 0.0))
+    start_p_on = float(params.get("start_p_on", 0.97))
+    intervals = [iv for iv in intervals if not _from_start(iv, values, times, start_sec, start_p_on)]
     intervals = merge_intervals(intervals, times, _param(params, "merge_gap_sec"))
     step = 1.0 / scene.fps_sampled
     min_dur = _param(params, "min_duration_sec")

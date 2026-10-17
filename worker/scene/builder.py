@@ -72,6 +72,11 @@ class SceneConfig:
     workplace_margin: float = 0.05
     presence_ioa: float = 0.5           # доля рамки кассира в рабочей зоне, при которой presence = 1
     cashier_extra_ioa: float = 0.4      # трек вне времени основного кассира на его месте — тоже кассир
+    # Признаки роли кассира сверх «близость к столу × размер» (размер обманывает, когда клиентский
+    # стул ближе к камере, чем кассир, — как в Х-44): к сейфу подходит кассир, клиент — нет.
+    cashier_safe_bonus: float = 2.0     # множитель счёта трека, который подходил к сейфу
+    cashier_safe_ioa: float = 0.15      # доля рамки в зоне сейфа, при которой человек «у сейфа»
+    cashier_start_bonus: float = 1.25   # множитель трека, который в кассе с первой секунды
     # вход / выход
     door_margin: float = 0.08
     door_min_ioa: float = 0.1
@@ -206,16 +211,22 @@ def _fill_frames(info: _TrackInfo, times: Sequence[float], config: SceneConfig) 
 # --------------------------------------------------------------------------- роли и события
 
 
-def _select_cashier(infos: Sequence[_TrackInfo], desk: Optional[BBox], config: SceneConfig) -> Optional[_TrackInfo]:
-    """Кассир — трек с наибольшей суммой «близость к столу × размер» по точкам внутри кассы.
+def _select_cashier(infos: Sequence[_TrackInfo], desk: Optional[BBox], config: SceneConfig,
+                    safe: Optional[BBox] = None) -> Optional[_TrackInfo]:
+    """Кассир — трек с наибольшим счётом: сумма «близость к столу × размер» по точкам внутри кассы,
+    умноженная на признаки роли.
 
-    Размер нужен, когда у стола двое: кассир ближе к камере, чем клиент напротив.
+    Размер помогает, когда кассир сидит спиной к камере, а клиент напротив. Но если клиентский стул
+    ближе к камере (Х-44), размер выбрал бы клиента, поэтому счёт трека, который подходил к сейфу,
+    умножается на cashier_safe_bonus, а трека, который в кассе с первой секунды, — на cashier_start_bonus.
     """
     desk_zone = expand(desk, config.desk_margin) if desk else None
+    safe_zone = expand(safe, config.desk_margin) if safe else None
     best: Optional[_TrackInfo] = None
     best_score = 0.0
     for info in infos:
         score = 0.0
+        at_safe = False
         for point, inside in zip(info.track.points, info.inside):
             if not inside:
                 continue
@@ -223,6 +234,13 @@ def _select_cashier(infos: Sequence[_TrackInfo], desk: Optional[BBox], config: S
             if desk_zone is not None:
                 weight *= 0.25 + ioa(point.bbox, desk_zone)
             score += weight
+            if safe_zone is not None and ioa(point.bbox, safe_zone) >= config.cashier_safe_ioa:
+                at_safe = True
+        if at_safe:
+            score *= config.cashier_safe_bonus
+        inside_points = info.inside_points()
+        if inside_points and inside_points[0].t <= 1.0:
+            score *= config.cashier_start_bonus
         if score > best_score:
             best, best_score = info, score
     return best
@@ -390,7 +408,7 @@ def assemble_timeline(
     for info in infos:
         _fill_frames(info, times, cfg)
 
-    cashier = _select_cashier(infos, desk, cfg)
+    cashier = _select_cashier(infos, desk, cfg, zones.get("safe"))
     workplace: Optional[BBox] = None
     if cashier is None:
         warnings.append("кассир не определён: cashier_present = null")

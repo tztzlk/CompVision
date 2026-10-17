@@ -97,6 +97,18 @@ class BuilderTest(unittest.TestCase):
         self.assertEqual(left, [TIMES[23]])
         self.assertFalse(any(s.value("visitor_exited_ids") for s in scene.states))
 
+    def test_cashier_is_who_visits_safe_not_who_is_closer(self) -> None:
+        """Х-44: клиент на стуле ближе к камере крупнее кассира; кассир — тот, кто подходит к сейфу."""
+        near_client = (0.25, 0.50, 0.65, 0.98)
+        far_cashier = (0.35, 0.30, 0.55, 0.62)
+        at_safe = (0.68, 0.28, 0.86, 0.60)
+        tracks = [
+            _track(1, range(0, N), lambda k: at_safe if 10 <= k < 14 else far_cashier),
+            _track(2, range(0, N), lambda k: near_client),
+        ]
+        scene = _scene(tracks=tracks)
+        self.assertEqual(scene.meta["scene"]["cashier_track_ids"], [1])
+
     def test_no_door_no_entries(self) -> None:
         scene = _scene(zones={"desk": DESK, "door": None, "safe": SAFE, "laptop": None})
         self.assertFalse(any(s.person_entered or s.person_exited for s in scene.states))
