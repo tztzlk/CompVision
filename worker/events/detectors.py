@@ -252,19 +252,45 @@ def personal_items(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Even
     return _events_from_series(scene, raw, params, describe)
 
 
+def _safe_change(scene: SceneTimeline, baseline_sec: float, delta: float) -> Series:
+    """safe_open там, где он вырос над своим уровнем первых baseline_sec секунд хотя бы на delta,
+    иначе 0. Уровень первых секунд — обычный вид этого сейфа: на одних съёмках SigLIP считает
+    закрытый сейф «открытым» на 0,7–0,85 весь ролик (Х-31, Х-43, Х-46), а на Х-20 видно именно
+    изменение: 0,25–0,27 в начале, 0,6–0,75 после того, как кассир открыл сейф."""
+    states = scene.states
+    t0 = states[0].t
+    first = sorted(s.safe_open for s in states if s.safe_open is not None and s.t <= t0 + baseline_sec)
+    if not first:
+        return [None] * len(states)
+    base = first[len(first) // 2]
+    return [None if s.safe_open is None else (s.safe_open if s.safe_open - base >= delta else 0.0) for s in states]
+
+
 def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R10: сейф открыт, а кассир не у сейфа (рамка кассира не пересекается с зоной сейфа)."""
+    """R10: сейф открыт, а кассир не у сейфа (рамка кассира не пересекается с зоной сейфа).
+
+    С baseline_sec > 0 «открыт» — рост safe_open над уровнем первых секунд (_safe_change).
+    require_away=false — не проверять, у сейфа ли кассир: когда кассир сидит лицом к камере, сейф
+    у него за спиной и рамка сидящего кассира перекрывает зону сейфа (Х-20); тогда от того, что
+    кассир просто стоит у сейфа и заслоняет его, защищает min_duration_sec.
+    """
     safe_zone = _expand(scene.zones.get("safe"), float(params.get("safe_margin", 0.05)))
     near_share = float(params.get("near_safe_overlap", 0.15))
+    require_away = bool(params.get("require_away", True))
+    baseline_sec = float(params.get("baseline_sec", 0.0))
+    opened = (_safe_change(scene, baseline_sec, float(params.get("baseline_delta", 0.25)))
+              if baseline_sec > 0 and scene.states else [s.safe_open for s in scene.states])
     raw: Series = []
-    for s in scene.states:
+    for s, op in zip(scene.states, opened):
         if safe_zone is None:
             away: Optional[float] = None
+        elif not require_away:
+            away = 1.0
         elif s.cashier_bbox is None:
             away = 1.0 if s.cashier_present is not None else None
         else:
             away = 0.0 if _overlap(s.cashier_bbox, safe_zone) >= near_share else 1.0
-        raw.append(_fmin(s.safe_open, away))
+        raw.append(_fmin(op, away))
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
         where = "кассир за рабочим столом" if _present(sc, iv, "cashier_present") else "кассира нет у рабочего места"

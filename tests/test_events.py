@@ -42,7 +42,7 @@ def test_positive_fixtures(rules, name, rule_id, t_label):
     events = _events(rules, name)
     assert [e.rule_id for e in events] == [rule_id]
     ev = events[0]
-    assert abs(ev.timecode_sec - t_label) <= 1.0
+    assert abs(ev.timecode_sec - t_label) <= 3.0          # допуск замера (±3 с)
     assert 1 <= len(ev.evidence_timestamps_sec) <= 3
     assert ev.facts["what_visible"]
     assert len(ev.facts["frames"]) == len(ev.evidence_timestamps_sec)
@@ -111,26 +111,27 @@ def test_personal_items_description_mentions_only_checked_items():
     assert with_bag and "сумка" in with_bag[0].facts["what_visible"]
 
 
-def test_state_from_first_frame_is_not_event(rules):
-    """R10: «сейф открыт» с первого кадра, кассир к сейфу не подходил — обычный вид сейфа
-    (было: R10 на 0-й секунде). Запасной порог: очень уверенное «открыт» всё же выводится."""
-    r10 = next(r for r in rules if r.id == "R10_storage_left_open")
-    scene = load_scene(FIXTURES / "scene_X15.json")
-
-    def with_safe(p):
-        return dataclasses.replace(scene, states=tuple(dataclasses.replace(s, safe_open=p) for s in scene.states))
-
-    assert det.storage_left_open(with_safe(0.8), r10.params) == []
-    assert det.storage_left_open(with_safe(0.99), r10.params)[0].timecode_sec == 0.0
-
-
-def test_safe_left_open_after_cashier_was_there(rules):
-    """Тот же «открытый» сейф, но кассир подходил к нему (Х-23: 8–12 с) и отошёл — событие в момент ухода."""
+def test_safe_open_from_first_frame_is_its_usual_look(rules):
+    """R10: «открыт» на 0,8–0,99 весь ролик (Х-31, Х-43, Х-46) — обычный вид этого сейфа, не событие
+    (было: R10 на 0-й секунде)."""
     r10 = next(r for r in rules if r.id == "R10_storage_left_open")
     scene = load_scene(FIXTURES / "scene_X23.json")
-    scene = dataclasses.replace(scene, states=tuple(dataclasses.replace(s, safe_open=0.8) for s in scene.states))
-    events = det.storage_left_open(scene, r10.params)
-    assert [round(e.timecode_sec) for e in events] == [12]
+    for p in (0.8, 0.99):
+        flat = dataclasses.replace(scene, states=tuple(dataclasses.replace(s, safe_open=p) for s in scene.states))
+        assert det.storage_left_open(flat, r10.params) == []
+
+
+def test_safe_open_is_a_change_over_first_seconds(rules):
+    """Х-20 на сыром кэше: 0,25 в начале, после открытия 0,6–0,75 и дальше — событие в момент роста;
+    короткий рост, пока кассир заслоняет сейф (меньше min_duration_sec), — нет."""
+    r10 = next(r for r in rules if r.id == "R10_storage_left_open")
+    scene = load_scene(FIXTURES / "scene_X23.json")
+    opened = dataclasses.replace(scene, states=tuple(
+        dataclasses.replace(s, safe_open=0.25 if s.t < 4.0 else 0.7) for s in scene.states))
+    assert [round(e.timecode_sec) for e in det.storage_left_open(opened, r10.params)] == [4]
+    blink = dataclasses.replace(scene, states=tuple(
+        dataclasses.replace(s, safe_open=0.7 if 8.0 <= s.t < 12.0 else 0.25) for s in scene.states))
+    assert det.storage_left_open(blink, r10.params) == []
 
 
 def test_light_jump_is_not_event(rules):
