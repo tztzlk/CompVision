@@ -8,6 +8,9 @@
     POST /api/v1/analyze                          — загрузить видео (поле file), вернуть job_id. Раздел 10 ТЗ.
     GET  /api/v1/jobs/{job_id}                    — статус processing/done/failed и результат. Раздел 10 ТЗ.
     GET  /api/v1/jobs/{job_id}/files/{filename}   — файл задачи (input.mov, frames/<name>.jpg).
+    POST /api/v1/jobs/{job_id}/feedback           — отзыв проверяющего по нарушению (самообучение):
+         {violation_index, label: confirmed|rejected, comment?}; 404 — нет задачи, 409 — задача не готова
+         или нет такого нарушения. Формат ответа GET /jobs/{job_id} не меняется.
 Все /api/* требуют заголовок X-API-Key == API_KEY; иначе 401 (проверка в middleware ДО чтения тела,
 OPTIONS-preflight пропускается). Затем ранний 413 по Content-Length. Не .mov/QuickTime -> 415.
 Слои (снаружи внутрь): CORSMiddleware -> _guard (ключ, 413) -> маршруты.
@@ -24,11 +27,12 @@ import shutil
 import uuid
 from contextlib import asynccontextmanager, closing
 from pathlib import Path
-from typing import AsyncIterator, BinaryIO
+from typing import AsyncIterator, BinaryIO, Literal, Optional
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.concurrency import run_in_threadpool
 
 from shared.schemas import AnalysisResult, AnalyzeResponse, JobStatus
@@ -46,6 +50,20 @@ _MULTIPART_OVERHEAD = 64 * 1024
 # Контракт, раздел 10: тип бокса ISO BMFF/QuickTime в байтах 4..8
 _QT_BOX_TYPES = frozenset({b"ftyp", b"moov", b"mdat", b"wide", b"free", b"skip", b"pnot"})
 _BAD_FORMAT_DETAIL = "ожидается видео .mov (QuickTime)"
+
+
+class FeedbackRequest(BaseModel):
+    """Тело POST /api/v1/jobs/{job_id}/feedback."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    violation_index: int = Field(ge=0, description="Индекс в violations[] ответа GET /jobs/{job_id}.")
+    label: Literal["confirmed", "rejected"]
+    comment: Optional[str] = Field(default=None, max_length=1000)
+
+
+class FeedbackResponse(BaseModel):
+    status: Literal["ok"] = "ok"
 
 
 class _TooLarge(Exception):
@@ -208,3 +226,19 @@ def get_job_file(request: Request, job_id: str, filename: str) -> FileResponse:
     if target == base or not target.is_relative_to(base) or not target.is_file():
         raise not_found
     return FileResponse(target)
+
+
+@app.post("/api/v1/jobs/{job_id}/feedback", response_model=FeedbackResponse)
+def post_feedback(request: Request, job_id: str, body: FeedbackRequest) -> FeedbackResponse:
+    """Подтвердить или отклонить нарушение. Отзывы копятся в таблице feedback для переобучения."""
+    if not _JOB_ID_RE.match(job_id):
+        raise HTTPException(status_code=404, detail="задача не найдена")
+    with closing(db.connect(_settings(request).database_url)) as conn:
+        try:
+            record = db.add_feedback(conn, job_id, body.violation_index, body.label, body.comment)
+        except db.FeedbackError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+    if record is None:
+        raise HTTPException(status_code=404, detail="задача не найдена")
+    LOG.info("задача %s: отзыв %s по нарушению %d (%s)", job_id, body.label, body.violation_index, record.rule_id)
+    return FeedbackResponse()

@@ -1,48 +1,25 @@
-"""События: применение правил из rules.yaml к последовательности детекций."""
+"""События: применение правил из rules.yaml к временному ряду состояний сцены (SceneTimeline).
+
+detect_events(rules, scene) вызывает для каждого правила детектор по имени rule.detector
+из реестра worker.events.detectors.DETECTORS. Неизвестное имя детектора — ошибка уже
+в load_rules (worker не стартует); исключение внутри детектора логируется и не роняет задачу.
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import dataclasses
+import logging
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from worker.perception import FrameDetections
+from worker.events.model import Event, Rule, RuleSource, RulesError
+from worker.scene.contract import SceneTimeline
 
 __all__ = ["RulesError", "RuleSource", "Rule", "Event", "load_rules", "detect_events"]
 
-
-class RulesError(ValueError):
-    """rules.yaml не прошёл проверку."""
-
-
-@dataclass(frozen=True)
-class RuleSource:
-    doc: str
-    url: str
-    clause: str
-
-
-@dataclass(frozen=True)
-class Rule:
-    """Одна запись rules.yaml: id, title, detector, params, source{doc,url,clause}, template."""
-
-    id: str
-    title: str
-    detector: str
-    params: dict[str, Any]
-    source: RuleSource
-    template: str
-
-
-@dataclass(frozen=True)
-class Event:
-    rule_id: str
-    timecode_sec: float
-    confidence: float
-    evidence_timestamps_sec: list[float] = field(default_factory=list)   # 1–3 кадра
-    facts: dict[str, Any] = field(default_factory=dict)                 # подстановки в template
+LOG = logging.getLogger("worker.events")
 
 
 _RULE_KEYS = {"id", "title", "detector", "params", "source", "template"}
@@ -85,6 +62,8 @@ def load_rules(rules_path: Path) -> list[Rule]:
     if not isinstance(items, list) or not items:
         raise RulesError(f"{rules_path}: rules должен быть непустым списком")
 
+    from worker.events.detectors import DETECTORS
+
     rules: list[Rule] = []
     seen: set[str] = set()
     for i, item in enumerate(items):
@@ -99,12 +78,15 @@ def load_rules(rules_path: Path) -> list[Rule]:
             params = {}
         if not isinstance(params, dict) or not all(isinstance(k, str) for k in params):
             raise RulesError(f"{where}.params: ожидается словарь со строковыми ключами")
+        detector = _non_empty_str(f"{where}.detector", raw["detector"])
+        if detector not in DETECTORS:
+            raise RulesError(f"{where}.detector: неизвестный детектор {detector!r}, есть: {sorted(DETECTORS)}")
         src = _check_keys(f"{where}.source", raw["source"], _SOURCE_KEYS)
         rules.append(
             Rule(
                 id=rule_id,
                 title=_non_empty_str(f"{where}.title", raw["title"]),
-                detector=_non_empty_str(f"{where}.detector", raw["detector"]),
+                detector=detector,
                 params=dict(params),
                 source=RuleSource(
                     doc=_non_empty_str(f"{where}.source.doc", src["doc"]),
@@ -117,6 +99,24 @@ def load_rules(rules_path: Path) -> list[Rule]:
     return rules
 
 
-def detect_events(rules: list[Rule], detections: list[FrameDetections]) -> list[Event]:
-    """Для каждого правила вызвать детектор по имени rule.detector с rule.params."""
-    raise NotImplementedError
+def detect_events(rules: list[Rule], scene: SceneTimeline) -> list[Event]:
+    """Для каждого правила вызвать детектор по имени rule.detector с rule.params.
+
+    Ошибка одного детектора логируется и не мешает остальным. Результат отсортирован по времени.
+    """
+    from worker.events.detectors import DETECTORS
+
+    events: list[Event] = []
+    for rule in rules:
+        detector = DETECTORS.get(rule.detector)
+        if detector is None:
+            LOG.error("правило %s: неизвестный детектор %s", rule.id, rule.detector)
+            continue
+        try:
+            found = detector(scene, rule.params)
+        except Exception:  # noqa: BLE001 — один сломанный детектор не роняет задачу
+            LOG.exception("правило %s: ошибка детектора %s", rule.id, rule.detector)
+            continue
+        events.extend(dataclasses.replace(ev, rule_id=rule.id) for ev in found)
+    events.sort(key=lambda ev: ev.timecode_sec)
+    return events

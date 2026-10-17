@@ -1,22 +1,27 @@
 import { forwardRef, useMemo, type ReactNode } from "react";
-import type { AnalysisResult } from "../api";
+import type { AnalysisResult, FeedbackLabel } from "../api";
 import { ViolationCard } from "./ViolationCard";
 
 interface Props {
   result: AnalysisResult;
   onSeek: ((sec: number) => void) | null;
   onOpenFrame: (src: string, caption: string) => void;
+  /** Отзыв по нарушению; index — позиция в result.violations (как прислал сервер). */
+  onFeedback?: ((index: number, label: FeedbackLabel) => Promise<void>) | null;
   /** Блок между вердиктом и списком (сведения о проверке, превью). */
   children?: ReactNode;
 }
 
 /** Вердикт (ровно две формулировки из раздела 4 ТЗ) и список нарушений по таймкоду. */
 export const ResultView = forwardRef<HTMLHeadingElement, Props>(function ResultView(
-  { result, onSeek, onOpenFrame, children },
+  { result, onSeek, onOpenFrame, onFeedback = null, children },
   headingRef,
 ) {
   const violations = useMemo(
-    () => [...(result.violations ?? [])].sort((a, b) => a.timecode_sec - b.timecode_sec),
+    () =>
+      (result.violations ?? [])
+        .map((v, serverIndex) => ({ v, serverIndex }))
+        .sort((a, b) => a.v.timecode_sec - b.v.timecode_sec),
     [result.violations],
   );
   // Вердикт берём из поля verdict; при его отсутствии (несогласованный ответ) — по списку.
@@ -44,9 +49,15 @@ export const ResultView = forwardRef<HTMLHeadingElement, Props>(function ResultV
 
       {isViolation && violations.length > 0 && (
         <ol className="cards" aria-label="Возможные нарушения по времени">
-          {violations.map((v, i) => (
-            <li key={`${v.timecode_sec}-${i}`}>
-              <ViolationCard violation={v} index={i} onSeek={onSeek} onOpenFrame={onOpenFrame} />
+          {violations.map(({ v, serverIndex }, i) => (
+            <li key={`${v.timecode_sec}-${serverIndex}`}>
+              <ViolationCard
+                violation={v}
+                index={i}
+                onSeek={onSeek}
+                onOpenFrame={onOpenFrame}
+                onFeedback={onFeedback ? (label) => onFeedback(serverIndex, label) : null}
+              />
             </li>
           ))}
         </ol>

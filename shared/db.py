@@ -1,7 +1,8 @@
 """SQLite-хранилище задач, общее для backend и worker. Весь SQL проекта — только здесь.
 
 Файл БД: DATABASE_URL=sqlite:////data/app.db на общем volume app-data.
-backend: init_db, create_job, get_job (через фасад backend/app/db.py).
+backend: init_db, create_job, get_job, add_feedback (через фасад backend/app/db.py).
+обучение (scripts/retrain_from_feedback.py): list_feedback.
 worker:  init_db, claim_next_job, save_result, mark_failed, fail_stale (через worker/jobs.py).
 
 Соединения в режиме autocommit (isolation_level=None), WAL, busy_timeout=5000:
@@ -34,6 +35,10 @@ __all__ = [
     "mark_failed",
     "fail_stale",
     "requeue_inflight",
+    "FeedbackError",
+    "FeedbackRecord",
+    "add_feedback",
+    "list_feedback",
 ]
 
 LOG = logging.getLogger("shared.db")
@@ -50,10 +55,42 @@ CREATE TABLE IF NOT EXISTS jobs (
     finished_at  REAL
 );
 CREATE INDEX IF NOT EXISTS jobs_queue_idx ON jobs (status, started_at, created_at);
+-- Обратная связь проверяющего по каждому нарушению (самообучение). Формат ответа жюри не меняется.
+CREATE TABLE IF NOT EXISTS feedback (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id           TEXT NOT NULL REFERENCES jobs(job_id),
+    violation_index  INTEGER NOT NULL,     -- индекс в violations[] ответа GET /jobs/{job_id}
+    rule_id          TEXT,                 -- violations[i].rule.id (NULL, если правила нет)
+    timecode_sec     REAL NOT NULL,        -- violations[i].timecode_sec
+    label            TEXT NOT NULL,        -- confirmed | rejected
+    comment          TEXT,
+    created_at       REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS feedback_job_idx ON feedback (job_id);
 """
+
+FEEDBACK_LABELS = ("confirmed", "rejected")
+_MAX_COMMENT_LEN = 1000
 
 _SQLITE_PREFIX = "sqlite:///"
 _MAX_ERROR_LEN = 2000
+
+
+class FeedbackError(ValueError):
+    """Отзыв нельзя принять: задача не готова или нет нарушения с таким индексом."""
+
+
+@dataclass(frozen=True)
+class FeedbackRecord:
+    """Строка таблицы feedback."""
+
+    job_id: str
+    violation_index: int
+    rule_id: Optional[str]
+    timecode_sec: float
+    label: str
+    comment: Optional[str]
+    created_at: float
 
 
 @dataclass(frozen=True)
@@ -204,3 +241,49 @@ def fail_stale(conn: sqlite3.Connection, timeout_sec: float) -> list[str]:
         ),
     ).fetchall()
     return [r["job_id"] for r in rows]
+
+
+def add_feedback(
+    conn: sqlite3.Connection, job_id: str, violation_index: int, label: str, comment: Optional[str] = None
+) -> Optional[FeedbackRecord]:
+    """Сохранить отзыв по нарушению violations[violation_index] задачи job_id.
+
+    None — задачи нет. FeedbackError — задача не в done, неверный индекс или метка.
+    rule_id и timecode_sec берутся из сохранённого результата, а не от клиента.
+    """
+    if label not in FEEDBACK_LABELS:
+        raise FeedbackError(f"label должен быть одним из {FEEDBACK_LABELS}")
+    result = get_job(conn, job_id)
+    if result is None:
+        return None
+    if result.status is not JobStatus.DONE:
+        raise FeedbackError("задача ещё не обработана")
+    if not 0 <= violation_index < len(result.violations):
+        raise FeedbackError(f"нет нарушения с индексом {violation_index}")
+    violation = result.violations[violation_index]
+    record = FeedbackRecord(
+        job_id=job_id,
+        violation_index=violation_index,
+        rule_id=violation.rule.id if violation.rule else None,
+        timecode_sec=violation.timecode_sec,
+        label=label,
+        comment=(comment or "").strip()[:_MAX_COMMENT_LEN] or None,
+        created_at=time.time(),
+    )
+    conn.execute(
+        "INSERT INTO feedback (job_id, violation_index, rule_id, timecode_sec, label, comment, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (record.job_id, record.violation_index, record.rule_id, record.timecode_sec,
+         record.label, record.comment, record.created_at),
+    )
+    return record
+
+
+def list_feedback(conn: sqlite3.Connection, since: float = 0.0) -> list[FeedbackRecord]:
+    """Все отзывы с created_at >= since, по времени (для переобучения порогов)."""
+    rows = conn.execute(
+        "SELECT job_id, violation_index, rule_id, timecode_sec, label, comment, created_at "
+        "FROM feedback WHERE created_at >= ? ORDER BY created_at",
+        (since,),
+    ).fetchall()
+    return [FeedbackRecord(**dict(r)) for r in rows]

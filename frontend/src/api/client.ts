@@ -43,6 +43,7 @@ function extractDetail(body: string): string | null {
 function kindForStatus(status: number): ApiErrorKind {
   if (status === 401) return "unauthorized";
   if (status === 404) return "not_found";
+  if (status === 409) return "conflict";
   if (status === 413) return "too_large";
   if (status === 415) return "unsupported";
   if (status >= 500) return "unavailable";
@@ -99,6 +100,14 @@ export function createHttpClient(base: string = API_BASE_URL): ApiClient {
         throw new ApiError("bad_response", 200, null, "no status");
       }
       return data;
+    },
+
+    async sendFeedback(jobId, violationIndex, label) {
+      await request<{ status: string }>(joinUrl(base, `/v1/jobs/${encodeURIComponent(jobId)}/feedback`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ violation_index: violationIndex, label }),
+      });
     },
   };
 }

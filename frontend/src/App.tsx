@@ -373,7 +373,13 @@ export default function App() {
         )}
 
         {phase.kind === "done" && (
-          <ResultView ref={verdictRef} result={phase.result} onSeek={showPreview ? seek : null} onOpenFrame={openFrame}>
+          <ResultView
+            ref={verdictRef}
+            result={phase.result}
+            onSeek={showPreview ? seek : null}
+            onOpenFrame={openFrame}
+            onFeedback={(index, label) => api.sendFeedback(phase.jobId, index, label)}
+          >
             <section className="panel result-meta" aria-label="Сведения о проверке">
               <dl className="meta">
                 <dt>Файл</dt>
