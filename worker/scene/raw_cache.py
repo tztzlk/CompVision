@@ -92,8 +92,14 @@ def _config(raw: Mapping[str, Any], override: Optional[SceneConfig]) -> SceneCon
     return SceneConfig(**{k: v for k, v in raw.get("config", {}).items() if k in known})
 
 
-def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None) -> SceneTimeline:
-    """Собрать SceneTimeline текущим builder из сырого кэша (без моделей)."""
+def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, *,
+                  rezone: bool = False) -> SceneTimeline:
+    """Собрать SceneTimeline текущим builder из сырого кэша (без моделей).
+
+    rezone — зоны заново по сохранённым детекциям OWLv2 и COCO текущим worker.perception.zones.
+    Выборки zero-shot при этом остаются от старых зон: состояния стола и сейфа на видео, где зона
+    сменилась, верны только после пересборки на GPU.
+    """
     def det(d: Sequence[Any]) -> Detection:
         return Detection(label=str(d[0]), score=float(d[1]), bbox_xyxy=tuple(d[2]))  # type: ignore[arg-type]
 
@@ -102,6 +108,12 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None) 
                                    for fi, tt, b, s in t["points"]]) for t in raw["tracks"]]
     objects = [[det(d) for d in dets] for dets in raw["objects"]]
     zones = {k: (tuple(v) if v is not None else None) for k, v in raw["zones"].items()}
+    if rezone:
+        from worker.perception.zones import infer_zones
+
+        owl = [[det(d) for d in dets] for dets in raw.get("owl_keyframes", [])]
+        new_zones, _ = infer_zones(owl, objects)
+        zones.update(new_zones)
     samples = {k: [(float(t), None if p is None else float(p)) for t, p in v] for k, v in raw["state_samples"].items()}
     meta = dict(raw.get("meta") or {})
     meta["rebuilt_from_raw"] = True

@@ -27,6 +27,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Кэш сцен из сырого кэша восприятия, без GPU")
     ap.add_argument("--raw", type=Path, default=ROOT / "data" / "raw_cache")
     ap.add_argument("--out", type=Path, default=ROOT / "data" / "scene_cache_rebuilt")
+    ap.add_argument("--rezone", action="store_true",
+                    help="зоны заново текущим кодом по сохранённым детекциям (zero-shot остаётся от старых зон)")
     args = ap.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -38,7 +40,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     failed = 0
     for path in files:
         try:
-            scene = rebuild_scene(load_raw(path))
+            scene = rebuild_scene(load_raw(path), rezone=args.rezone)
             save_scene(scene, args.out / f"{path.stem}.json")
         except Exception as exc:  # noqa: BLE001 — одно видео не останавливает пересборку
             failed += 1

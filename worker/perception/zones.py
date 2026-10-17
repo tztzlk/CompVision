@@ -35,6 +35,16 @@ COCO_FALLBACK: dict[str, tuple[str, ...]] = {
 _BOTTOM_EDGE = 0.98
 _BOTTOM_EDGE_PENALTY = 0.5
 _CLUSTER_IOU = 0.5
+# Замер 17.10 по сырому кэшу 42 видео: сумма score по группе выбирала то, что совпало с обоими
+# запросами зоны, а не то, что лучше всего похоже на неё. Стол за стеклом соседнего офиса
+# («wooden desk» 0,40 + «desk with a computer» 0,35) обходил рабочий стол (0,54) на Х-20…Х-29,
+# белая тумба — серый сейф на Х-1…Х-5, Х-12…Х-15. Теперь группа оценивается так:
+#   desk — сумма по ключевым кадрам лучшего score кадра (запросы не складываются) и рамка не
+#          мельче _MIN_AREA (стол за стеклом — 0,5 % кадра, рабочий — ~12 %);
+#   safe, laptop — лучший одиночный score;
+#   door — как было (сумма): выбор двери по OWLv2 ненадёжен, вход ищется по трекам.
+_SCORING = {"desk": "keyframe_max", "safe": "max", "laptop": "max", "door": "sum"}
+_MIN_AREA = {"desk": 0.03}
 
 
 def all_zone_queries() -> list[str]:
@@ -97,6 +107,31 @@ def _expand_rel(box: BBox, frac: float) -> BBox:
     return (max(0.0, box[0] - dx), max(0.0, box[1] - dy), min(1.0, box[2] + dx), min(1.0, box[3] + dy))
 
 
+def _scored_cluster(candidates: Sequence[tuple[BBox, float, int]], scoring: str) -> tuple[Optional[BBox], float]:
+    """Группа похожих рамок с наибольшим счётом: sum — сумма score; keyframe_max — сумма по ключевым
+    кадрам лучшего score кадра; max — лучший одиночный score. Возвращает (медианная рамка, сумма score)."""
+    clusters = _clusters([(b, s) for b, s, _ in candidates])
+    if not clusters:
+        return None, 0.0
+    frame_of = {}
+    for b, s, k in candidates:
+        frame_of.setdefault((tuple(b), s), k)
+
+    def score(cl: list[tuple[BBox, float]]) -> float:
+        if scoring == "max":
+            return max(s for _, s in cl)
+        if scoring == "keyframe_max":
+            best: dict[int, float] = {}
+            for b, s in cl:
+                k = frame_of[(tuple(b), s)]
+                best[k] = max(best.get(k, 0.0), s)
+            return sum(best.values())
+        return sum(s for _, s in cl)
+
+    top = max(clusters, key=score)
+    return median_box(b for b, _ in top), sum(s for _, s in top)
+
+
 def _best_cluster(candidates: Sequence[tuple[BBox, float]]) -> tuple[Optional[BBox], float]:
     """Сгруппировать похожие рамки (IoU >= 0.5) и выбрать группу с наибольшей суммой score."""
     clusters: list[list[tuple[BBox, float]]] = []
@@ -127,12 +162,13 @@ def infer_zones(
     info: dict[str, dict[str, object]] = {}
     for zone, queries in ZONE_QUERIES.items():
         candidates = [
-            (det.bbox_xyxy, det.score * _penalty(zone, det.bbox_xyxy))
-            for dets in owl_per_keyframe
+            (det.bbox_xyxy, det.score * _penalty(zone, det.bbox_xyxy), k)
+            for k, dets in enumerate(owl_per_keyframe)
             for det in dets
             if det.label in queries and det.score >= min_score
+            and (det.bbox_xyxy[2] - det.bbox_xyxy[0]) * (det.bbox_xyxy[3] - det.bbox_xyxy[1]) >= _MIN_AREA.get(zone, 0.0)
         ]
-        box, total = _best_cluster(candidates)
+        box, total = _scored_cluster(candidates, _SCORING.get(zone, "sum"))
         if box is not None:
             zones[zone] = box
             info[zone] = {"source": "owlv2", "score": round(min(1.0, total / keyframes), 3)}

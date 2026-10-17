@@ -112,3 +112,24 @@ class DeskByPeopleTest(unittest.TestCase):
         cashier = [(0.25, 0.25, 0.45, 0.50)] * 30
         self.assertEqual(pick_desk_by_people(cands, cashier), wooden)
         self.assertIsNone(pick_desk_by_people(cands[:1], cashier))
+
+
+class ZoneScoringTest(unittest.TestCase):
+    def test_desk_behind_glass_does_not_win_by_two_queries(self) -> None:
+        """Х-20: стол соседнего офиса совпал с обоими запросами (0,40 + 0,35), рабочий — с одним (0,54)."""
+        working = (0.14, 0.41, 0.71, 0.63)
+        behind_glass = (0.29, 0.08, 0.46, 0.11)
+        owl = [[Detection("a wooden office desk", 0.54, working),
+                Detection("a wooden office desk", 0.40, behind_glass),
+                Detection("a desk with a computer", 0.35, behind_glass)] for _ in range(4)]
+        zones, _ = infer_zones(owl, [[] for _ in range(10)])
+        self.assertEqual(zones["desk"], working)
+
+    def test_safe_is_best_single_detection(self) -> None:
+        """Х-3: белую тумбу «a metal safe» находит слабо, но на всех кадрах; серый шкаф — уверенно на одном."""
+        drawer = (0.0, 0.56, 0.17, 0.70)
+        cabinet = (0.66, 0.42, 0.89, 0.59)
+        owl = [[Detection("a metal safe", 0.14, drawer)] for _ in range(4)]
+        owl[1] = owl[1] + [Detection("a grey metal cabinet", 0.31, cabinet)]
+        zones, _ = infer_zones(owl, [[] for _ in range(10)])
+        self.assertEqual(zones["safe"], cabinet)

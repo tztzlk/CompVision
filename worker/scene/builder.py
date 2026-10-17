@@ -65,6 +65,11 @@ class SceneConfig:
     # внутри кассы / за стеклом
     inside_height_ratio: float = 0.5    # высота рамки >= доли типичной высоты человека в кассе
     floor_margin: float = 0.0           # низ рамки ниже верхнего края стола (+ запас) — человек в комнате
+    # Замер 17.10: когда кассир сидит лицом к камере у дальней стены, он сам мелкий, и «рамка не
+    # меньше половины кассира» пропускала людей за стеклом. При найденном столе внутри только тот,
+    # чей низ рамки не выше верхнего края стола больше чем на floor_tolerance (доля кадра).
+    floor_required: bool = True
+    floor_tolerance: float = 0.03
     hold_gap_sec: float = 1.0           # пропуск детекции внутри трека не дольше — человек на месте
     # кассир и рабочее место
     desk_margin: float = 0.15           # расширение зоны стола при поиске кассира и предметов
@@ -198,7 +203,10 @@ def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config:
     for point in track.points:
         by_height = ref_height > 0 and height(point.bbox) >= config.inside_height_ratio * ref_height
         by_floor = desk is not None and point.bbox[3] >= desk[1] + config.floor_margin
-        raw.append(by_height or by_floor)
+        if desk is not None and config.floor_required:
+            raw.append(point.bbox[3] >= desk[1] - config.floor_tolerance)
+        else:
+            raw.append(by_height or by_floor)
     smoothed = []
     for i, value in enumerate(raw):
         window = raw[max(0, i - 1): i + 2]

@@ -113,6 +113,16 @@ class BuilderTest(unittest.TestCase):
         scene = _scene(tracks=tracks)
         self.assertEqual(scene.meta["scene"]["cashier_track_ids"], [1])
 
+    def test_people_behind_glass_are_outside(self) -> None:
+        """Кассир лицом к камере у дальней стены мелкий; человек за стеклом той же высоты, но выше
+        края стола — снаружи (раньше «рамка не меньше половины кассира» считала его внутри)."""
+        far_cashier = (0.30, 0.36, 0.48, 0.50)          # низ ниже верхнего края стола (0,45)
+        behind = (0.12, 0.25, 0.24, 0.37)               # та же высота, низ выше края стола
+        tracks = [_track(1, range(0, N), lambda k: far_cashier), _track(2, range(0, N), lambda k: behind)]
+        scene = _scene(tracks=tracks)
+        self.assertEqual(scene.meta["scene"]["cashier_track_ids"], [1])
+        self.assertTrue(all(s.persons_in_room == 1 for s in scene.states))
+
     def test_no_door_no_entries(self) -> None:
         scene = _scene(zones={"desk": DESK, "door": None, "safe": SAFE, "laptop": None})
         self.assertFalse(any(s.person_entered or s.person_exited for s in scene.states))
