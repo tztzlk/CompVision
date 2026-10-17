@@ -1,0 +1,6 @@
+# Поза (ViTPose, ENABLE_POSE=1): классы VitPose* есть в transformers с 4.48. Ставится в образ отдельным слоем
+# поверх requirements.txt с --no-deps (worker/Dockerfile), чтобы не пересобирать слой torch (~10 ГБ).
+# Проверено 18.10 в контейнере worker (torch 2.5.1, CUDA, fp16): RT-DETR (5 кадров) и OWLv2 (2 кадра) дают
+# те же детекции и score, SigLIP — те же вероятности, что с 4.46.3 (data/ml_results/pose/transformers_check.txt).
+transformers==4.48.3
+tokenizers==0.21.4

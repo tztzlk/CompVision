@@ -78,13 +78,20 @@ def counting_without_controller(scene: SceneTimeline, params: Mapping[str, Any])
 
 
 def drink_or_phone_at_face(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """Рука у лица, и в кадре стакан/еда или телефон в руке (поля cup_or_food, phone_in_hand)."""
+    """Рука у лица, и в кадре стакан/еда или телефон в руке.
+
+    Предмет — максимум полей params.object_fields: по умолчанию desk_cup (стакан на столе по скану
+    OWLv2 — на нём стоит R13; на Х-46 COCO cup_or_food после медианы не доходит до p_on), cup_or_food
+    и phone_in_hand (COCO у рук).
+    """
     d = _det()
-    raw = [d._fmin(s.value("cashier_hand_at_face"), d._fmax(s.cup_or_food, s.phone_in_hand))
+    fields = tuple(params.get("object_fields", ("desk_cup", "cup_or_food", "phone_in_hand")))
+    raw = [d._fmin(s.value("cashier_hand_at_face"), d._fmax(*(s.value(f) for f in fields)))
            for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Any) -> dict[str, Any]:
-        cup, phone = d._peak(sc, iv, "cup_or_food"), d._peak(sc, iv, "phone_in_hand")
+        cup = d._fmax(d._peak(sc, iv, "cup_or_food"), d._peak(sc, iv, "desk_cup"))
+        phone = d._peak(sc, iv, "phone_in_hand")
         item = "телефон" if (phone or 0.0) > (cup or 0.0) else "стакан или еда"
         return {"what_visible": f"кассир подносит руку к лицу, в кадре {item}", "bbox": None}
 
@@ -110,7 +117,9 @@ def storage_left_open_pose(scene: SceneTimeline, params: Mapping[str, Any]) -> l
     points = int(d._param(params, "smooth_points"))
     min_work = float(params.get("min_work_sec", 0.7))
     min_dur = d._param(params, "min_duration_sec")
-    window = float(params.get("open_window_sec", 4.0))
+    # Окно не короче минимальной длительности: с параметрами R10 (min_duration_sec 7) окно 4 с
+    # не давало событий никогда.
+    window = max(float(params.get("open_window_sec", 4.0)), min_dur + 1.0 / scene.fps_sampled)
     gap = d._param(params, "merge_gap_sec")
     near_share = float(params.get("near_safe_overlap", 0.15))
     safe_zone = d._expand(scene.zones.get("safe"), float(params.get("safe_margin", 0.05)))

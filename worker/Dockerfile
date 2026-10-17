@@ -77,6 +77,10 @@ WORKDIR /app
 # CUDA-сборки torch берутся через --extra-index-url внутри requirements.txt (если нужно).
 COPY worker/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --retries 10 --timeout 60 -r requirements.txt
+# transformers 4.48 для позы (ViTPose) — отдельным маленьким слоем поверх, --no-deps: остальные пакеты
+# не меняются, слой torch выше берётся из кэша (worker/requirements-pose.txt).
+COPY worker/requirements-pose.txt ./requirements-pose.txt
+RUN pip install --no-cache-dir --retries 10 --timeout 60 --no-deps -r requirements-pose.txt
 
 # Общий код backend/worker (схемы ответа, SQL) -> /app/shared.
 COPY --chown=app:app shared ./shared

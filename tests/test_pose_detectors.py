@@ -117,6 +117,15 @@ def test_hand_at_face_without_object_is_not_event():
     assert drink_or_phone_at_face(scene, {}) == []                     # почесал лицо
 
 
+def test_drink_at_face_desk_cup_field():
+    """Стакан только по скану стола OWLv2 (desk_cup, на нём стоит R13): COCO стакан не видит, событие есть."""
+    scene = _scene(15, lambda t: {"cashier_hand_at_face": _between(t, 11.0, 13.0, 0.9), "cup_or_food": 0.0,
+                                  "phone_in_hand": 0.0, "desk_cup": 1.0})
+    events = drink_or_phone_at_face(scene, {})
+    assert len(events) == 1 and "стакан" in events[0].facts["what_visible"]
+    assert drink_or_phone_at_face(scene, {"object_fields": ["cup_or_food", "phone_in_hand"]}) == []
+
+
 # ---------------------------------------------------------------- сейф (улучшенный R10)
 
 
@@ -145,6 +154,14 @@ def test_safe_hard_negatives():
     no_zone = _scene(15, _safe)
     no_zone = SceneTimeline(**{**no_zone.__dict__, "zones": {**no_zone.zones, "safe": None}})
     assert storage_left_open_pose(no_zone, {}) == []
+
+
+def test_safe_left_open_with_r10_duration():
+    """С параметрами R10 (min_duration_sec 7) событие возможно: окно не короче минимальной длительности."""
+    events = storage_left_open_pose(_scene(15, _safe), {"min_duration_sec": 7.0})
+    assert len(events) == 1 and abs(events[0].timecode_sec - 3.5) <= 0.4
+    short = _scene(15, lambda t: _safe(t, open_until=8.0))             # открыт ~4,5 с после ухода
+    assert storage_left_open_pose(short, {"min_duration_sec": 7.0}) == []
 
 
 @pytest.mark.parametrize("name", sorted(POSE_DETECTORS))

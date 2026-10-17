@@ -9,6 +9,8 @@ python scripts/download_models.py --only vitpose (нужен transformers >= 4.4
     PYTHONPATH=. python scripts/add_pose_to_cache.py
     PYTHONPATH=. python scripts/add_pose_to_cache.py --only Х-20 --only Х-44
     PYTHONPATH=. python scripts/add_pose_to_cache.py --recompute      # без модели: признаки заново
+    PYTHONPATH=. python scripts/add_pose_to_cache.py --recompute --gesture-heads heads/pose_gestures.npz \
+        --recompute-to data/scene_cache_pose_heads   # гибрид с головами жестов, без модели
 
 --recompute берёт уже посчитанные точки из --out и пересчитывает только признаки (после правки
 PoseConfig) — модель и видео не нужны, работает на CPU за секунды.
@@ -20,6 +22,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import logging
+import os
 import re
 import sys
 import time
@@ -32,7 +35,8 @@ if str(ROOT) not in sys.path:
 
 from worker.scene.contract import load_scene, save_scene  # noqa: E402
 from worker.scene.pose_features import PoseConfig, compute_features  # noqa: E402
-from worker.scene.pose_pass import add_pose, pose_frames_from_scene  # noqa: E402
+from worker.scene.pose_heads import apply_gesture_heads  # noqa: E402
+from worker.scene.pose_pass import add_pose, load_heads, pose_frames_from_scene  # noqa: E402
 
 LOG = logging.getLogger("add_pose_to_cache")
 
@@ -49,18 +53,32 @@ def find_scenes(cache: Path, only: Optional[list[str]]) -> list[Path]:
 
 
 def find_video(dataset: Path, video_id: str) -> Optional[Path]:
-    for p in Path(dataset).rglob("*"):
-        if p.is_file() and p.suffix.lower() == ".mov" and p.stem == video_id:
-            return p
+    # os.walk(followlinks=True): каталог видео может быть символической ссылкой (рабочая копия git worktree),
+    # а Path.rglob в Python 3.11 по ссылкам на каталоги не ходит.
+    for root, _dirs, files in os.walk(dataset, followlinks=True):
+        for name in files:
+            path = Path(root) / name
+            if path.suffix.lower() == ".mov" and path.stem == video_id:
+                return path
     return None
 
 
-def recompute(scene_path: Path, out_dir: Path, cfg: PoseConfig) -> Path:
-    """Признаки заново по точкам, уже записанным в сцену (без модели)."""
+def recompute(scene_path: Path, out_dir: Path, cfg: PoseConfig, heads: Optional[dict] = None) -> Path:
+    """Признаки заново по точкам, уже записанным в сцену (без модели); с heads — и гибрид голов жестов."""
     scene = load_scene(scene_path)
-    features = compute_features(pose_frames_from_scene(scene), scene.zones, scene.frame_size, cfg)
-    states = tuple(dataclasses.replace(s, extra={**s.extra, **f}) for s, f in zip(scene.states, features))
-    return save_scene(dataclasses.replace(scene, states=states), out_dir / scene_path.name)
+    frames = pose_frames_from_scene(scene)
+    features = compute_features(frames, scene.zones, scene.frame_size, cfg)
+    if heads:
+        features = apply_gesture_heads(frames, features, scene.zones, scene.frame_size, heads)
+    states = tuple(
+        dataclasses.replace(s, extra={**{k: v for k, v in s.extra.items() if not k.endswith("_head")}, **f})
+        for s, f in zip(scene.states, features))
+    meta_pose = {k: v for k, v in scene.meta.get("pose", {}).items()
+                 if k not in ("gesture_heads", "gesture_heads_oof", "heads_error")}
+    if heads:
+        meta_pose["gesture_heads"] = {g: h.mode for g, h in sorted(heads.items())}
+    return save_scene(dataclasses.replace(scene, states=states, meta={**scene.meta, "pose": meta_pose}),
+                      out_dir / scene_path.name)
 
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -73,6 +91,10 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p.add_argument("--every-k", type=int, default=1, help="поза на каждом k-м состоянии")
     p.add_argument("--only", action="append", metavar="VIDEO_ID", help="только это видео (флаг повторяемый)")
     p.add_argument("--recompute", action="store_true", help="только пересчитать признаки по точкам из --out")
+    p.add_argument("--recompute-to", type=Path, default=None,
+                   help="куда писать пересчитанные сцены (по умолчанию — туда же, в --out)")
+    p.add_argument("--gesture-heads", default="",
+                   help="головы жестов .npz (относительно --models-dir или абсолютный путь); пусто — только геометрия")
     p.add_argument("-v", "--verbose", action="store_true")
     return p.parse_args(argv)
 
@@ -84,15 +106,20 @@ def main(argv: Optional[list[str]] = None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%H:%M:%S")
-    cfg = PoseConfig(every_k=max(1, args.every_k))
+    cfg = PoseConfig(every_k=max(1, args.every_k), gesture_heads=args.gesture_heads)
+    heads, heads_error = load_heads(cfg, args.models_dir)
+    if heads_error:
+        LOG.error("%s", heads_error)
+        return 2
 
     if args.recompute:
         scenes = find_scenes(args.out, args.only)
         if not scenes:
             LOG.error("сцены с позой не найдены в %s", args.out)
             return 2
+        target = args.recompute_to or args.out
         for path in scenes:
-            LOG.info("%s: признаки пересчитаны -> %s", path.stem, recompute(path, args.out, cfg))
+            LOG.info("%s: признаки пересчитаны -> %s", path.stem, recompute(path, target, cfg, heads))
         return 0
 
     scenes = find_scenes(args.cache, args.only)
@@ -124,7 +151,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 raise FileNotFoundError(f"видео {scene.video_id}.mov не найдено в {args.dataset}")
             frames = read_frames_at(video, [s.t for s in scene.states])
             decoded = time.monotonic() - started
-            scene = add_pose(scene, frames, estimator, cfg)
+            scene = add_pose(scene, frames, estimator, cfg, heads)
             out = save_scene(scene, args.out / path.name)
         except Exception as exc:  # noqa: BLE001 — одно видео не должно останавливать прогон
             LOG.error("[%d/%d] %s: %s: %s", i, len(scenes), vid, type(exc).__name__, exc)

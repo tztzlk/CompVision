@@ -75,6 +75,9 @@ class PoseConfig:
     standing_bbox_hi: float = 1.4           # значение 1 (1,3 -> 0,6)
     every_k: int = 1                        # поза на каждом k-м состоянии (если не укладываемся во время)
     smooth_points: int = 3
+    # Головы жестов (worker.scene.pose_heads, scripts/train_pose_heads.py): путь к .npz относительно
+    # каталога моделей (heads/pose_gestures.npz) или абсолютный; пусто — только геометрия (по умолчанию).
+    gesture_heads: str = ""
 
 
 @dataclass(frozen=True)
