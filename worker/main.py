@@ -3,7 +3,7 @@
 Цикл очереди (только здесь, контракт раздел 4):
     jobs.claim_next_job -> runner.analyze(video, job_id, STORAGE_DIR/<job_id>, rules)
     -> jobs.save_result | jobs.mark_failed
-Выбор «пайплайн / мок» — только в worker/runner.py (сейчас МОК, см. worker/mock.py).
+Пайплайн (scene -> events -> verdict) — в worker/runner.py.
 В каждом проходе цикла задачи processing, созданные раньше JOB_TIMEOUT_SEC назад, -> failed (shared.db.fail_stale).
 SIGTERM/SIGINT: дорабатывает текущую задачу (subprocess ограничены таймаутами) и выходит с кодом 0.
 """
@@ -57,8 +57,6 @@ def main() -> int:
     )
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
-    # TODO(МОК): убрать предупреждение, когда runner.process_video будет реализован.
-    LOG.warning("МОК-режим: перцепции нет, каждое видео получает тестовое нарушение-заглушку")
 
     try:
         rules = load_rules(settings.rules_path)

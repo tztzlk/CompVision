@@ -1,4 +1,5 @@
-import type { Violation } from "../api";
+import { useState } from "react";
+import type { FeedbackLabel, Violation } from "../api";
 import { formatClock, formatSeconds, isHttpUrl } from "../format";
 
 interface Props {
@@ -7,13 +8,22 @@ interface Props {
   /** null — превью недоступно, таймкод показывается текстом. */
   onSeek: ((sec: number) => void) | null;
   onOpenFrame: (src: string, caption: string) => void;
+  /** Отправить отзыв проверяющего; null — кнопки не показываются. */
+  onFeedback: ((label: FeedbackLabel) => Promise<void>) | null;
 }
+
+type FeedbackState =
+  | { kind: "idle" }
+  | { kind: "sending"; label: FeedbackLabel }
+  | { kind: "sent"; label: FeedbackLabel }
+  | { kind: "error" };
 
 export function frameSrc(base64: string): string {
   return base64.startsWith("data:") ? base64 : `data:image/jpeg;base64,${base64}`;
 }
 
-export function ViolationCard({ violation: v, index, onSeek, onOpenFrame }: Props) {
+export function ViolationCard({ violation: v, index, onSeek, onOpenFrame, onFeedback }: Props) {
+  const [fb, setFb] = useState<FeedbackState>({ kind: "idle" });
   const titleId = `violation-${index}-title`;
   const clock = formatClock(v.timecode_sec);
   const frames = Array.isArray(v.evidence_frames) ? v.evidence_frames : [];
@@ -97,6 +107,45 @@ export function ViolationCard({ violation: v, index, onSeek, onOpenFrame }: Prop
           )}
         </dd>
       </dl>
+
+      {onFeedback && (
+        <footer className="card-feedback" aria-label="Оценка проверяющего">
+          {fb.kind === "sent" ? (
+            <span className={fb.label === "confirmed" ? "fb-done fb-ok" : "fb-done fb-no"} role="status">
+              {fb.label === "confirmed" ? "Нарушение подтверждено" : "Нарушение отклонено"}. Спасибо, отзыв учтём при
+              дообучении.
+            </span>
+          ) : (
+            <>
+              <span className="muted">Это действительно нарушение?</span>
+              {(["confirmed", "rejected"] as const).map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  disabled={fb.kind === "sending"}
+                  onClick={async () => {
+                    setFb({ kind: "sending", label });
+                    try {
+                      await onFeedback(label);
+                      setFb({ kind: "sent", label });
+                    } catch {
+                      setFb({ kind: "error" });
+                    }
+                  }}
+                >
+                  {fb.kind === "sending" && fb.label === label ? "Отправка…" : label === "confirmed" ? "Подтвердить" : "Отклонить"}
+                </button>
+              ))}
+              {fb.kind === "error" && (
+                <span className="hint-error" role="alert">
+                  Не удалось отправить, попробуйте ещё раз
+                </span>
+              )}
+            </>
+          )}
+        </footer>
+      )}
     </article>
   );
 }

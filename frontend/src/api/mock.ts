@@ -180,5 +180,15 @@ export function createMockClient(): ApiClient {
       }
       return job.result;
     },
+
+    async sendFeedback(jobId, violationIndex, _label, apiKey) {
+      await sleep(300);
+      checkKey(apiKey);
+      const job = jobs.get(jobId);
+      if (!job) throw new ApiError("not_found", 404, "Задача не найдена (мок)");
+      if (!job.result?.violations?.[violationIndex]) {
+        throw new ApiError("conflict", 409, "Нет нарушения с таким номером (мок)");
+      }
+    },
   };
 }

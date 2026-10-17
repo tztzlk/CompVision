@@ -34,6 +34,9 @@ export interface AnalysisResult {
   violations?: Violation[];
 }
 
+/** Отзыв проверяющего по нарушению (POST /v1/jobs/{job_id}/feedback). */
+export type FeedbackLabel = "confirmed" | "rejected";
+
 export interface AnalyzeResponse {
   job_id: string;
   status: JobStatus;
@@ -45,6 +48,7 @@ export type ApiErrorKind =
   | "too_large" // 413
   | "unsupported" // 415
   | "not_found" // 404
+  | "conflict" // 409
   | "unavailable" // сеть / 5xx
   | "bad_response" // ответ не разобрать
   | "other"; // прочие 4xx
@@ -68,6 +72,8 @@ export class ApiError extends Error {
 export interface ApiClient {
   analyze(file: File, apiKey: string, signal?: AbortSignal): Promise<AnalyzeResponse>;
   getJob(jobId: string, apiKey: string, signal?: AbortSignal): Promise<AnalysisResult>;
+  /** violationIndex — индекс в violations[] ответа getJob (как прислал сервер). */
+  sendFeedback(jobId: string, violationIndex: number, label: FeedbackLabel, apiKey: string): Promise<void>;
 }
 
 export function isAbortError(e: unknown): boolean {
