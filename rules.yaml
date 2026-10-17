@@ -223,6 +223,7 @@ rules:
       field: desk_cash
       cash_p: 0.5                  # порог «на столе наличные» в последние before_sec до входа
       before_sec: 2.0
+      after_sec: 2.0               # и 2 с после входа: стол сканируется раз в 2 с (Х-4: вход 55,3, наличные видны с 58)
       min_duration_sec: 1.0        # вошедший остаётся в кассе не меньше, с
       min_confidence: 0.5
       smooth_points: 3

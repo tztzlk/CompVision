@@ -574,6 +574,7 @@ def entry_with_cash_on_desk(scene: SceneTimeline, params: Mapping[str, Any]) -> 
         return []
     cash_p = float(params.get("cash_p", 0.5))
     before_sec = float(params.get("before_sec", 2.0))
+    after_sec = float(params.get("after_sec", 0.0))     # окно проверки и после входа (стол виден не сразу)
     min_dur = _param(params, "min_duration_sec")
     cash_field = str(params.get("field", "cash_on_desk"))           # desk_cash — OWLv2-скан стола
     cash = smooth([s.value(cash_field) for s in states], int(_param(params, "smooth_points")))
@@ -584,10 +585,11 @@ def entry_with_cash_on_desk(scene: SceneTimeline, params: Mapping[str, Any]) -> 
         after = _stays(scene, i, max(min_dur, 1.0))
         if after is None:
             continue
-        before = [cash[k] for k, s in enumerate(states) if t - before_sec <= s.t <= t and cash[k] is not None]
+        before = [cash[k] for k, s in enumerate(states) if t - before_sec <= s.t <= t + after_sec and cash[k] is not None]
         if not before or max(before) < cash_p:
             continue
-        k_cash = max((k for k, s in enumerate(states) if t - before_sec <= s.t <= t and cash[k] is not None),
+        k_cash = max((k for k, s in enumerate(states)
+                      if t - before_sec <= s.t <= t + after_sec and cash[k] is not None),
                      key=lambda k: cash[k])  # type: ignore[arg-type]
         idx = list(dict.fromkeys([k_cash, after[0], *(k for k in after if states[k].t >= t + 1.0)]))[:3]
         events.append(Event(
