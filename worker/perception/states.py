@@ -21,6 +21,7 @@ __all__ = [
     "PHONE_LABELS",
     "FOOD_LABELS",
     "BAG_LABELS",
+    "TABLE_LABELS",
     "COCO_LABELS_OF_INTEREST",
     "enabled_states",
     "crop_zone",
@@ -104,9 +105,11 @@ FOOD_LABELS: tuple[str, ...] = (
     "banana", "apple", "orange", "pizza", "hot dog",
 )
 BAG_LABELS: tuple[str, ...] = ("handbag", "backpack", "suitcase")
+# Имена классов зависят от чекпойнта: в PekingU/rtdetr_r18vd_coco_o365 — "diningtable", "tvmonitor".
+TABLE_LABELS: tuple[str, ...] = ("dining table", "diningtable")
 COCO_LABELS_OF_INTEREST: tuple[str, ...] = (
-    "person", *PHONE_LABELS, *FOOD_LABELS, *BAG_LABELS,
-    "laptop", "dining table", "chair", "book", "keyboard", "tv",
+    "person", *PHONE_LABELS, *FOOD_LABELS, *BAG_LABELS, *TABLE_LABELS,
+    "laptop", "chair", "book", "keyboard", "tv", "tvmonitor",
 )
 
 _MIN_CROP_PX = 8

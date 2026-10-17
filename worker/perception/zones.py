@@ -12,6 +12,7 @@ from typing import Optional, Sequence
 
 from worker.perception import Detection
 from worker.perception.geometry import BBox, iou, median_box
+from worker.perception.states import TABLE_LABELS
 
 __all__ = ["ZONE_QUERIES", "COCO_FALLBACK", "all_zone_queries", "infer_zones"]
 
@@ -25,7 +26,7 @@ ZONE_QUERIES: dict[str, tuple[str, ...]] = {
 
 # Если OWLv2 зону не нашёл — классы COCO из RT-DETR.
 COCO_FALLBACK: dict[str, tuple[str, ...]] = {
-    "desk": ("dining table",),
+    "desk": TABLE_LABELS,
     "laptop": ("laptop",),
 }
 

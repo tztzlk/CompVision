@@ -14,9 +14,9 @@
 
 Примеры запуска
 ---------------
-    python scripts/download_models.py                 # скачать всё, что ещё не скачано
+    python scripts/download_models.py                 # скачать всё, что ещё не скачано (~1,5 ГБ)
     python scripts/download_models.py --list          # показать список моделей и выйти
-    python scripts/download_models.py --only yolo11n  # скачать только указанные (флаг повторяемый)
+    python scripts/download_models.py --only rtdetr   # только группа (rtdetr, owlv2, siglip) или файл
     python scripts/download_models.py --force         # перекачать даже уже существующие
     python scripts/download_models.py --models-dir /data/models
     MODELS_DIR=/data/models python scripts/download_models.py
@@ -67,6 +67,7 @@ class ModelSpec:
               (не рекомендуется: тогда повторный запуск считает любой
               существующий файл валидным).
     size_mb — ориентировочный размер, только для лога/``--list``.
+    group   — группа файлов одной модели (``--only rtdetr`` выбирает все её файлы).
     """
 
     name: str
@@ -74,43 +75,69 @@ class ModelSpec:
     dest: str
     sha256: Optional[str] = None
     size_mb: Optional[float] = None
+    group: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
-# Список моделей.
+# Список моделей восприятия (worker/perception/models.py, тот же набор и ревизии).
 #
-# Пример заполнения (веса YOLO по прямой ссылке на GitHub Releases):
-#
-#   MODELS: list[ModelSpec] = [
-#       ModelSpec(
-#           name="yolo11n",
-#           url="https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt",
-#           dest="yolo/yolo11n.pt",
-#           # sha256 получить один раз после скачивания:
-#           #   sha256sum models/yolo/yolo11n.pt
-#           # либо взять из MANIFEST.json, который пишет этот скрипт.
-#           sha256="<hex-строка из 64 символов>",
-#           size_mb=5.6,
-#       ),
-#   ]
-#
-# Пример для Hugging Face (снапшот репозитория целиком, а не одного файла).
-# Требует ``pip install huggingface_hub`` — импорт НЕ делать обязательным,
-# поскольку в контейнере выставлен HF_HUB_OFFLINE=1 и сеть недоступна.
-# Вызывать только на хосте, один раз, например так:
-#
-#   def download_hf_snapshot(models_dir: Path) -> None:
-#       from huggingface_hub import snapshot_download  # опциональная зависимость
-#       snapshot_download(
-#           repo_id="openai/clip-vit-base-patch32",
-#           local_dir=models_dir / "hf" / "clip-vit-base-patch32",
-#           allow_patterns=["*.json", "*.safetensors", "*.txt"],
-#       )
-#   # В контейнере затем: HF_HUB_OFFLINE=1 и загрузка по локальному пути
-#   # ``models/hf/clip-vit-base-patch32`` (from_pretrained(local_path)).
-#   # Анализ по ТЗ строго визуальный — аудио-модели не нужны.
+# Файлы репозиториев Hugging Face скачиваются по прямым ссылкам на зафиксированную ревизию
+# (коммит) в models/hf/<каталог>/ — только stdlib, без huggingface_hub. Worker грузит их
+# через from_pretrained(<каталог>, local_files_only=True), сеть в runtime не нужна.
+# sha256 указан для больших файлов (из метаданных LFS на Hugging Face); мелкие конфиги
+# неизменны благодаря ревизии в URL. Лицензии всех трёх моделей — Apache-2.0 (проверено
+# на страницах моделей 17.10.2026). Ultralytics YOLO (AGPL-3.0) не используется.
 # ---------------------------------------------------------------------------
-MODELS: list[ModelSpec] = []  # TODO: добавить модели
+_HF_URL = "https://huggingface.co/{repo}/resolve/{revision}/{filename}"
+
+
+def _hf_files(group: str, repo: str, revision: str, local_dir: str,
+              files: list[tuple[str, Optional[str], float]]) -> list[ModelSpec]:
+    """Файлы одного репозитория Hugging Face (имя, sha256 | None, МБ) -> ModelSpec в models/hf/<local_dir>/."""
+    return [
+        ModelSpec(
+            name=f"{group}/{filename}",
+            url=_HF_URL.format(repo=repo, revision=revision, filename=filename),
+            dest=f"hf/{local_dir}/{filename}",
+            sha256=sha256,
+            size_mb=size_mb,
+            group=group,
+        )
+        for filename, sha256, size_mb in files
+    ]
+
+
+MODELS: list[ModelSpec] = [
+    # RT-DETR R18 (COCO): люди и предметы на каждом анализируемом кадре.
+    *_hf_files("rtdetr", "PekingU/rtdetr_r18vd_coco_o365", "386c43855d01bcd966e548f3296fbd2cd2a2a40b",
+               "rtdetr_r18vd_coco_o365", [
+                   ("config.json", None, 0.01),
+                   ("preprocessor_config.json", None, 0.01),
+                   ("model.safetensors", "eadade7a507b87cabe5d6a75b935dbd9fc59b1b843f36f7e3b24eafc856c0774", 80.9),
+               ]),
+    # OWLv2 base: зоны (стол, сейф, дверь, ноутбук) по текстовым запросам.
+    *_hf_files("owlv2", "google/owlv2-base-patch16-ensemble", "cfd3195ba4ea9592eec887ded089f4c08eff231d",
+               "owlv2-base-patch16-ensemble", [
+                   ("config.json", None, 0.01),
+                   ("preprocessor_config.json", None, 0.01),
+                   ("tokenizer_config.json", None, 0.01),
+                   ("special_tokens_map.json", None, 0.01),
+                   ("added_tokens.json", None, 0.01),
+                   ("vocab.json", None, 1.1),
+                   ("merges.txt", None, 0.5),
+                   ("model.safetensors", "e1e130b9e404cf91a75ad45644c1da9d7fa5284085eecc864266a6923efb99e7", 619.9),
+               ]),
+    # SigLIP base: zero-shot состояния по вырезкам зон (сейф открыт, деньги на столе...).
+    *_hf_files("siglip", "google/siglip-base-patch16-224", "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed",
+               "siglip-base-patch16-224", [
+                   ("config.json", None, 0.01),
+                   ("preprocessor_config.json", None, 0.01),
+                   ("tokenizer_config.json", None, 0.01),
+                   ("special_tokens_map.json", None, 0.01),
+                   ("spiece.model", "1e5036bed065526c3c212dfbe288752391797c4bb1a284aa18c9a0b23fcaf8ec", 0.8),
+                   ("model.safetensors", "2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8", 812.7),
+               ]),
+]
 
 
 class DownloadError(Exception):
@@ -256,16 +283,18 @@ def write_manifest(models_dir: Path, entries: list[dict]) -> Path:
 
 
 def select_models(specs: Iterable[ModelSpec], only: Optional[list[str]]) -> list[ModelSpec]:
-    """Отфильтровать по ``--only``; неизвестные имена — ошибка."""
+    """Отфильтровать по ``--only`` (группа модели или имя файла); неизвестные имена — ошибка."""
     specs = list(specs)
     if not only:
         return specs
-    by_name = {s.name: s for s in specs}
-    unknown = [n for n in only if n not in by_name]
+    groups = sorted({s.group for s in specs if s.group})
+    known = {s.name for s in specs} | set(groups)
+    unknown = [n for n in only if n not in known]
     if unknown:
         raise SystemExit(f"Неизвестные модели в --only: {', '.join(unknown)}. "
-                         f"Доступны: {', '.join(by_name) or '(список пуст)'}")
-    return [by_name[n] for n in only]
+                         f"Доступны группы: {', '.join(groups) or '(список пуст)'}")
+    wanted = set(only)
+    return [s for s in specs if s.name in wanted or (s.group is not None and s.group in wanted)]
 
 
 def print_list(specs: list[ModelSpec], models_dir: Path) -> None:
