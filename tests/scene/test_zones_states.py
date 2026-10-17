@@ -1,0 +1,71 @@
+"""Тесты выбора зон и zero-shot-состояний (чистая логика, без моделей)."""
+
+from __future__ import annotations
+
+import unittest
+
+import numpy as np
+
+from worker.perception import Detection
+from worker.perception.states import COCO_LABELS_OF_INTEREST, STATE_PROMPTS, crop_zone, enabled_states
+from worker.perception.zones import all_zone_queries, infer_zones
+from worker.scene.builder import SceneConfig
+
+WOODEN_DESK = (0.10, 0.45, 0.70, 0.70)
+FRONT_TABLE = (0.00, 0.60, 0.60, 1.00)        # белый стол переднего плана, обрезан нижним краем
+
+
+class ZonesTest(unittest.TestCase):
+    def test_wooden_desk_beats_front_table(self) -> None:
+        keyframe = [
+            Detection("a wooden office desk", 0.30, WOODEN_DESK),
+            Detection("a desk with a computer", 0.40, FRONT_TABLE),
+            Detection("a metal safe", 0.25, (0.70, 0.30, 0.85, 0.55)),
+        ]
+        zones, info = infer_zones([keyframe] * 4, [[] for _ in range(10)])
+        self.assertEqual(zones["desk"], WOODEN_DESK)
+        self.assertEqual(info["desk"]["source"], "owlv2")
+        self.assertEqual(zones["safe"], (0.70, 0.30, 0.85, 0.55))
+        self.assertIsNone(zones["door"])
+        self.assertIsNone(info["door"]["source"])
+
+    def test_coco_fallback_uses_checkpoint_label_names(self) -> None:
+        coco = [[Detection("diningtable", 0.8, WOODEN_DESK), Detection("laptop", 0.9, (0.45, 0.40, 0.60, 0.50))]] * 5
+        coco += [[] for _ in range(5)]
+        zones, info = infer_zones([[] for _ in range(4)], coco)
+        self.assertEqual(zones["desk"], WOODEN_DESK)
+        self.assertEqual(info["desk"]["source"], "coco")
+        self.assertEqual(zones["laptop"], (0.45, 0.40, 0.60, 0.50))
+        self.assertIn("diningtable", COCO_LABELS_OF_INTEREST)
+        self.assertIn("cell phone", COCO_LABELS_OF_INTEREST)
+
+    def test_rare_coco_hits_are_ignored(self) -> None:
+        coco = [[Detection("laptop", 0.9, (0.45, 0.40, 0.60, 0.50))]] + [[] for _ in range(9)]
+        zones, _ = infer_zones([], coco)
+        self.assertIsNone(zones["laptop"])                   # 10% кадров < порога 20%
+
+    def test_queries_unique(self) -> None:
+        queries = all_zone_queries()
+        self.assertEqual(len(queries), len(set(queries)))
+
+
+class StatesTest(unittest.TestCase):
+    def test_flags_disable_unreliable_states(self) -> None:
+        default = enabled_states(SceneConfig())
+        self.assertIn("safe_open", default)
+        self.assertNotIn("door_open", default)
+        self.assertNotIn("collection_bag", default)
+        enabled = enabled_states(SceneConfig(enable_door_state=True))
+        self.assertIn("door_open", enabled)
+        for spec in STATE_PROMPTS.values():
+            self.assertTrue(spec.positive and spec.negative)
+
+    def test_crop_zone(self) -> None:
+        image = np.zeros((848, 464, 3), dtype=np.uint8)
+        crop = crop_zone(image, WOODEN_DESK, 0.0)
+        self.assertEqual(crop.shape[:2], (int(np.ceil(0.70 * 848)) - int(0.45 * 848), int(np.ceil(0.70 * 464)) - int(0.10 * 464)))
+        self.assertIsNone(crop_zone(image, (0.5, 0.5, 0.505, 0.505), 0.0))
+
+
+if __name__ == "__main__":
+    unittest.main()

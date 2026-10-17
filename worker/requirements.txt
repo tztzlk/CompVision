@@ -1,7 +1,21 @@
-# Worker: пока МОК-режим (ffmpeg из системы), ML-зависимостей нет.
+# Worker: очередь задач + восприятие (worker/perception, worker/scene) на локальных весах из /models.
 # pydantic совпадает с backend/requirements.txt (общие модели shared/schemas.py).
 pydantic==2.10.4
 # чтение rules.yaml
 PyYAML==6.0.2
-# TODO: torch/ultralytics/opencv добавлять сюда; CUDA-сборка torch:
-#   --extra-index-url https://download.pytorch.org/whl/cu124
+
+# --- Восприятие (человек A). Все модели — Apache-2.0; Ultralytics (AGPL-3.0) не используется. ---
+# CUDA-сборка torch под базовый образ nvidia/cuda:12.4.1 (Linux) и под Windows с NVIDIA; Python 3.11.
+# Машина без NVIDIA: убрать строку --extra-index-url и суффикс +cu124 (поставится CPU-сборка).
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.5.1+cu124
+# RT-DETR (есть с 4.44), OWLv2, SigLIP
+transformers==4.46.3
+# токенизатор SigLIP
+sentencepiece==0.2.0
+# нужен Owlv2ImageProcessor (масштабирование кадра)
+scipy==1.14.1
+numpy==2.1.3
+# чтение видео и JPEG
+opencv-python-headless==4.10.0.84
+pillow==11.0.0
