@@ -7,7 +7,9 @@
 Каждое видео (*.mov/*.MOV рекурсивно в --dataset) прогоняется через worker.runner.analyze напрямую:
 без HTTP и без БД, рабочий каталог — временный.
 Эталон: annotations.csv (video_id,t_label_sec,what_visible,proposed_type,rule_id,confidence);
-video_id = имя файла без расширения; строка с непустым t_label_sec = одно событие-нарушение;
+video_id — как в open_labels.xlsx («X-10»; Х/X и суффикс « (1)» нормализуются). Видео в --dataset
+опознаётся по md5 содержимого (KNOWN_VIDEOS), а не по имени файла; неизвестный файл — по имени.
+Строка с непустым t_label_sec = одно событие-нарушение;
 видео без строк или только с пустыми t_label_sec = «нет нарушения».
 
 Метрики:
@@ -22,7 +24,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
+import re
 import sys
 import tempfile
 import time
@@ -62,6 +66,15 @@ def warn(msg: str) -> None:
     print(f"ПРЕДУПРЕЖДЕНИЕ: {msg}", file=sys.stderr)
 
 
+_COPY_SUFFIX = re.compile(r"\s*\(\d+\)$")
+
+
+def normalize_video_id(raw: str) -> str:
+    """«Х-10 (1)» -> «X-10»: в датасете кириллическая Х вперемешку с латинской X,
+    а у скачанных копий суффикс « (1)»."""
+    return _COPY_SUFFIX.sub("", raw.strip()).replace("Х", "X").replace("х", "x")
+
+
 def load_annotations(path: Path) -> tuple[dict[str, list[float]], bool]:
     """video_id -> список эталонных таймкодов (пустой = нет нарушения). Второе значение — найден ли файл."""
     truth: dict[str, list[float]] = {}
@@ -75,7 +88,7 @@ def load_annotations(path: Path) -> tuple[dict[str, list[float]], bool]:
             warn(f"{path}: нет колонок {sorted(missing)} — разметка не используется")
             return truth, False
         for lineno, row in enumerate(reader, start=2):
-            vid = (row.get("video_id") or "").strip()
+            vid = normalize_video_id(row.get("video_id") or "")
             if not vid:
                 continue
             events = truth.setdefault(vid, [])
@@ -89,18 +102,87 @@ def load_annotations(path: Path) -> tuple[dict[str, list[float]], bool]:
     return truth, True
 
 
-def find_videos(dataset: Path) -> dict[str, Path]:
+# md5 файла -> video_id из open_labels.xlsx (имена файлов в open.zip организаторов).
+# Видео опознаётся по содержимому, а не по имени: локальные копии в dataset/videos
+# переименованы со сдвигом («Х-10 (1).mov» содержит X-8 и т.д.), датасет не трогаем.
+# Несколько id у одного хэша — побайтно одинаковые ролики организаторов; эталон для них —
+# объединение таймкодов всех id.
+KNOWN_VIDEOS: dict[str, tuple[str, ...]] = {
+    "767f2a65c96f8253bbe8e2f9d700e2a3": ("X-1",),
+    "cdf8c6d946765256427f68ffa89974f1": ("X-2",),
+    "c5efdc077357191503d132c9b0ccca1d": ("X-3",),
+    "fdd5aa51aefe4b42dd4d318bbbd3f207": ("X-4", "X-47"),
+    "304e8be8155a1f6529fe86ba88d05668": ("X-5", "X-48"),
+    "dacb4cf5da210be8550081264ca31317": ("X-8",),
+    "cc15799ee16a1c9d15fdbd7531d046bf": ("X-10",),
+    "52d8217b15bc14b128e5d36d675bb98a": ("X-11",),
+    "5c78378409c487c886b479d6fe561d0d": ("X-12",),
+    "1fb32d10e1499480865e6b72199c6a3d": ("X-13",),
+    "91f6d6e30c28c1d899ce874a06444561": ("X-14",),
+    "d4e7c11733f8a6982fce711cf62c6a90": ("X-15",),
+    "d4d0dce8ff94ba59eb6be0780b18339e": ("X-16",),
+    "1cff94bb96d75439b00365a07adee716": ("X-17",),
+    "abebea33f273d52bd3f50fb57c5444b9": ("X-18",),
+    "595c577e53299940a5c557bf84c795a2": ("X-19",),
+    "c19c3785b4a311ee97a6d0df1e9bddd6": ("X-20",),
+    "7356dd59916c98eae91b2710b15ccb27": ("X-21",),
+    "b88d9942288015ffe424d5a50f206ab2": ("X-22",),
+    "cc739e64be12fc0acdeb582d4fdc0463": ("X-23",),
+    "b18427a9a72818c2768fbf501ec2d9e3": ("X-24",),
+    "8661055b1e0d0d2b083347eff3b581f7": ("X-25",),
+    "23bc05eb011f80545a6009d98836baa6": ("X-26",),
+    "9183adf045efbbc3cb115605e9ca704b": ("X-27",),
+    "545c045acd070acb09ff2594f1b44577": ("X-28",),
+    "4c92ba52ec957d0ecf81a09f66817b29": ("X-29",),
+    "0608eca654509fddf4bb0dc799e2e6de": ("X-30",),
+    "442dc88203d3715c5293e7da2156bd35": ("X-31",),
+    "e00ced6c40089f399ab909d11629a5df": ("X-32",),
+    "5575e411e2810a72703890f0b2443c10": ("X-33",),
+    "a91d22affe251b634dc0d7fd63235c9e": ("X-34",),
+    "d19984330918f5f57453950acce2118a": ("X-35",),
+    "189e0353de852ff8f2ab3cd977db2a0f": ("X-37",),
+    "e5a64fff53efade025ae10e6bbd047df": ("X-38",),
+    "5fd1b371c742b676b6c029d16c2e2198": ("X-39",),
+    "612cf89dc4e7213143242bc409949ded": ("X-40",),
+    "d14976d777c2ecddbfd6f31f2359f4e0": ("X-43",),
+    "c41b35b2ac643cf436b0f6d548d5c163": ("X-44",),
+    "3ba888f705c81cad73bc45ece2077ff4": ("X-45",),
+    "e27b34f262cc51c90b44deda61422f56": ("X-46",),
+}
+
+
+def file_md5(path: Path) -> str:
+    h = hashlib.md5()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def find_videos(dataset: Path) -> tuple[dict[str, Path], dict[str, tuple[str, ...]]]:
+    """video_id -> файл и video_id -> все id разметки с тем же содержимым.
+
+    id берётся из KNOWN_VIDEOS по md5; неизвестный файл — по нормализованному имени.
+    Файл с уже встреченным содержимым пропускается (дубль)."""
     videos: dict[str, Path] = {}
+    aliases: dict[str, tuple[str, ...]] = {}
     if not dataset.is_dir():
         warn(f"каталог датасета не найден: {dataset}")
-        return videos
+        return videos, aliases
     for p in sorted(dataset.rglob("*")):
-        if p.is_file() and p.suffix.lower() == VIDEO_SUFFIX:
-            if p.stem in videos:
-                warn(f"повторяющийся video_id {p.stem!r}: {p} пропущен (взят {videos[p.stem]})")
-                continue
-            videos[p.stem] = p
-    return videos
+        if not (p.is_file() and p.suffix.lower() == VIDEO_SUFFIX):
+            continue
+        by_name = normalize_video_id(p.stem)
+        ids = KNOWN_VIDEOS.get(file_md5(p), (by_name,))
+        vid = ids[0]
+        if vid in videos:
+            warn(f"{p.name}: то же содержимое, что у {videos[vid].name} ({vid}) — пропущен")
+            continue
+        if by_name not in ids:
+            warn(f"{p.name}: по содержимому это {'/'.join(ids)}, а не {by_name}")
+        videos[vid] = p
+        aliases[vid] = ids
+    return videos, aliases
 
 
 def evaluate_one(rep: VideoReport, video: Path, rules: list, tmp_root: Path, tolerance: float) -> None:
@@ -211,11 +293,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"rules не загружены: {exc}", file=sys.stderr)
         return 1
     truth, _ = load_annotations(args.annotations)
-    videos = find_videos(args.dataset)
+    videos, aliases = find_videos(args.dataset)
+    covered = {a for ids in aliases.values() for a in ids}
 
-    for vid in sorted(set(truth) - set(videos)):
+    for vid in sorted(set(truth) - covered):
         warn(f"видео {vid!r} есть в разметке, но не найдено в {args.dataset}")
-    for vid in sorted(set(videos) - set(truth)):
+    for vid in sorted(v for v in videos if not set(aliases[v]) & set(truth)):
         warn(f"видео {vid!r} без разметки — считается «без нарушения»")
     if not videos:
         print(f"Не найдено ни одного видео *{VIDEO_SUFFIX} в {args.dataset}", file=sys.stderr)
@@ -228,9 +311,9 @@ def main(argv: list[str] | None = None) -> int:
     reports: list[VideoReport] = []
     with tempfile.TemporaryDirectory(prefix="evaluate-") as tmp:
         for i, (vid, path) in enumerate(items, start=1):
-            tcs = truth.get(vid, [])
-            rep = VideoReport(video_id=vid, path=str(path), truth_violation=bool(tcs),
-                              truth_timecodes=tcs, annotated=vid in truth)
+            tcs = sorted({t for a in aliases[vid] for t in truth.get(a, [])})
+            rep = VideoReport(video_id="+".join(aliases[vid]), path=str(path), truth_violation=bool(tcs),
+                              truth_timecodes=tcs, annotated=any(a in truth for a in aliases[vid]))
             print(f"[{i}/{len(items)}] {vid} ...", file=sys.stderr, flush=True)
             evaluate_one(rep, path, rules, Path(tmp), args.tolerance)
             reports.append(rep)
