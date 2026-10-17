@@ -1,0 +1,29 @@
+# Каталог правил: связь «нормативный источник -> детектор -> текст обоснования».
+# Только акты РК (НБРК, adilet.zan.kz). Ссылки не выдумывать: за неподтверждённые
+# источники снимают баллы (критерий 4 ТЗ). Пока одна заглушка без реальной ссылки.
+#
+# Поля:
+#   id        — стабильный идентификатор (используется в dataset/annotations.csv: rule_id)
+#   title     — тип нарушения, уходит в поле violations[].type ответа API
+#   detector  — имя функции-детектора в worker/events
+#   params    — параметры детектора
+#   source    — doc (название акта), url (adilet.zan.kz), clause (пункт/раздел)
+#   template  — шаблон description (worker/verdict.render_description). Плейсхолдеры:
+#               {timecode} — таймкод в секундах («12.3»); {title} {doc} {url} {clause} {rule_id}
+#               — из самого правила; прочие ({what_visible} и т.п.) — из Event.facts.
+#               Неизвестный плейсхолдер остаётся в тексте как есть (worker не падает).
+#               Если шаблон не выводит {clause} и {doc}, ссылка дописывается в конец автоматически.
+#   Все поля обязательны, лишние поля запрещены (строгая проверка в worker/events.load_rules).
+
+rules:
+  - id: R000_placeholder
+    title: "TODO: тип нарушения"
+    detector: "TODO_detector_name"
+    params:
+      min_confidence: 0.5
+      min_duration_sec: 1.0
+    source:
+      doc: "TODO: название нормативного акта РК"
+      url: "TODO: https://adilet.zan.kz/rus/docs/..."
+      clause: "TODO: пункт/раздел"
+    template: "На {timecode} с видно: {what_visible}. Это может нарушать {clause} документа «{doc}»."

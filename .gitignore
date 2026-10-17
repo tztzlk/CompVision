@@ -1,0 +1,31 @@
+# Secrets / local config
+.env
+
+# Model weights (download separately; keep placeholder)
+models/*
+!models/.gitkeep
+*.part
+
+# Runtime data
+storage/
+data/
+*.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node / frontend
+node_modules/
+dist/
+
+# OS
+.DS_Store
+
+# Датасет кейса: видео не публикуются и не хранятся в git (FAQ ТЗ, п. 6).
+# Каталог игнорируется целиком, кроме плейсхолдера и файла разметки.
+dataset/*
+!dataset/.gitkeep
+!dataset/annotations.csv

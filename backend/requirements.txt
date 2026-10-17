@@ -1,0 +1,7 @@
+# Backend: лёгкий API без ML. Версия pydantic совпадает с worker/requirements.txt
+# (общие модели shared/schemas.py, общий слой хранения shared/db.py).
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+# multipart/form-data для POST /api/v1/analyze (поле file)
+python-multipart==0.0.20

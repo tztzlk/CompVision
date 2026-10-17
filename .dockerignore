@@ -1,0 +1,38 @@
+# Единый .dockerignore для backend и worker (build context = корень репозитория).
+# Legacy builder (без buildx) читает только корневой .dockerignore, поэтому
+# backend/.dockerignore и worker/.dockerignore не используются и удалены.
+# В контекст должны попадать: shared/, backend/, worker/.
+# frontend собирается со своим контекстом ./frontend и своим frontend/.dockerignore.
+
+# VCS и секреты
+.git
+.gitignore
+.env
+.env.*
+
+# Python-артефакты
+**/__pycache__
+**/*.pyc
+**/.venv
+venv
+**/tests
+**/.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# Данные, веса, документация — монтируются томами или не нужны в образе
+models
+dataset
+docs
+storage
+data
+frontend
+scripts
+**/*.md
+# Каталог правил монтируется в worker (./rules.yaml:/app/rules.yaml:ro)
+rules.yaml
+
+# Docker-файлы
+docker-compose*.yml
+**/Dockerfile
+.dockerignore

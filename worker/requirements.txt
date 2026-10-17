@@ -1,0 +1,7 @@
+# Worker: пока МОК-режим (ffmpeg из системы), ML-зависимостей нет.
+# pydantic совпадает с backend/requirements.txt (общие модели shared/schemas.py).
+pydantic==2.10.4
+# чтение rules.yaml
+PyYAML==6.0.2
+# TODO: torch/ultralytics/opencv добавлять сюда; CUDA-сборка torch:
+#   --extra-index-url https://download.pytorch.org/whl/cu124

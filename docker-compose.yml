@@ -1,0 +1,119 @@
+# ForteBank hackathon: AI-сервис анализа видео кассира.
+# Три сервиса: backend (FastAPI), worker (GPU-инференс), frontend (nginx + Vite build).
+# Наружу публикуется ТОЛЬКО frontend (порт ${FRONTEND_PORT:-8080}); nginx проксирует /api -> http://backend:8000.
+# Веса моделей лежат в ./models (монтируются read-only); после их скачивания сервис работает полностью офлайн
+# (HF_HUB_OFFLINE=1, TRANSFORMERS_OFFLINE=1 запрещают любые обращения в интернет).
+#
+# Запуск:  cp .env.example .env && (отредактировать API_KEY) && docker compose up -d --build
+
+name: fortebank-cashier-cv
+
+x-app-env: &app-env
+  STORAGE_DIR: /data/storage
+  DATABASE_URL: sqlite:////data/app.db
+  MODELS_DIR: /models
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  # Офлайн-режим: запрещаем HuggingFace/torch ходить в сеть, веса берутся из /models.
+  HF_HUB_OFFLINE: "1"
+  TRANSFORMERS_OFFLINE: "1"
+  HF_HOME: /models/hf
+  TORCH_HOME: /models/torch
+  # Ключ для жюри (заголовок X-API-Key). Без него запуск падает с понятной ошибкой.
+  API_KEY: ${API_KEY:?API_KEY is required - set it in .env}
+
+# Короткая форма: работает и на старых Compose v2 (< 2.24). Отсутствие .env — ошибка запуска.
+x-env-file: &env-file
+  - .env
+
+services:
+  backend:
+    build:
+      # Контекст — корень репозитория: в образ копируется общий пакет shared/ (см. корневой .dockerignore).
+      context: .
+      dockerfile: backend/Dockerfile
+    image: fortebank-cv/backend:local
+    env_file: *env-file
+    environment:
+      <<: *app-env
+    # Порт 8000 доступен только внутри сети compose (nginx во frontend ходит на http://backend:8000).
+    expose:
+      - "8000"
+    volumes:
+      - app-data:/data
+      - ./models:/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status==200 else 1)"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    build:
+      # Контекст — корень репозитория: в образ копируется общий пакет shared/ (см. корневой .dockerignore).
+      context: .
+      dockerfile: worker/Dockerfile
+    image: fortebank-cv/worker:local
+    env_file: *env-file
+    environment:
+      <<: *app-env
+      WORKER_DEVICE: ${WORKER_DEVICE:-cuda}
+      NVIDIA_VISIBLE_DEVICES: all
+      RULES_PATH: /app/rules.yaml
+    volumes:
+      - app-data:/data
+      - ./models:/models:ro
+      # Каталог правил монтируется, а не запекается в образ: правится без пересборки,
+      # после правки — `docker compose restart worker`.
+      - ./rules.yaml:/app/rules.yaml:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    # Увеличенный /dev/shm для декодирования видео и DataLoader.
+    shm_size: "2gb"
+    # SIGTERM -> worker дорабатывает текущую задачу и выходит; без этого через 10 с придёт SIGKILL.
+    stop_grace_period: 120s
+    restart: unless-stopped
+    # --- GPU ---
+    # Требует NVIDIA Container Toolkit на хосте. Для docker compose v2 блок deploy работает без swarm.
+    # Для CPU-режима: удалите (или закомментируйте) блок deploy ниже и установите WORKER_DEVICE=cpu в .env.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Альтернатива для старых версий docker/compose (вместо блока deploy):
+    # runtime: nvidia
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+    image: fortebank-cv/frontend:local
+    # Единственный сервис, опубликованный наружу.
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  # Общий named volume для backend и worker (оба видят один и тот же /data):
+  #   /data/storage — загруженные видео и извлечённые кадры
+  #   /data/app.db  — SQLite-база с задачами и результатами
+  app-data: {}
