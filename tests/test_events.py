@@ -167,3 +167,19 @@ def test_side_by_foot_points():
     assert det._side(scene, client) < 0
     beside_cashier = (0.30, 0.40, 0.45, 0.70)
     assert det._side(scene, beside_cashier) > 0.3
+
+
+def test_departure_without_valuables_is_not_r02(rules):
+    """Х-12: кассир закрыл ноутбук и ушёл — OWLv2 называет закрытый ноутбук «планшетом» почти так же
+    уверенно, как ноутбуком; уход без ценностей на столе — не нарушение."""
+    scene = load_scene(FIXTURES / "scene_X15.json")
+    states = []
+    for s in scene.states:
+        if s.value("left_items"):
+            items = [[16.0, "a laptop", 0.51, [0.48, 0.45, 0.59, 0.49]],
+                     [16.0, "a tablet computer", 0.48, [0.48, 0.45, 0.59, 0.49]],
+                     [16.0, "a bag", 0.14, [0.10, 0.45, 0.25, 0.54]]]
+            s = dataclasses.replace(s, extra={**s.extra, "left_items": items})
+        states.append(s)
+    events = detect_events(rules, dataclasses.replace(scene, states=tuple(states)))
+    assert "R02_cash_unattended" not in [e.rule_id for e in events]

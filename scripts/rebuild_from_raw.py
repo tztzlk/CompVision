@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 from pathlib import Path
 from typing import Optional
@@ -20,7 +21,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from worker.scene import save_scene  # noqa: E402
+from worker.scene.builder import SceneConfig  # noqa: E402
 from worker.scene.raw_cache import load_raw, rebuild_scene  # noqa: E402
+
+
+# Поля SceneConfig, которыми собрано восприятие (кадры, зоны, zero-shot): с --code-config берутся из кэша.
+PERCEPTION_FIELDS = ("fps", "state_prompts", "mask_people_in_desk", "desk_by_people", "zone_keyframes",
+                     "state_every_sec", "enable_door_state", "enable_collection_bag")
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -29,6 +36,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--out", type=Path, default=ROOT / "data" / "scene_cache_rebuilt")
     ap.add_argument("--rezone", action="store_true",
                     help="зоны заново текущим кодом по сохранённым детекциям (zero-shot остаётся от старых зон)")
+    ap.add_argument("--code-config", action="store_true",
+                    help="пороги builder — из текущего кода (SceneConfig по умолчанию), из кэша — только то, "
+                         "чем собиралось восприятие: fps, подписи, маска людей, выбор стола")
     args = ap.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -40,7 +50,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     failed = 0
     for path in files:
         try:
-            scene = rebuild_scene(load_raw(path), rezone=args.rezone)
+            raw = load_raw(path)
+            config = None
+            if args.code_config:
+                keep = {k: raw["config"][k] for k in PERCEPTION_FIELDS if k in raw.get("config", {})}
+                config = dataclasses.replace(SceneConfig(), **keep)
+            scene = rebuild_scene(raw, config, rezone=args.rezone)
             save_scene(scene, args.out / f"{path.stem}.json")
         except Exception as exc:  # noqa: BLE001 — одно видео не останавливает пересборку
             failed += 1

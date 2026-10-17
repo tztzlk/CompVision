@@ -18,7 +18,8 @@ from typing import Any, Mapping, Optional, Sequence
 
 from worker.perception import Detection
 from worker.perception.tracking import Track, TrackPoint
-from worker.scene.builder import FrameRef, SceneConfig, assemble_timeline, with_brightness
+from worker.scene.builder import (FrameRef, SceneConfig, assemble_timeline, track_height, with_brightness,
+                                  with_left_items)
 from worker.scene.contract import SceneTimeline
 
 __all__ = ["RAW_VERSION", "save_raw", "load_raw", "rebuild_scene"]
@@ -50,6 +51,7 @@ def save_raw(
     config: SceneConfig,
     meta: Optional[Mapping[str, Any]] = None,
     brightness: Optional[Sequence[float]] = None,
+    item_checks: Optional[Sequence[tuple[float, Sequence[Detection]]]] = None,
 ) -> Path:
     """Записать входы assemble_timeline атомарно (через временный файл)."""
     data = {
@@ -69,6 +71,7 @@ def save_raw(
         "config": config.as_dict(),
         "meta": dict(meta or {}),
         "brightness": None if brightness is None else [round(float(b), 4) for b in brightness],
+        "item_checks": [[round(float(t), 3), [_det(d) for d in dets]] for t, dets in (item_checks or [])],
     }
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -112,7 +115,11 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
         from worker.perception.zones import infer_zones
 
         owl = [[det(d) for d in dets] for dets in raw.get("owl_keyframes", [])]
-        new_zones, _ = infer_zones(owl, objects)
+        people = [p.bbox for t in tracks for p in t.points]
+        cfg = _config(raw, config)
+        new_zones, _ = infer_zones(owl, objects, min_score=cfg.zone_min_score,
+                                   person_boxes=people if cfg.desk_by_people else None,
+                                   person_height=track_height(tracks))
         zones.update(new_zones)
     samples = {k: [(float(t), None if p is None else float(p)) for t, p in v] for k, v in raw["state_samples"].items()}
     meta = dict(raw.get("meta") or {})
@@ -130,4 +137,7 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
         meta=meta,
     )
     brightness = raw.get("brightness")
-    return with_brightness(timeline, brightness) if brightness else timeline
+    if brightness:
+        timeline = with_brightness(timeline, brightness)
+    checks = [(float(t), [det(d) for d in dets]) for t, dets in raw.get("item_checks") or []]
+    return with_left_items(timeline, checks)

@@ -92,10 +92,12 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p.add_argument("--fps", type=float, default=SceneConfig().fps, help="частота анализа кадров")
     p.add_argument("--only", action="append", metavar="VIDEO_ID", help="только это видео (флаг повторяемый)")
     p.add_argument("--keep-frames", action="store_true", help="не удалять кадры (для scripts/viz_scene.py)")
-    p.add_argument("--prompts", choices=("v1", "v2"), default="v1",
-                   help="подписи zero-shot: v2 — минимальные пары (worker/perception/states.py)")
-    p.add_argument("--mask-people", action="store_true", help="закрашивать людей в вырезке стола перед SigLIP")
-    p.add_argument("--desk-by-people", action="store_true", help="рабочий стол — тот, где сидели люди, а не самый заметный")
+    p.add_argument("--prompts", choices=("v1", "v2"), default=None,
+                   help="подписи zero-shot: v2 — минимальные пары (worker/perception/states.py); по умолчанию — SceneConfig")
+    p.add_argument("--mask-people", choices=("on", "off"), default=None,
+                   help="закрашивать людей в вырезке стола перед SigLIP; по умолчанию — SceneConfig")
+    p.add_argument("--desk-by-people", choices=("on", "off"), default=None,
+                   help="рабочий стол — тот, где сидели люди, а не самый заметный; по умолчанию — SceneConfig")
     p.add_argument("--raw-out", type=Path, default=None,
                    help="каталог сырого кэша (data/raw_cache): правки builder потом без GPU, scripts/rebuild_from_raw.py")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -125,8 +127,14 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
 
     device = resolve_device(args.device)
-    config = SceneConfig(fps=args.fps, state_prompts=args.prompts, mask_people_in_desk=args.mask_people,
-                         desk_by_people=args.desk_by_people)
+    over: dict = {"fps": args.fps}
+    if args.prompts:
+        over["state_prompts"] = args.prompts
+    if args.mask_people:
+        over["mask_people_in_desk"] = args.mask_people == "on"
+    if args.desk_by_people:
+        over["desk_by_people"] = args.desk_by_people == "on"
+    config = SceneConfig(**over)
     LOG.info("видео: %d, device=%s, fps=%.1f, веса: %s", len(videos), device, args.fps, args.models_dir)
 
     rows: list[dict] = []

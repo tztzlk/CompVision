@@ -133,7 +133,39 @@ class BuilderTest(unittest.TestCase):
         self.assertEqual(scene.states[5].cashier_present, 1.0)
         self.assertEqual(scene.states[5].cashier_bbox, SEATED)
         self.assertLess(scene.states[27].cashier_present, 0.2)
-        self.assertEqual(scene.states[27].cashier_bbox, AT_DOOR)
+        # у двери кассир уже ушёл с рабочего места: рамки кассира нет до возвращения
+        self.assertIsNone(scene.states[27].cashier_bbox)
+        self.assertTrue(scene.states[27].value("cashier_away"))
+        self.assertEqual(len(scene.meta["scene"]["left_workplace_t"]), 1)
+
+    def test_departure_ignores_return_behind_glass(self) -> None:
+        """Х-15, Х-24, Х-26: кассир встаёт, уходит в дверь и идёт по коридору за стеклом; рамка за стеклом
+        снова накрывает рабочее место на 1–2 с с низким score — это не возвращение."""
+        standing = (0.30, 0.20, 0.55, 0.80)
+
+        def box(k):
+            if k < 9:
+                return SEATED
+            if k < 15:
+                return standing            # встал у места (3–5 с)
+            if k < 21:
+                return AT_DOOR             # у двери (5–7 с)
+            return standing                 # за стеклом над рабочим местом (7–10 с)
+
+        tracks = [Track(1, [TrackPoint(k, TIMES[k], box(k), 0.9 if k < 21 else 0.6) for k in range(N)])]
+        scene = _scene(tracks=tracks)
+        self.assertEqual(scene.meta["scene"]["left_workplace_t"], [TIMES[9]])   # когда встал
+        self.assertEqual(scene.meta["scene"]["returned_t"], [])
+        self.assertTrue(all(s.cashier_present == 0.0 for s in scene.states[22:]))
+        self.assertTrue(all(s.cashier_bbox is None for s in scene.states[22:]))
+
+    def test_departure_with_real_return(self) -> None:
+        """Кассир отошёл к двери и вернулся на место дольше leave_return_sec — уход и возвращение."""
+        tracks = [_track(1, range(0, N), lambda k: AT_DOOR if 9 <= k < 18 else SEATED)]
+        scene = _scene(tracks=tracks)
+        self.assertEqual(len(scene.meta["scene"]["left_workplace_t"]), 1)
+        self.assertEqual(scene.meta["scene"]["returned_t"], [TIMES[18]])
+        self.assertEqual(scene.states[25].cashier_present, 1.0)
 
     def test_object_states_from_coco_and_zero_shot(self) -> None:
         objects = [[] for _ in range(N)]

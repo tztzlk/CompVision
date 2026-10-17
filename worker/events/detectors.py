@@ -270,6 +270,8 @@ def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[E
     """R10: сейф открыт, а кассир не у сейфа (рамка кассира не пересекается с зоной сейфа).
 
     С baseline_sec > 0 «открыт» — рост safe_open над уровнем первых секунд (_safe_change).
+    away_mode=home — кассир у сейфа, только если он не на рабочем месте (дальше home_dist ширин
+    рабочего места от его центра) и рамка задевает сейф на near_safe_overlap.
     require_away=false — не проверять, у сейфа ли кассир: когда кассир сидит лицом к камере, сейф
     у него за спиной и рамка сидящего кассира перекрывает зону сейфа (Х-20); тогда от того, что
     кассир просто стоит у сейфа и заслоняет его, защищает min_duration_sec.
@@ -280,10 +282,29 @@ def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[E
     baseline_sec = float(params.get("baseline_sec", 0.0))
     opened = (_safe_change(scene, baseline_sec, float(params.get("baseline_delta", 0.25)))
               if baseline_sec > 0 and scene.states else [s.safe_open for s in scene.states])
+    away_mode = str(params.get("away_mode", ""))
+    workplace = scene.zones.get("workplace")
+    home_dist = float(params.get("home_dist", 0.35))
+
+    def at_home(box: BBox) -> bool:
+        """Кассир на своём рабочем месте: центр рамки ближе home_dist ширин рабочего места к его центру."""
+        if workplace is None:
+            return False
+        w = max(workplace[2] - workplace[0], 1e-6)
+        dx = (box[0] + box[2] - workplace[0] - workplace[2]) / 2
+        dy = (box[1] + box[3] - workplace[1] - workplace[3]) / 2
+        return (dx * dx + dy * dy) ** 0.5 / w <= home_dist
+
     raw: Series = []
     for s, op in zip(scene.states, opened):
         if safe_zone is None:
             away: Optional[float] = None
+        elif away_mode == "home":
+            # у сейфа — кассир не на своём месте и рамка задевает сейф (Х-14: стоит у сейфа с сумкой);
+            # сидящий за столом спиной к сейфу его перекрывает, но у сейфа не работает (Х-20)
+            near = s.cashier_bbox is not None and not at_home(s.cashier_bbox) \
+                and _overlap(s.cashier_bbox, safe_zone) >= near_share
+            away = 0.0 if near else (1.0 if s.cashier_present is not None else None)
         elif not require_away:
             away = 1.0
         elif s.cashier_bbox is None:
@@ -299,8 +320,77 @@ def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[E
     return _events_from_series(scene, raw, params, describe)
 
 
+_ITEM_NAMES = {
+    "a stack of banknotes": "наличные", "paper money": "наличные",
+    "a bag": "сумка", "a handbag": "сумка",
+    "a tablet computer": "планшет",
+}
+_ITEM_DECOYS = ("a laptop", "a telephone", "a money counting machine", "a printer")
+
+
+def _left_items(scene: SceneTimeline, state: SceneState, params: Mapping[str, Any]) -> list[tuple[str, float, BBox]]:
+    """Ценности на столе после ухода (поле left_items, worker.scene.builder.with_left_items):
+    (что, score, рамка) — центр рамки в зоне стола, score не ниже item_score, и рамка не лежит почти
+    целиком (>= 0,7 площади) внутри опознавателя — ноутбука, телефона, машинки, принтера — со score
+    не ниже 0,8 от score предмета: закрытый ноутбук OWLv2 называет «планшетом» почти так же
+    уверенно, как «ноутбуком» (Х-12: 0,48 против 0,51), настоящий планшет — вдвое увереннее (Х-24)."""
+    desk = _expand(scene.zones.get("desk"), float(params.get("desk_margin", 0.03)))
+    if desk is None:
+        return []
+    labels = {k: v for k, v in _ITEM_NAMES.items() if v in params.get("items", ("наличные", "сумка", "планшет"))}
+    thr = float(params.get("item_score", 0.25))
+    items = state.value("left_items") or []
+    decoys = [(lab, sc, tuple(b)) for _, lab, sc, b in items if lab in _ITEM_DECOYS]
+    out: list[tuple[str, float, BBox]] = []
+    for _, lab, sc, b in items:
+        if lab not in labels or sc < thr:
+            continue
+        box = tuple(b)
+        cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+        if not (desk[0] <= cx <= desk[2] and desk[1] <= cy <= desk[3]):
+            continue
+        if any(dsc >= 0.8 * sc and _overlap(box, db) >= 0.7 for _, dsc, db in decoys):
+            continue
+        out.append((labels[lab], sc, box))  # type: ignore[arg-type]
+    return out
+
+
+def _valuables_at_departure(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
+    """R02 по моменту ухода: кассир ушёл с рабочего места (cashier_left_workplace), а на столе —
+    наличные, сумка или планшет (OWLv2 на кадрах, где кассир уже вдали). Таймкод — момент ухода.
+    Сам уход не нарушение: в чистых Х-12, Х-23, Х-29 кассир уходит, убрав всё со стола."""
+    states = scene.states
+    events: list[Event] = []
+    for i, s in enumerate(states):
+        if not s.value("cashier_left_workplace"):
+            continue
+        found = _left_items(scene, s, params)
+        if not found:
+            continue
+        names = list(dict.fromkeys(name for name, _, _ in sorted(found, key=lambda f: -f[1])))
+        best = max(found, key=lambda f: f[1])
+        checks = sorted({float(t) for t, *_ in (s.value("left_items") or [])})
+        idx = [i] + [min(range(len(states)), key=lambda k: abs(states[k].t - t)) for t in checks]
+        idx = list(dict.fromkeys(idx))[:3]
+        events.append(Event(
+            rule_id="",
+            timecode_sec=round(s.t, 1),
+            confidence=round(min(1.0, 0.5 + best[1]), 3),
+            evidence_timestamps_sec=[round(states[k].t, 3) for k in idx],
+            facts={"what_visible": " и ".join(names), "bbox": list(best[2]),
+                   "frames": [states[k].frame for k in idx]},
+        ))
+    return events
+
+
 def valuables_unattended(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
-    """R02: кассира нет на рабочем месте, на столе наличные или сумка."""
+    """R02: кассира нет на рабочем месте, на столе наличные или сумка.
+
+    at_departure=true — проверка в момент ухода по предметам OWLv2 (_valuables_at_departure);
+    иначе — ряд «кассира нет × zero-shot наличные/сумка» через общую механику.
+    """
+    if params.get("at_departure"):
+        return _valuables_at_departure(scene, params)
     raw = [_fmin(_away(s), _fmax(s.cash_on_desk, s.bag_on_desk)) for s in scene.states]
 
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:

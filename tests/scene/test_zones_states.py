@@ -133,3 +133,40 @@ class ZoneScoringTest(unittest.TestCase):
         owl[1] = owl[1] + [Detection("a grey metal cabinet", 0.31, cabinet)]
         zones, _ = infer_zones(owl, [[] for _ in range(10)])
         self.assertEqual(zones["safe"], cabinet)
+
+
+class SafeGeometryTest(unittest.TestCase):
+    """Сейф по геометрии (замер 18.10, data/ml_results/zones_wrong.jpg)."""
+
+    DESK = (0.08, 0.43, 0.65, 0.66)
+
+    def _zones(self, dets):
+        from worker.perception.zones import infer_zones
+
+        desk = Detection("a wooden office desk", 0.6, self.DESK)
+        return infer_zones([[desk, *dets] for _ in range(4)], [[] for _ in range(10)], person_height=0.24)
+
+    def test_machine_on_desk_is_not_safe(self) -> None:
+        """Х-31: чёрная машинка на столешнице похожа на «металлический шкаф» сильнее настоящего сейфа."""
+        machine = (0.30, 0.47, 0.42, 0.58)
+        cabinet = (0.46, 0.33, 0.61, 0.44)
+        zones, _ = self._zones([Detection("a grey metal cabinet", 0.40, machine),
+                                Detection("a grey metal cabinet", 0.32, cabinet)])
+        self.assertEqual(zones["safe"], cabinet)
+
+    def test_printer_like_candidate_is_not_safe(self) -> None:
+        printer = (0.46, 0.38, 0.58, 0.45)
+        zones, info = self._zones([Detection("a metal safe", 0.20, printer), Detection("a printer", 0.53, printer)])
+        self.assertIsNone(zones["safe"])
+        self.assertIn("decoy", info["safe"]["reason"])
+
+    def test_stand_under_cabinet_and_cabinet_behind_glass(self) -> None:
+        """Х-37: серый шкаф на белой тумбе; шкаф в соседнем офисе за стеклом (низ выше края стола)."""
+        stand = (0.67, 0.52, 0.95, 0.67)
+        cabinet = (0.71, 0.41, 0.97, 0.57)
+        behind = (0.19, 0.18, 0.30, 0.32)
+        zones, _ = self._zones([Detection("a grey metal cabinet", 0.33, stand),
+                                Detection("a grey metal cabinet", 0.20, cabinet),
+                                Detection("a grey metal cabinet", 0.31, behind)])
+        self.assertEqual(zones["safe"], cabinet)
+

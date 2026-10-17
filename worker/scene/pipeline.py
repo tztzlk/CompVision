@@ -25,8 +25,9 @@ from worker.perception.models import load_models
 from worker.perception.states import COCO_LABELS_OF_INTEREST, ZONE_CROP_MARGIN, crop_zone, enabled_states
 from worker.perception.tracking import IoUTracker, Track
 from worker.perception.video import VideoError, imread_unicode, imwrite_unicode, iter_sampled_frames, probe_video
-from worker.perception.zones import all_zone_queries, desk_candidates, infer_zones, pick_desk_by_people
-from worker.scene.builder import FrameRef, SceneConfig, assemble_timeline, with_brightness
+from worker.perception.zones import all_zone_queries, infer_zones
+from worker.scene.builder import (FrameRef, SceneConfig, ITEM_QUERIES, assemble_timeline, item_check_times, track_height,
+                                  with_brightness, with_left_items)
 from worker.scene.contract import SceneTimeline
 
 __all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled"]
@@ -71,13 +72,7 @@ def run_pipeline(
     timings["tracking_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
-    zones, zone_info, owl = _find_zones(frames, objects, bundle, cfg)
-    if cfg.desk_by_people:
-        desk = pick_desk_by_people(desk_candidates(owl, cfg.zone_min_score),
-                                   [p.bbox for tr in tracks for p in tr.points])
-        if desk is not None and desk != zones.get("desk"):
-            zones["desk"] = desk
-            zone_info["desk"] = {**zone_info.get("desk", {}), "source": "owlv2+people"}
+    zones, zone_info, owl = _find_zones(frames, objects, tracks, bundle, cfg)
     timings["zones_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
@@ -107,13 +102,17 @@ def run_pipeline(
         meta=meta,
     )
     timeline = with_brightness(timeline, brightness)
+    mark = time.monotonic()
+    item_checks = check_left_items(timeline, frames, bundle, cfg)
+    timeline = with_left_items(timeline, item_checks)
+    timings["items_sec"] = round(time.monotonic() - mark, 2)
     if raw_out is not None:
         from worker.scene.raw_cache import save_raw
 
         save_raw(raw_out, video_id=vid, duration_sec=info.duration_sec or frames[-1].timestamp_sec,
                  frame_size=frame_size, frames=refs, tracks=tracks, objects=objects, zones=zones,
                  zone_info=zone_info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta,
-                 brightness=brightness)
+                 brightness=brightness, item_checks=item_checks)
     if pose_enabled():
         from worker.scene.pose_pass import run_pose_pass
 
@@ -183,15 +182,48 @@ def _keyframe_positions(count: int, keyframes: int) -> list[int]:
 
 
 def _find_zones(
-    frames: Sequence[Frame], objects: Sequence[Sequence[Detection]], bundle: Any, cfg: SceneConfig,
+    frames: Sequence[Frame], objects: Sequence[Sequence[Detection]], tracks: Sequence[Track], bundle: Any,
+    cfg: SceneConfig,
 ) -> tuple[dict[str, Optional[BBox]], dict[str, dict[str, object]], list[list[Detection]]]:
     """Зоны, сведения об их источнике и сырые детекции OWLv2 по ключевым кадрам (для сырого кэша)."""
     positions = _keyframe_positions(len(frames), cfg.zone_keyframes)
     images = [image for image in (imread_unicode(frames[p].path) for p in positions) if image is not None]
-    owl = (bundle.open_vocab(images, all_zone_queries(), score_threshold=cfg.zone_min_score, top_k=cfg.zone_top_k)
+    owl = (bundle.open_vocab(images, all_zone_queries(), score_threshold=cfg.zone_owl_score, top_k=cfg.zone_top_k)
            if images else [])
-    zones, info = infer_zones(owl, objects, min_score=cfg.zone_min_score)
+    zones, info = select_zones(owl, objects, tracks, cfg)
     return zones, info, owl
+
+
+def select_zones(
+    owl: Sequence[Sequence[Detection]], objects: Sequence[Sequence[Detection]], tracks: Sequence[Track],
+    cfg: SceneConfig,
+) -> tuple[dict[str, Optional[BBox]], dict[str, dict[str, object]]]:
+    """Зоны по детекциям OWLv2 и COCO с учётом людей: рабочий стол — тот, у которого были люди
+    (cfg.desk_by_people), сейф — по геометрии относительно стола, двери и роста человека
+    (worker.perception.zones.infer_zones). Общая для пайплайна и scripts/rezone_raw.py."""
+    people = [p.bbox for tr in tracks for p in tr.points]
+    zones, info = infer_zones(owl, objects, min_score=cfg.zone_min_score,
+                              person_boxes=people if cfg.desk_by_people else None,
+                              person_height=track_height(tracks))
+    return zones, info
+
+
+def check_left_items(timeline: SceneTimeline, frames: Sequence[Frame], bundle: Any, cfg: SceneConfig,
+                     ) -> list[tuple[float, list[Detection]]]:
+    """OWLv2 по предметам (ITEM_QUERIES) на кадрах после каждого ухода кассира (item_check_times):
+    [(таймкод кадра, детекции)]. Без уходов — пусто, модель не вызывается."""
+    times = item_check_times(timeline)
+    if not times or not frames:
+        return []
+    stamps = [f.timestamp_sec for f in frames]
+    picks = sorted({min(range(len(frames)), key=lambda k: abs(stamps[k] - t)) for t in times})
+    images = [(frames[k].timestamp_sec, imread_unicode(frames[k].path)) for k in picks]
+    images = [(t, im) for t, im in images if im is not None]
+    if not images:
+        return []
+    dets = bundle.open_vocab([im for _, im in images], list(ITEM_QUERIES), score_threshold=cfg.zone_owl_score,
+                             top_k=4)
+    return [(t, list(d)) for (t, _), d in zip(images, dets)]
 
 
 def _mask_people(image: Any, people: Sequence[Detection]) -> Any:

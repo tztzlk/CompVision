@@ -3,6 +3,7 @@
 
     PYTHONPATH=. python scripts/eval_cache.py [--cache data/scene_cache] [--annotations dataset/annotations.csv]
         [--rules rules.yaml] [--tolerance 3.0] [--json out.json] [--csv per_video.csv]
+        [--baseline data/eval_baseline.json] [--markdown]
 
 Сцена берётся из <cache>/<video_id>.json (video_id = имя файла видео, как пишет build_scene_cache.py).
 Видео опознаётся по имени через KNOWN_VIDEOS из scripts/evaluate.py: дубликаты (Х-4 ≡ Х-47,
@@ -18,6 +19,11 @@ MAX_VIOLATIONS (worker.events.selection). Кадры-доказательств�
   - тип: строки разметки с rule_id, рядом с которыми есть событие ИМЕННО этого правила;
   - по правилам: на скольких чистых видео срабатывает (ложные тревоги), на скольких видео с
     нарушением, сколько эталонных событий накрывает в ±tolerance, сколько событий в первые 1,5 с.
+
+--baseline: сравнение с прежним замером — JSON этого скрипта (--json) или scripts/evaluate.py
+(data/eval_baseline.json: pred_timecodes + pred_types-названия). Видео сводятся по id без учёта
+Х/X и групп дубликатов («X-4+X-47»). Печатается «было/стало» и четыре списка смен вердикта;
+--markdown добавляет то же короткой таблицей для сообщения коммита.
 """
 
 from __future__ import annotations
@@ -211,6 +217,116 @@ def print_report(results: list[VideoResult], s: dict) -> None:
               f"{v.get('timecode_hits', 0):>6} {v.get('early_events', 0):>6}")
 
 
+@dataclass
+class BaseVideo:
+    """Видео прежнего замера: id, итог, эталон и события (rule_id, t) в одном виде для обоих форматов."""
+    video_id: str
+    aliases: tuple[str, ...]
+    outcome: str
+    truth_timecodes: list[float]
+    events: list[dict]
+
+
+def load_baseline(path: Path, rules: list) -> list[BaseVideo]:
+    """Прежний замер: JSON eval_cache.py (videos[].events) или evaluate.py (pred_timecodes/pred_types)."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    titles = {rule.title: rule.id for rule in rules}
+    titles.update({r["title"]: r["rule_id"] for r in data.get("rules", []) if "title" in r and "rule_id" in r})
+    out: list[BaseVideo] = []
+    for v in data.get("videos", []):
+        aliases = tuple(normalize_video_id(a) for a in (v.get("aliases") or str(v["video_id"]).split("+")))
+        if "events" in v:
+            events = [{"rule_id": e["rule_id"], "t": float(e["t"])} for e in v["events"]]
+        else:                                           # evaluate.py: таймкоды и названия правил парами
+            events = [{"rule_id": titles.get(name, name), "t": float(t)}
+                      for t, name in zip(v.get("pred_timecodes") or [], v.get("pred_types") or [])]
+        out.append(BaseVideo("+".join(aliases), aliases, v.get("outcome") or "ERR",
+                             [float(t) for t in v.get("truth_timecodes") or []], events))
+    return out
+
+
+def _side_counts(items: list[tuple[str, list[float], list[dict]]], tolerance: float) -> dict:
+    """(итог, эталон, события) по видео -> найдено/ложных/верных/таймкод для одной стороны сравнения."""
+    c = {k: sum(1 for o, _, _ in items if o == k) for k in ("TP", "FN", "FP", "TN")}
+    judged = c["TP"] + c["FN"] + c["FP"] + c["TN"]
+    tcs = [(t, ev) for o, tt, ev in items if o != "ERR" for t in tt]
+    return {"found": c["TP"], "violation": c["TP"] + c["FN"], "false": c["FP"], "clean": c["FP"] + c["TN"],
+            "accuracy": (c["TP"] + c["TN"]) / judged if judged else None,
+            "timecode_hits": sum(1 for t, ev in tcs if _near(ev, t, tolerance)), "truth_events": len(tcs)}
+
+
+def compare_baseline(results: list[VideoResult], base: list[BaseVideo], tolerance: float) -> dict:
+    """Было/стало по всем видео обоих замеров и смены вердикта по видео, что есть в обоих."""
+    by_alias = {a: b for b in base for a in b.aliases}
+    changes: dict[str, list[dict]] = {k: [] for k in ("lost", "gained", "new_false", "fixed_false")}
+    kind = {("TP", "FN"): "lost", ("FN", "TP"): "gained", ("TN", "FP"): "new_false", ("FP", "TN"): "fixed_false"}
+    matched: set[str] = set()
+    for r in results:
+        b = next((by_alias[normalize_video_id(a)] for a in r.aliases if normalize_video_id(a) in by_alias), None)
+        if b is None:
+            continue
+        matched.add(b.video_id)
+        key = kind.get((b.outcome, r.outcome))
+        if key:
+            changes[key].append({"video_id": r.video_id, "truth": r.truth_timecodes,
+                                 "was": b.events, "now": [{"rule_id": e["rule_id"], "t": e["t"]} for e in r.events]})
+    return {
+        "was": _side_counts([(b.outcome, b.truth_timecodes, b.events) for b in base], tolerance),
+        "now": _side_counts([(r.outcome, r.truth_timecodes, r.events) for r in results], tolerance),
+        "only_in_baseline": sorted(b.video_id for b in base if b.video_id not in matched),
+        **changes,
+    }
+
+
+CHANGE_TITLES = (("lost", "было найдено → стало пропущено"), ("gained", "было пропущено → стало найдено"),
+                 ("new_false", "было чистое → стало ложное"), ("fixed_false", "было ложное → стало чистое"))
+
+
+def _ev_short(events: list[dict]) -> str:
+    return ", ".join(f"{e['rule_id'].split('_')[0]}@{e['t']:g}" for e in events) or "—"
+
+
+def _counts_rows(cmp: dict) -> list[tuple[str, str, str]]:
+    was, now = cmp["was"], cmp["now"]
+    return [
+        (f"найдено из {now['violation']}", f"{was['found']}", f"{now['found']}"),
+        (f"ложных из {now['clean']}", f"{was['false']}", f"{now['false']}"),
+        ("верный вердикт", _pct(was["accuracy"]), _pct(now["accuracy"])),
+        (f"таймкод ±{cmp.get('tolerance', 3.0):g} с",
+         f"{was['timecode_hits']} из {was['truth_events']}", f"{now['timecode_hits']} из {now['truth_events']}"),
+    ]
+
+
+def print_baseline(cmp: dict, path: Path) -> None:
+    print()
+    print(f"Сравнение с базой ({path})")
+    for name, was, now in _counts_rows(cmp):
+        print(f"  {name:<18} было {was:<8} стало {now}")
+    for key, title in CHANGE_TITLES:
+        items = cmp[key]
+        print(f"{title} ({len(items)}):")
+        for c in items:
+            tt = ",".join(f"{t:g}" for t in c["truth"]) or "—"
+            print(f"  {c['video_id']:<12} эталон {tt:<10} было {_ev_short(c['was'])}  →  стало {_ev_short(c['now'])}")
+        if not items:
+            print("  —")
+    if cmp["only_in_baseline"]:
+        print(f"Только в базе (нет в кэше): {', '.join(cmp['only_in_baseline'])}")
+
+
+def print_markdown(cmp: dict) -> None:
+    print()
+    print("| | было | стало |")
+    print("|---|---|---|")
+    for name, was, now in _counts_rows(cmp):
+        print(f"| {name} | {was} | {now} |")
+    print()
+    for key, title in CHANGE_TITLES:
+        items = cmp[key]
+        body = "; ".join(f"{c['video_id']} ({_ev_short(c['was'])} → {_ev_short(c['now'])})" for c in items)
+        print(f"- {title}: {body or '—'}")
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Замер правил по кэшу сцен без GPU")
     ap.add_argument("--cache", type=Path, default=ROOT / "data" / "scene_cache")
@@ -218,6 +334,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--rules", type=Path, default=ROOT / "rules.yaml")
     ap.add_argument("--tolerance", type=float, default=3.0)
     ap.add_argument("--json", type=Path, default=None, help="сохранить сводку и результаты по видео")
+    ap.add_argument("--baseline", type=Path, default=None,
+                    help="прежний замер (JSON eval_cache.py или evaluate.py) для сравнения «было/стало»")
+    ap.add_argument("--markdown", action="store_true", help="сравнение с базой ещё и таблицей markdown")
     args = ap.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -233,9 +352,18 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
     summary = summarize(results, rules, args.tolerance)
     print_report(results, summary)
+    cmp = None
+    if args.baseline:
+        cmp = {**compare_baseline(results, load_baseline(args.baseline, rules), args.tolerance),
+               "tolerance": args.tolerance}
+        print_baseline(cmp, args.baseline)
+        if args.markdown:
+            print_markdown(cmp)
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)
         payload = {"summary": summary, "videos": [{**asdict(r), "outcome": r.outcome} for r in results]}
+        if cmp is not None:
+            payload["baseline_compare"] = cmp
         args.json.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
         print(f"\nJSON: {args.json}")
     return 0

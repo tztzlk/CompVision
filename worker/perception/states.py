@@ -129,8 +129,9 @@ STATE_PROMPTS_V2: dict[str, StatePrompt] = {
     ),
 }
 
-# Поля вырезки вокруг зоны (доля размера зоны с каждой стороны).
-ZONE_CROP_MARGIN: dict[str, float] = {"desk": 0.10, "safe": 0.15, "laptop": 0.25, "door": 0.05}
+# Поля вырезки вокруг зоны (доля размера зоны с каждой стороны). Сейф — 0,25: открытая дверца
+# выходит за рамку шкафа на ширину дверцы (замер 18.10, Х-20).
+ZONE_CROP_MARGIN: dict[str, float] = {"desk": 0.10, "safe": 0.25, "laptop": 0.25, "door": 0.05}
 
 # Классы COCO (RT-DETR), из которых считаются состояния без zero-shot.
 PHONE_LABELS: tuple[str, ...] = ("cell phone",)

@@ -36,7 +36,8 @@ from worker.perception.states import BAG_LABELS, FOOD_LABELS, PHONE_LABELS
 from worker.perception.tracking import Track, TrackPoint
 from worker.scene.contract import ZONE_NAMES, Person, SceneState, SceneTimeline
 
-__all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness"]
+__all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness",
+           "ITEM_QUERIES", "item_check_times", "with_left_items", "track_height"]
 
 
 @dataclass(frozen=True)
@@ -97,23 +98,45 @@ class SceneConfig:
     entry_mode: str = "stay"
     min_room_sec: float = 1.0
     entry_move: float = 0.5
+    # Уход с рабочего места (замер 18.10, Х-15, Х-24, Х-26: кассир выходит в дверь и идёт по коридору
+    # за стеклянной перегородкой; трек продолжается, рамка за стеклом снова накрывает рабочее место
+    # на 1–2 с, и cashier_present не падал). Уход: кассир отошёл от рабочего места (центр рамки дальше
+    # leave_far × ширины рабочего места, не у сейфа) и не вернулся — нет leave_return_sec подряд у места
+    # (ближе leave_home) с уверенной детекцией (score >= leave_return_score: за стеклом 0,4–0,85).
+    # Таймкод — последний кадр у места; если кассир перед этим встал (рамка выросла в leave_up_ratio
+    # раз против сидячей) не раньше чем за leave_up_sec, — момент, когда встал.
+    leave_home: float = 0.35
+    leave_far: float = 0.6
+    leave_return_sec: float = 2.0
+    leave_return_score: float = 0.85
+    leave_min_away_sec: float = 3.0
+    leave_up_ratio: float = 1.25
+    leave_up_sec: float = 3.0
+    # Что осталось на столе после ухода: OWLv2 по ITEM_QUERIES на кадрах, где кассира уже нет у места
+    # (через item_check_sec после первого кадра вдали), — SigLIP по всей вырезке стола мелкую пачку
+    # денег не видит (на правильном столе cash_on_desk <= 0,004 и там, где деньги на кадре).
+    item_check_sec: tuple[float, ...] = (0.7, 2.0)
     # предметы
     hand_margin: float = 0.15           # расширение рамки кассира: «предмет в руке»
     # зоны и zero-shot
     zone_keyframes: int = 4
     zone_min_score: float = 0.12
-    zone_top_k: int = 3
+    # Замер 18.10: сейф часто не в тройке лучших рамок OWLv2 (её занимают тумба и счётная машинка) —
+    # кандидатов больше, отбор по геометрии в worker.perception.zones.
+    zone_owl_score: float = 0.05
+    zone_top_k: int = 6
     state_every_sec: float = 1.0
     state_batch_frames: int = 16
     enable_door_state: bool = False
     enable_collection_bag: bool = False
     # Zero-shot: набор подписей ("v1" | "v2", worker.perception.states) и закрашивание людей
     # в вырезке стола перед SigLIP (спина или торс кассира в вырезке путают «одежду на столе»).
-    # По умолчанию — как было; "v2" и маску включать после замера на кэше.
-    state_prompts: str = "v1"
-    # Стол выбирать по людям (где сидели и стояли), а не по самому заметному кандидату OWLv2.
-    desk_by_people: bool = False
-    mask_people_in_desk: bool = False
+    # Замер 18.10 (кэш r2, правильные зоны): v2 + маска — 8 нарушений из 21 при 0 ложных, v1 — 6 и 0.
+    state_prompts: str = "v2"
+    # Стол выбирать по людям (где сидели и стояли), а не по самому заметному кандидату OWLv2
+    # (Х-20, Х-22: иначе стол — полоса за стеклом в соседнем офисе).
+    desk_by_people: bool = True
+    mask_people_in_desk: bool = True
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -130,6 +153,7 @@ class FrameRef:
 class _Entry:
     bbox: BBox
     inside: bool
+    score: float = 1.0
 
 
 @dataclass
@@ -179,6 +203,16 @@ def stitch_tracks(tracks: Sequence[Track], config: SceneConfig, door: Optional[B
     return merged
 
 
+def track_height(tracks: Sequence[Track]) -> float:
+    """Рост человека в кадре: наибольшая медианная высота рамки среди треков длиннее 1 с."""
+    heights = []
+    for tr in tracks:
+        if tr.points and tr.points[-1].t - tr.points[0].t >= 1.0:
+            hs = sorted(p.bbox[3] - p.bbox[1] for p in tr.points)
+            heights.append(hs[len(hs) // 2])
+    return max(heights, default=0.0)
+
+
 def _reference_height(tracks: Sequence[Track]) -> float:
     """Типичная высота человека внутри кассы: наибольшая медианная высота среди долгих треков."""
     long_tracks = [t for t in tracks if t.duration >= 1.0] or list(tracks)
@@ -220,7 +254,7 @@ def _fill_frames(info: _TrackInfo, times: Sequence[float], config: SceneConfig) 
     """Сопоставить трек кадрам; короткие пропуски детекции (<= hold_gap_sec) заполнить ближайшей точкой."""
     points = info.track.points
     for point, inside in zip(points, info.inside):
-        info.by_frame[point.frame_index] = _Entry(point.bbox, inside)
+        info.by_frame[point.frame_index] = _Entry(point.bbox, inside, point.score)
     for i in range(len(points) - 1):
         a, b = points[i], points[i + 1]
         if b.t - a.t > config.hold_gap_sec:
@@ -228,7 +262,7 @@ def _fill_frames(info: _TrackInfo, times: Sequence[float], config: SceneConfig) 
         for k in range(a.frame_index + 1, b.frame_index):
             nearer_a = times[k] - a.t <= b.t - times[k]
             source, inside = (a, info.inside[i]) if nearer_a else (b, info.inside[i + 1])
-            info.by_frame[k] = _Entry(source.bbox, inside)
+            info.by_frame[k] = _Entry(source.bbox, inside, source.score)
 
 
 # --------------------------------------------------------------------------- роли и события
@@ -362,6 +396,85 @@ def _door_events(infos: Sequence[_TrackInfo], door: Optional[BBox], duration: fl
     return entered, exited
 
 
+
+@dataclass(frozen=True)
+class Departure:
+    """Уход кассира с рабочего места: позиция кадра ухода, первого кадра вдали, возвращения (None — не вернулся)."""
+
+    left_pos: int
+    far_pos: int
+    return_pos: Optional[int]
+
+
+def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times: Sequence[float],
+                workplace: Optional[BBox], safe: Optional[BBox], config: SceneConfig) -> list[Departure]:
+    """Уходы кассира с рабочего места по его рамке в каждом кадре (None — кассира нет в кадре).
+
+    Расстояние до места — между центрами рамки и рабочего места в долях ширины рабочего места.
+    Уход: кассир был у места (ближе leave_home), потом вдали (дальше leave_far, не у сейфа — сейф
+    входит в рабочее место) и не возвращался не меньше leave_min_away_sec. Возвращение — кассир
+    leave_return_sec подряд у места с score детекции не ниже leave_return_score: человек за
+    стеклянной перегородкой в коридоре проходит мимо места с низким score и не засчитывается.
+    """
+    if workplace is None or not boxes:
+        return []
+    wx, wy = center(workplace)
+    width = max(workplace[2] - workplace[0], 1e-6)
+    safe_zone = expand(safe, config.desk_margin) if safe else None
+
+    def dist(box: BBox) -> float:
+        cx, cy = center(box)
+        return math.hypot(cx - wx, cy - wy) / width
+
+    home = [b is not None and dist(b) <= config.leave_home for b in boxes]
+    steady = [h and sc >= config.leave_return_score for h, sc in zip(home, scores)]
+    far = [b is not None and dist(b) >= config.leave_far
+           and not (safe_zone is not None and ioa(b, safe_zone) >= config.cashier_safe_ioa) for b in boxes]
+    seated = sorted(height(b) for b, h in zip(boxes, home) if h and b is not None)
+    seated_h = seated[len(seated) // 5] if seated else 0.0
+
+    def returned_at(start: int) -> Optional[int]:
+        run = None
+        for k in range(start, len(boxes)):
+            if steady[k]:
+                run = k if run is None else run
+                if times[k] - times[run] + 1e-6 >= config.leave_return_sec:
+                    return run
+            else:
+                run = None
+        return None
+
+    out: list[Departure] = []
+    pos = 0
+    while pos < len(boxes):
+        far_pos = next((k for k in range(pos, len(boxes)) if far[k]), None)
+        if far_pos is None:
+            break
+        last_home = next((k for k in range(far_pos - 1, -1, -1) if home[k]), None)
+        back = returned_at(far_pos)
+        end_t = times[back] if back is not None else times[-1]
+        # не вернулся до конца ролика — уход, даже если ролик кончился вскоре после
+        if last_home is None or (back is not None and end_t - times[far_pos] < config.leave_min_away_sec):
+            pos = (back + 1) if back is not None else far_pos + 1
+            continue
+        left = last_home
+        box = boxes[last_home]
+        if seated_h > 0 and box is not None and height(box) >= config.leave_up_ratio * seated_h:
+            k = last_home
+            while k > 0 and times[last_home] - times[k - 1] <= config.leave_up_sec:
+                prev = boxes[k - 1]
+                if prev is None or height(prev) < config.leave_up_ratio * seated_h:
+                    break
+                k -= 1
+            if k > 0 and boxes[k - 1] is not None and times[last_home] - times[k - 1] <= config.leave_up_sec:
+                left = k
+        out.append(Departure(left, far_pos, back))
+        if back is None:
+            break
+        pos = back + 1
+    return out
+
+
 # --------------------------------------------------------------------------- предметы
 
 
@@ -411,6 +524,48 @@ class _Held:
 # --------------------------------------------------------------------------- сборка
 
 
+# Предметы на столе после ухода кассира (worker.scene.pipeline.check_left_items): запросы OWLv2.
+# Последние четыре — опознаватели: рамка, больше похожая на них, — не ценность (телефон, машинка).
+ITEM_QUERIES: tuple[str, ...] = (
+    "a stack of banknotes", "paper money", "a bag", "a handbag", "a tablet computer", "a cup",
+    "a laptop", "a telephone", "a money counting machine", "a printer",
+)
+
+
+def item_check_times(timeline: SceneTimeline) -> list[float]:
+    """Таймкоды кадров для проверки стола после каждого ухода: через item_check_sec после того, как
+    кассир оказался вдали (первое состояние cashier_away после cashier_left_workplace)."""
+    cfg = timeline.meta.get("scene", {}).get("config", {})
+    offsets = cfg.get("item_check_sec", SceneConfig().item_check_sec)
+    states = timeline.states
+    out: list[float] = []
+    for i, s in enumerate(states):
+        if not s.value("cashier_left_workplace"):
+            continue
+        far = next((k for k in range(i, len(states)) if states[k].value("cashier_away")), None)
+        if far is None:
+            continue
+        for off in offsets:
+            t = states[far].t + float(off)
+            if t <= states[-1].t + 1e-6:
+                out.append(round(t, 3))
+    return sorted(set(out))
+
+
+def with_left_items(timeline: SceneTimeline,
+                    checks: Sequence[tuple[float, Sequence[Detection]]]) -> SceneTimeline:
+    """Добавить к состоянию ухода (cashier_left_workplace) поле left_items — детекции OWLv2 на кадрах
+    проверки стола до следующего ухода: [[таймкод, запрос, score, рамка]]."""
+    states = list(timeline.states)
+    lefts = [i for i, s in enumerate(states) if s.value("cashier_left_workplace")]
+    for n, i in enumerate(lefts):
+        until = states[lefts[n + 1]].t if n + 1 < len(lefts) else math.inf
+        items = [[round(t, 3), d.label, round(float(d.score), 4), [round(v, 4) for v in d.bbox_xyxy]]
+                 for t, dets in checks if states[i].t <= t < until for d in dets]
+        states[i] = replace(states[i], extra={**states[i].extra, "left_items": items})
+    return replace(timeline, states=tuple(states))
+
+
 def with_brightness(timeline: SceneTimeline, values: Sequence[Optional[float]]) -> SceneTimeline:
     """Добавить в состояния поле brightness — средняя яркость кадра 0..1 (по одному значению на
     состояние). Детекторы не засчитывают переключение zero-shot-состояний на резком скачке света
@@ -456,6 +611,8 @@ def assemble_timeline(
         warnings.append("стол не найден: кассир выбран по размеру и длительности трека, предметы на столе = null")
     if door is None:
         warnings.append("дверь не найдена: входы и выходы не определяются")
+    if zones.get("safe") is None:
+        warnings.append("сейф не найден надёжно (worker.perception.zones.pick_safe): safe_open = null, R10 не проверяется")
 
     stitched = [t for t in stitch_tracks(tracks, cfg, door) if len(t.points) >= cfg.min_track_points]
     ref_height = _reference_height(stitched)
@@ -480,28 +637,46 @@ def assemble_timeline(
 
     raw_presence: list[Optional[float]] = []
     per_frame: list[tuple[int, Optional[BBox], tuple[Person, ...]]] = []
+    cashier_scores: list[float] = []
     for pos in range(len(frames)):
         inside = [(info, info.by_frame[pos]) for info in infos if pos in info.by_frame and info.by_frame[pos].inside]
         cashier_entries = [entry for info, entry in inside if info.role == "cashier"]
         cashier_bbox: Optional[BBox] = None
+        cashier_score = 0.0
         presence: Optional[float]
         if cashier is None:
             presence = None
         elif cashier_entries:
             if workplace is not None:
-                cashier_bbox = max(cashier_entries, key=lambda e: ioa(e.bbox, workplace)).bbox
+                best = max(cashier_entries, key=lambda e: ioa(e.bbox, workplace))
+                cashier_bbox, cashier_score = best.bbox, best.score
                 presence = min(1.0, ioa(cashier_bbox, workplace) / cfg.presence_ioa)
             else:
-                cashier_bbox = max(cashier_entries, key=lambda e: area(e.bbox)).bbox
+                best = max(cashier_entries, key=lambda e: area(e.bbox))
+                cashier_bbox, cashier_score = best.bbox, best.score
                 presence = 1.0
         else:
             presence = 0.0
         raw_presence.append(presence)
+        cashier_scores.append(cashier_score)
         others = tuple(
             Person(track_id=info.track.track_id, bbox=entry.bbox, first_seen_t=round(info.inside_points()[0].t, 3))
             for info, entry in inside if info.role != "cashier"
         )
         per_frame.append((len(inside), cashier_bbox, others))
+
+    # Уход с рабочего места: от первого кадра вдали до возвращения кассира нет — рамка «кассира» в это
+    # время чаще человек за стеклом или сам кассир в коридоре (worker.scene.builder._departures).
+    departures = _departures([b for _, b, _ in per_frame], cashier_scores, times, workplace, zones.get("safe"), cfg)
+    left_at = {d.left_pos for d in departures}
+    away: set[int] = set()
+    for d in departures:
+        away.update(range(d.far_pos, d.return_pos if d.return_pos is not None else len(frames)))
+    for pos in away:
+        persons, cashier_bbox, others = per_frame[pos]
+        if raw_presence[pos] is not None:
+            raw_presence[pos] = 0.0
+        per_frame[pos] = (persons - (1 if cashier_bbox is not None else 0), None, others)
 
     held = {name: _Held(samples) for name, samples in state_samples.items()}
     desk_zone = expand(desk, cfg.desk_margin) if desk else None
@@ -541,6 +716,8 @@ def assemble_timeline(
                 "visitor_exited_ids": _ids(exited_ev, pos, False),
                 "cashier_left_room": bool(_ids(exited_ev, pos, True)),
                 "cashier_returned": bool(_ids(entered_ev, pos, True)),
+                "cashier_left_workplace": pos in left_at,
+                "cashier_away": pos in away,
             },
         ))
 
@@ -557,6 +734,8 @@ def assemble_timeline(
         "cashier_track_ids": sorted(info.track.track_id for info in infos if info.role == "cashier"),
         "entered_t": [round(times[p], 3) for p in sorted(entered)],
         "exited_t": [round(times[p], 3) for p in sorted(exited)],
+        "left_workplace_t": [round(times[d.left_pos], 3) for d in departures],
+        "returned_t": [round(times[d.return_pos], 3) for d in departures if d.return_pos is not None],
         "warnings": warnings,
     }
     return SceneTimeline(
