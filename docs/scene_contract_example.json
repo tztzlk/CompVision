@@ -1,0 +1,91 @@
+{
+ "version": 1,
+ "video_id": "Х-18",
+ "duration_sec": 22.6,
+ "fps_sampled": 3.0,
+ "frame_size": [464, 848],
+ "zones": {
+  "desk": [0.05, 0.38, 0.62, 0.62],
+  "workplace": [0.2, 0.45, 0.75, 0.8],
+  "safe": [0.62, 0.28, 0.82, 0.55],
+  "door": [0.0, 0.05, 0.3, 0.5],
+  "laptop": [0.45, 0.3, 0.6, 0.4]
+ },
+ "states": [
+  {
+   "t": 16.333,
+   "frame": "frames/000049.jpg",
+   "persons_in_room": 2,
+   "cashier_present": 0.97,
+   "cashier_bbox": [0.3, 0.4, 0.6, 0.85],
+   "others": [
+    {"track_id": 3, "bbox": [0.35, 0.2, 0.55, 0.45], "first_seen_t": 0.0}
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.05,
+   "door_open": null,
+   "cash_on_desk": 0.62,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.01,
+   "cup_or_food": 0.03,
+   "phone_in_hand": 0.0,
+   "laptop_unlocked": null
+  },
+  {
+   "t": 16.667,
+   "frame": "frames/000050.jpg",
+   "persons_in_room": 3,
+   "cashier_present": 0.96,
+   "cashier_bbox": [0.3, 0.4, 0.6, 0.85],
+   "others": [
+    {"track_id": 3, "bbox": [0.35, 0.2, 0.55, 0.45], "first_seen_t": 0.0},
+    {"track_id": 7, "bbox": [0.02, 0.1, 0.22, 0.55], "first_seen_t": 16.667}
+   ],
+   "person_entered": true,
+   "person_exited": false,
+   "safe_open": 0.05,
+   "door_open": null,
+   "cash_on_desk": 0.62,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.01,
+   "cup_or_food": 0.03,
+   "phone_in_hand": 0.0,
+   "laptop_unlocked": null
+  },
+  {
+   "t": 17.0,
+   "frame": "frames/000051.jpg",
+   "persons_in_room": 3,
+   "cashier_present": 0.95,
+   "cashier_bbox": [0.3, 0.4, 0.6, 0.85],
+   "others": [
+    {"track_id": 3, "bbox": [0.35, 0.2, 0.55, 0.45], "first_seen_t": 0.0},
+    {"track_id": 7, "bbox": [0.05, 0.1, 0.25, 0.55], "first_seen_t": 16.667}
+   ],
+   "person_entered": false,
+   "person_exited": false,
+   "safe_open": 0.04,
+   "door_open": null,
+   "cash_on_desk": 0.6,
+   "bag_on_desk": 0.02,
+   "collection_bag": null,
+   "outerwear_on_desk": 0.01,
+   "cup_or_food": 0.03,
+   "phone_in_hand": 0.02,
+   "laptop_unlocked": null
+  }
+ ],
+ "meta": {
+  "device": "cuda",
+  "elapsed_sec": 41.2,
+  "models": {
+   "person_detector": "PekingU/rtdetr_r18vd_coco_o365@386c438",
+   "open_vocab": "google/owlv2-base-patch16-ensemble@cfd3195",
+   "zero_shot": "google/siglip-base-patch16-224@7fd15f0"
+  },
+  "note": "Пример контракта: значения условные, не результат модели."
+ }
+}
