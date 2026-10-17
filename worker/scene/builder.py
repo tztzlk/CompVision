@@ -94,6 +94,13 @@ class SceneConfig:
     state_batch_frames: int = 16
     enable_door_state: bool = False
     enable_collection_bag: bool = False
+    # Zero-shot: набор подписей ("v1" | "v2", worker.perception.states) и закрашивание людей
+    # в вырезке стола перед SigLIP (спина или торс кассира в вырезке путают «одежду на столе»).
+    # По умолчанию — как было; "v2" и маску включать после замера на кэше.
+    state_prompts: str = "v1"
+    # Стол выбирать по людям (где сидели и стояли), а не по самому заметному кандидату OWLv2.
+    desk_by_people: bool = False
+    mask_people_in_desk: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)

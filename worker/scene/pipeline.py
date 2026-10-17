@@ -25,7 +25,7 @@ from worker.perception.models import load_models
 from worker.perception.states import COCO_LABELS_OF_INTEREST, ZONE_CROP_MARGIN, crop_zone, enabled_states
 from worker.perception.tracking import IoUTracker, Track
 from worker.perception.video import VideoError, imread_unicode, imwrite_unicode, iter_sampled_frames, probe_video
-from worker.perception.zones import all_zone_queries, infer_zones
+from worker.perception.zones import all_zone_queries, desk_candidates, infer_zones, pick_desk_by_people
 from worker.scene.builder import FrameRef, SceneConfig, assemble_timeline
 from worker.scene.contract import SceneTimeline
 
@@ -72,10 +72,16 @@ def run_pipeline(
 
     mark = time.monotonic()
     zones, zone_info, owl = _find_zones(frames, objects, bundle, cfg)
+    if cfg.desk_by_people:
+        desk = pick_desk_by_people(desk_candidates(owl, cfg.zone_min_score),
+                                   [p.bbox for tr in tracks for p in tr.points])
+        if desk is not None and desk != zones.get("desk"):
+            zones["desk"] = desk
+            zone_info["desk"] = {**zone_info.get("desk", {}), "source": "owlv2+people"}
     timings["zones_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
-    samples = _sample_states(frames, zones, bundle, cfg)
+    samples = _sample_states(frames, zones, bundle, cfg, persons)
     timings["states_sec"] = round(time.monotonic() - mark, 2)
 
     refs = [FrameRef(index=pos, t=f.timestamp_sec, frame=f"{FRAMES_SUBDIR}/{f.path.name}") for pos, f in enumerate(frames)]
@@ -184,10 +190,24 @@ def _find_zones(
     return zones, info, owl
 
 
+def _mask_people(image: Any, people: Sequence[Detection]) -> Any:
+    """Копия кадра, где рамки людей закрашены серым (люди не попадают в zero-shot-оценку стола)."""
+    out = image.copy()
+    h, w = out.shape[:2]
+    for det in people:
+        x1, y1, x2, y2 = det.bbox_xyxy
+        out[int(y1 * h):int(y2 * h) + 1, int(x1 * w):int(x2 * w) + 1] = 128
+    return out
+
+
 def _sample_states(
     frames: Sequence[Frame], zones: dict[str, Optional[BBox]], bundle: Any, cfg: SceneConfig,
+    persons: Optional[Sequence[Sequence[Detection]]] = None,
 ) -> dict[str, list[tuple[float, Optional[float]]]]:
-    """Zero-shot-оценки состояний по вырезкам зон раз в cfg.state_every_sec: {состояние: [(t, p)]}."""
+    """Zero-shot-оценки состояний по вырезкам зон раз в cfg.state_every_sec: {состояние: [(t, p)]}.
+
+    persons — рамки людей по кадрам; при cfg.mask_people_in_desk они закрашиваются в вырезке стола.
+    """
     states = enabled_states(cfg)
     by_zone: dict[str, list[str]] = {}
     for name, spec in states.items():
@@ -212,6 +232,8 @@ def _sample_states(
             times: list[float] = []
             for pos in chunk:
                 image = images[pos]
+                if image is not None and zone == "desk" and cfg.mask_people_in_desk and persons is not None:
+                    image = _mask_people(image, persons[pos])
                 crop = crop_zone(image, zones[zone], ZONE_CROP_MARGIN.get(zone, 0.1)) if image is not None else None
                 if crop is not None:
                     crops.append(crop)

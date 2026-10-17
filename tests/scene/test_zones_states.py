@@ -69,3 +69,46 @@ class StatesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PromptsV2Test(unittest.TestCase):
+    def test_safe_prompts_are_minimal_pairs(self) -> None:
+        from worker.perception.states import STATE_PROMPTS_V2
+
+        spec = enabled_states(SceneConfig(state_prompts="v2"))["safe_open"]
+        self.assertIs(spec, STATE_PROMPTS_V2["safe_open"])
+        for pos, neg in zip(spec.positive, spec.negative):
+            self.assertEqual(pos.replace("open", "closed"), neg)
+        self.assertEqual(set(enabled_states(SceneConfig(state_prompts="v2"))), set(enabled_states(SceneConfig())))
+
+    def test_desk_negatives_have_no_person(self) -> None:
+        for name in ("cash_on_desk", "bag_on_desk", "outerwear_on_desk"):
+            spec = enabled_states(SceneConfig(state_prompts="v2"))[name]
+            self.assertFalse(any("person" in p for p in (*spec.positive, *spec.negative)))
+
+    def test_mask_people(self) -> None:
+        import numpy as np
+
+        from worker.perception import Detection
+        from worker.scene.pipeline import _mask_people
+
+        image = np.zeros((100, 50, 3), dtype=np.uint8)
+        out = _mask_people(image, [Detection("person", 0.9, (0.2, 0.5, 0.6, 1.0))])
+        self.assertEqual(int(out[60, 20, 0]), 128)
+        self.assertEqual(int(out[10, 20, 0]), 0)
+        self.assertEqual(int(image[60, 20, 0]), 0)            # исходный кадр не тронут
+
+
+class DeskByPeopleTest(unittest.TestCase):
+    def test_working_desk_beats_bigger_empty_desk(self) -> None:
+        """Х-20: OWLv2 выше оценивает большой пустой белый стол на переднем плане; люди сидят у деревянного."""
+        from worker.perception.zones import desk_candidates, pick_desk_by_people
+
+        white = (0.0, 0.62, 0.75, 0.90)
+        wooden = (0.08, 0.36, 0.62, 0.55)
+        owl = [[Detection("a wooden office desk", 0.5, white), Detection("a desk with a computer", 0.3, wooden)]] * 4
+        cands = desk_candidates(owl)
+        self.assertEqual(cands[0][0], white)
+        cashier = [(0.25, 0.25, 0.45, 0.50)] * 30
+        self.assertEqual(pick_desk_by_people(cands, cashier), wooden)
+        self.assertIsNone(pick_desk_by_people(cands[:1], cashier))

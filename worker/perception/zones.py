@@ -11,10 +11,10 @@ from __future__ import annotations
 from typing import Optional, Sequence
 
 from worker.perception import Detection
-from worker.perception.geometry import BBox, iou, median_box
+from worker.perception.geometry import BBox, ioa, iou, median_box
 from worker.perception.states import TABLE_LABELS
 
-__all__ = ["ZONE_QUERIES", "COCO_FALLBACK", "all_zone_queries", "infer_zones"]
+__all__ = ["ZONE_QUERIES", "COCO_FALLBACK", "all_zone_queries", "infer_zones", "desk_candidates", "pick_desk_by_people"]
 
 # Текстовые запросы OWLv2 для каждой зоны (английский — язык обучения модели).
 ZONE_QUERIES: dict[str, tuple[str, ...]] = {
@@ -46,6 +46,55 @@ def _penalty(zone: str, box: BBox) -> float:
     if zone == "desk" and box[3] >= _BOTTOM_EDGE:
         return _BOTTOM_EDGE_PENALTY
     return 1.0
+
+
+def _clusters(candidates: Sequence[tuple[BBox, float]]) -> list[list[tuple[BBox, float]]]:
+    """Сгруппировать похожие рамки (IoU >= 0.5 с первой рамкой группы)."""
+    clusters: list[list[tuple[BBox, float]]] = []
+    for box, score in sorted(candidates, key=lambda c: c[1], reverse=True):
+        for cluster in clusters:
+            if iou(cluster[0][0], box) >= _CLUSTER_IOU:
+                cluster.append((box, score))
+                break
+        else:
+            clusters.append([(box, score)])
+    return clusters
+
+
+def desk_candidates(owl_per_keyframe: Sequence[Sequence[Detection]], min_score: float = 0.12) -> list[tuple[BBox, float]]:
+    """Все группы-кандидаты «стол» по OWLv2: (медианная рамка, сумма score со штрафом), лучшие первыми."""
+    candidates = [
+        (det.bbox_xyxy, det.score * _penalty("desk", det.bbox_xyxy))
+        for dets in owl_per_keyframe
+        for det in dets
+        if det.label in ZONE_QUERIES["desk"] and det.score >= min_score
+    ]
+    out = [(median_box(b for b, _ in cl), sum(s for _, s in cl)) for cl in _clusters(candidates)]
+    return sorted(((b, s) for b, s in out if b is not None), key=lambda c: -c[1])
+
+
+def pick_desk_by_people(candidates: Sequence[tuple[BBox, float]], person_boxes: Sequence[BBox],
+                        margin: float = 0.15, min_share: float = 0.2) -> Optional[BBox]:
+    """Рабочий стол — тот, у которого больше всего сидели и стояли люди, а не самый заметный
+    (на переднем плане кадров кейса большой пустой белый стол). Для каждого кандидата —
+    сумма долей рамок людей в расширенной рамке стола по всем кадрам; кандидат с долей меньше
+    min_share от лучшего по OWLv2 не рассматривается. None — людей нет или кандидат один."""
+    if len(candidates) < 2 or not person_boxes:
+        return None
+    top = candidates[0][1]
+    pool = [(b, s) for b, s in candidates if s >= min_share * top]
+
+    def presence(box: BBox) -> float:
+        zone = _expand_rel(box, margin)
+        return sum(ioa(p, zone) for p in person_boxes)
+
+    best = max(pool, key=lambda c: presence(c[0]))
+    return best[0] if presence(best[0]) > 0 else None
+
+
+def _expand_rel(box: BBox, frac: float) -> BBox:
+    dx, dy = (box[2] - box[0]) * frac, (box[3] - box[1]) * frac
+    return (max(0.0, box[0] - dx), max(0.0, box[1] - dy), min(1.0, box[2] + dx), min(1.0, box[3] + dy))
 
 
 def _best_cluster(candidates: Sequence[tuple[BBox, float]]) -> tuple[Optional[BBox], float]:
