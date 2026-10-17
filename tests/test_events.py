@@ -127,3 +127,16 @@ def test_safe_left_open_after_cashier_was_there(rules):
     scene = dataclasses.replace(scene, states=tuple(dataclasses.replace(s, safe_open=0.8) for s in scene.states))
     events = det.storage_left_open(scene, r10.params)
     assert [round(e.timecode_sec) for e in events] == [12]
+
+
+def test_light_jump_is_not_event(rules):
+    """Х-11, Х-12: свет резко меняется — переключение zero-shot-состояния в этот момент не событие."""
+    r09 = next(r for r in rules if r.id == "R09_personal_items")
+    scene = load_scene(FIXTURES / "scene_X40.json")
+    assert det.personal_items(scene, r09.params)                       # пальто на столе с 17 с
+
+    def lit(s):
+        return dataclasses.replace(s, extra={**s.extra, "brightness": 0.3 if s.t < 17.0 else 0.6})
+
+    jumped = dataclasses.replace(scene, states=tuple(lit(s) for s in scene.states))
+    assert det.personal_items(jumped, r09.params) == []

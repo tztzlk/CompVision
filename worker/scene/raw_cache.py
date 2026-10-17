@@ -18,7 +18,7 @@ from typing import Any, Mapping, Optional, Sequence
 
 from worker.perception import Detection
 from worker.perception.tracking import Track, TrackPoint
-from worker.scene.builder import FrameRef, SceneConfig, assemble_timeline
+from worker.scene.builder import FrameRef, SceneConfig, assemble_timeline, with_brightness
 from worker.scene.contract import SceneTimeline
 
 __all__ = ["RAW_VERSION", "save_raw", "load_raw", "rebuild_scene"]
@@ -49,6 +49,7 @@ def save_raw(
     state_samples: Mapping[str, Sequence[tuple[float, Optional[float]]]],
     config: SceneConfig,
     meta: Optional[Mapping[str, Any]] = None,
+    brightness: Optional[Sequence[float]] = None,
 ) -> Path:
     """Записать входы assemble_timeline атомарно (через временный файл)."""
     data = {
@@ -67,6 +68,7 @@ def save_raw(
                           for k, v in state_samples.items()},
         "config": config.as_dict(),
         "meta": dict(meta or {}),
+        "brightness": None if brightness is None else [round(float(b), 4) for b in brightness],
     }
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -103,7 +105,7 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None) 
     samples = {k: [(float(t), None if p is None else float(p)) for t, p in v] for k, v in raw["state_samples"].items()}
     meta = dict(raw.get("meta") or {})
     meta["rebuilt_from_raw"] = True
-    return assemble_timeline(
+    timeline = assemble_timeline(
         video_id=raw["video_id"],
         duration_sec=raw["duration_sec"],
         frame_size=tuple(raw["frame_size"]),  # type: ignore[arg-type]
@@ -115,3 +117,5 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None) 
         config=_config(raw, config),
         meta=meta,
     )
+    brightness = raw.get("brightness")
+    return with_brightness(timeline, brightness) if brightness else timeline

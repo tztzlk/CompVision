@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import math
 from bisect import bisect_right
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from statistics import median
 from typing import Any, Mapping, Optional, Sequence
 
@@ -36,7 +36,7 @@ from worker.perception.states import BAG_LABELS, FOOD_LABELS, PHONE_LABELS
 from worker.perception.tracking import Track, TrackPoint
 from worker.scene.contract import ZONE_NAMES, Person, SceneState, SceneTimeline
 
-__all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline"]
+__all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness"]
 
 
 @dataclass(frozen=True)
@@ -375,6 +375,20 @@ class _Held:
 
 
 # --------------------------------------------------------------------------- сборка
+
+
+def with_brightness(timeline: SceneTimeline, values: Sequence[Optional[float]]) -> SceneTimeline:
+    """Добавить в состояния поле brightness — средняя яркость кадра 0..1 (по одному значению на
+    состояние). Детекторы не засчитывают переключение zero-shot-состояний на резком скачке света
+    (Х-11, Х-12: свет меняется в момент ухода кассира)."""
+    if len(values) != len(timeline.states):
+        raise ValueError("brightness: ожидается по одному значению на состояние")
+    states = tuple(
+        replace(s, extra={**s.extra, "brightness": None if v is None else round(float(v), 3)})
+        for s, v in zip(timeline.states, values)
+    )
+    return replace(timeline, states=states)
+
 
 
 def assemble_timeline(

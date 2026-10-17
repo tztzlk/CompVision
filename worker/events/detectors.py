@@ -13,6 +13,8 @@
      интервал, который начался в первые start_sec секунд ролика (состояние видно с первого кадра,
      а не появилось), остаётся, только если средняя p на нём >= start_p_on (по умолчанию
      start_sec = 0 — правило выключено; включено у R09 и R10, см. rules.yaml);
+     интервал, начавшийся в пределах light_guard_sec от резкого скачка яркости кадра (поле
+     brightness, порог light_jump), — эффект освещения, а не событие (у R09 и R10);
   5. таймкод = начало интервала, confidence = средняя p на интервале,
      кадры: начало, +1 с, момент максимальной p (не больше трёх, без повторов).
 """
@@ -117,6 +119,19 @@ def _evidence(scene: SceneTimeline, iv: Interval, values: Series) -> tuple[list[
     return [round(states[i].t, 3) for i in idx], [states[i].frame for i in idx]
 
 
+def _light_jumps(scene: SceneTimeline, threshold: float) -> list[float]:
+    """Моменты резкой смены освещения: яркость кадра (поле brightness) изменилась больше чем на
+    threshold за одно состояние. Нет поля — скачков нет."""
+    out: list[float] = []
+    prev: Optional[float] = None
+    for s in scene.states:
+        b = s.value("brightness")
+        if b is not None and prev is not None and abs(b - prev) >= threshold:
+            out.append(s.t)
+        prev = b if b is not None else prev
+    return out
+
+
 def _from_start(iv: Interval, values: Series, times: Sequence[float], start_sec: float, start_p_on: float) -> bool:
     """Интервал начался в первые start_sec секунд и его средняя p ниже start_p_on — состояние видно
     с первого кадра, а не появилось: это не событие."""
@@ -146,6 +161,10 @@ def _events_from_series(
     start_sec = float(params.get("start_sec", 0.0))
     start_p_on = float(params.get("start_p_on", 0.97))
     intervals = [iv for iv in intervals if not _from_start(iv, values, times, start_sec, start_p_on)]
+    guard = float(params.get("light_guard_sec", 0.0))
+    if guard > 0:
+        jumps = _light_jumps(scene, float(params.get("light_jump", 0.12)))
+        intervals = [iv for iv in intervals if not any(abs(times[iv.start] - j) <= guard for j in jumps)]
     intervals = merge_intervals(intervals, times, _param(params, "merge_gap_sec"))
     step = 1.0 / scene.fps_sampled
     min_dur = _param(params, "min_duration_sec")

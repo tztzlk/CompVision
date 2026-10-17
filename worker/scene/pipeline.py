@@ -26,7 +26,7 @@ from worker.perception.states import COCO_LABELS_OF_INTEREST, ZONE_CROP_MARGIN, 
 from worker.perception.tracking import IoUTracker, Track
 from worker.perception.video import VideoError, imread_unicode, imwrite_unicode, iter_sampled_frames, probe_video
 from worker.perception.zones import all_zone_queries, desk_candidates, infer_zones, pick_desk_by_people
-from worker.scene.builder import FrameRef, SceneConfig, assemble_timeline
+from worker.scene.builder import FrameRef, SceneConfig, assemble_timeline, with_brightness
 from worker.scene.contract import SceneTimeline
 
 __all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled"]
@@ -59,7 +59,7 @@ def run_pipeline(
     timings: dict[str, float] = {}
 
     mark = time.monotonic()
-    frames, detections, size = _decode_and_detect(video_path, work_dir / FRAMES_SUBDIR, bundle, cfg)
+    frames, detections, size, brightness = _decode_and_detect(video_path, work_dir / FRAMES_SUBDIR, bundle, cfg)
     timings["decode_detect_sec"] = round(time.monotonic() - mark, 2)
     if not frames:
         raise VideoError(f"{video_path}: не удалось извлечь ни одного кадра")
@@ -106,12 +106,14 @@ def run_pipeline(
         config=cfg,
         meta=meta,
     )
+    timeline = with_brightness(timeline, brightness)
     if raw_out is not None:
         from worker.scene.raw_cache import save_raw
 
         save_raw(raw_out, video_id=vid, duration_sec=info.duration_sec or frames[-1].timestamp_sec,
                  frame_size=frame_size, frames=refs, tracks=tracks, objects=objects, zones=zones,
-                 zone_info=zone_info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta)
+                 zone_info=zone_info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta,
+                 brightness=brightness)
     if pose_enabled():
         from worker.scene.pose_pass import run_pose_pass
 
@@ -130,9 +132,10 @@ def pose_enabled() -> bool:
 
 def _decode_and_detect(
     video_path: Path, frames_dir: Path, bundle: Any, cfg: SceneConfig,
-) -> tuple[list[Frame], list[list[Detection]], tuple[int, int]]:
-    """Кадры с частотой cfg.fps -> JPEG + детекции RT-DETR (пачками по cfg.batch_size)."""
+) -> tuple[list[Frame], list[list[Detection]], tuple[int, int], list[float]]:
+    """Кадры с частотой cfg.fps -> JPEG + детекции RT-DETR (пачками по cfg.batch_size) + средняя яркость кадра 0..1."""
     frames: list[Frame] = []
+    brightness: list[float] = []
     detections: list[list[Detection]] = []
     batch: list[Any] = []
     size = (0, 0)
@@ -148,13 +151,14 @@ def _decode_and_detect(
             size = (int(image.shape[1]), int(image.shape[0]))
         path = imwrite_unicode(frames_dir / f"{k:06d}.jpg", image, cfg.jpeg_quality)
         frames.append(Frame(index=k, timestamp_sec=round(ts, 3), path=path))
+        brightness.append(float(image.mean()) / 255.0)
         batch.append(image)
         if len(batch) >= cfg.batch_size:
             flush()
     flush()
     if len(detections) != len(frames):
         raise RuntimeError(f"детектор вернул {len(detections)} списков на {len(frames)} кадров")
-    return frames, detections, size
+    return frames, detections, size, brightness
 
 
 def _track_people(frames: Sequence[Frame], persons: Sequence[Sequence[Detection]], cfg: SceneConfig) -> list[Track]:
