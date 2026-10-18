@@ -19,7 +19,7 @@ from typing import Any, Mapping, Optional, Sequence
 from worker.perception import Detection
 from worker.perception.tracking import Track, TrackPoint
 from worker.scene.builder import (FrameRef, SceneConfig, assemble_timeline, people_at, track_height,
-                                  with_brightness, with_desk_items, with_left_items)
+                                  with_brightness, with_desk_items, with_ft_items, with_left_items)
 from worker.scene.contract import SceneTimeline
 
 __all__ = ["RAW_VERSION", "save_raw", "load_raw", "rebuild_scene"]
@@ -129,6 +129,9 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
     samples = {k: [(float(t), None if p is None else float(p)) for t, p in v] for k, v in raw["state_samples"].items()}
     meta = dict(raw.get("meta") or {})
     meta["rebuilt_from_raw"] = True
+    if _config(raw, config).safe_ft and "safe_ft" not in meta:
+        # сырой кэш собран без дообученной башни: её полей нет — правила как без неё (R14 по OWLv2)
+        meta["safe_ft"] = {"error": "в сыром кэше нет данных дообученной башни (собран без SceneConfig.safe_ft)"}
     timeline = assemble_timeline(
         video_id=raw["video_id"],
         duration_sec=raw["duration_sec"],
@@ -148,4 +151,5 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
     checks = [(float(t), [det(d) for d in dets]) for t, dets in raw.get("item_checks") or []]
     timeline = with_left_items(timeline, checks)
     scan = [(float(t), [det(d) for d in dets]) for t, dets in raw.get("item_scan") or []]
-    return with_desk_items(timeline, scan, people_at(scan, frames, tracks))
+    timeline = with_desk_items(timeline, scan, people_at(scan, frames, tracks))
+    return with_ft_items(timeline, samples)

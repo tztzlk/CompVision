@@ -19,6 +19,15 @@ data/ml_results/r3/heads/<head>_oof.json — вероятности вне фо�
 правил по фолдам) и <head>_report.json.
 Обучение — torch (L-BFGS, L2, веса классов обратно частоте); инференс головы — numpy:
 sigmoid(emb @ w + b).
+
+desk_items — мультиметочная голова предметов на столе (cash, bag, coat, cup; метки
+training/labels/desk_items.csv, столбцы классов 1 / 0 / ?): по классу своя логрегрессия, «?» не учим;
+w — C×768, b — C. Фолды по умолчанию — те же, что у safe_open (--folds-from). Оценка — класс × вариант:
+orig и синтетические аугментации (data/emb/desk/<v>) плюс кадры аугментированных кэшей
+(data/emb_aug/<v>/desk/orig, варианты cache_<v>; в обучение не входят), рядом — AUC OWLv2-скана
+(desk_cash …) и zero-shot по сценам на тех же кадрах:
+
+    PYTHONPATH=. .venv/bin/python scripts/train_heads.py desk_items        # l2 1e-5, классы cash bag
 """
 
 from __future__ import annotations
@@ -46,6 +55,15 @@ HEADS: dict[str, dict[str, Any]] = {
     # Вырезки людей по трекам (scripts/embed_people.py); метки по (видео, трек, t); к эмбеддингу
     # добавляется геометрия рамки worker.perception.heads.person_geo по сырому кэшу, умноженная на GEO_SCALE.
     "person_inside": {"zone": "person", "positive": "1", "negative": "0", "zero_shot": None, "by_track": True},
+    # Предметы на столе: вырезка зоны desk, мультиметки (training/labels/desk_items.csv: столбцы классов
+    # 1 / 0 / ? — по классу своя логрегрессия, ? и пусто не учим). Листы разметки — шаг 1 с с подписью
+    # round(t), эмбеддинги — все кадры 3 к/с: метка кадра — метка ближайшей секунды (round(t)).
+    # compare — поля состояний сцены (scene_cache) для сравнения AUC на тех же кадрах: OWLv2-скан и zero-shot.
+    # train_classes — что учим по умолчанию: у coat и cup по одному видео с предметом — фолдами не проверить.
+    "desk_items": {"zone": "desk", "classes": ("cash", "bag", "coat", "cup"), "train_classes": ("cash", "bag"),
+                   "zero_shot": None,
+                   "compare": {"cash": ("desk_cash", "cash_on_desk"), "bag": ("desk_collection_bag", "bag_on_desk"),
+                               "coat": ("desk_coat", "outerwear_on_desk"), "cup": ("desk_cup", "cup_or_food")}},
 }
 
 
@@ -83,7 +101,51 @@ def load_labels(path: Path) -> dict[Any, list[tuple[float, float, str]]]:
     return rows
 
 
-def label_at(segments: list[tuple[float, float, str]], t: float) -> Optional[str]:
+def load_multilabels(path: Path, classes: tuple[str, ...]) -> dict[str, list[tuple[float, float, dict[str, int]]]]:
+    """video_id -> [(t_from, t_to, {класс: 1 | 0 | -1})]; -1 — «?» или пусто (не учим). Строка перекрывает
+    предыдущие целиком (все классы)."""
+    rows: dict[str, list[tuple[float, float, dict[str, int]]]] = defaultdict(list)
+    with path.open(encoding="utf-8") as fh:
+        lines = [ln for ln in fh if ln.strip() and not ln.lstrip().startswith("#")]
+    for r in csv.DictReader(lines):
+        if not (r.get("video_id") or "").strip() or r.get("t_from") in (None, "") or r.get("t_to") in (None, ""):
+            continue
+        vals = {c: 1 if (r.get(c) or "").strip() == "1" else 0 if (r.get(c) or "").strip() == "0" else -1
+                for c in classes}
+        rows[normalize_video_id(r["video_id"].strip())].append((float(r["t_from"]), float(r["t_to"]), vals))
+    return rows
+
+
+def average_precision(y: np.ndarray, p: np.ndarray) -> Optional[float]:
+    if y.sum() == 0 or (y == 0).sum() == 0:
+        return None
+    order = np.argsort(-p, kind="mergesort")
+    ys = y[order]
+    prec = np.cumsum(ys) / np.arange(1, len(ys) + 1)
+    return float((prec * ys).sum() / ys.sum())
+
+
+def calibration(y: np.ndarray, p: np.ndarray) -> dict[str, Any]:
+    """Распределение вероятностей: квантили на положительных (5/25/50 %) и отрицательных (50/95/99 %, max)."""
+    pos, neg = p[y == 1], p[y == 0]
+
+    def q(a: np.ndarray, qs: list[float]) -> Optional[list[float]]:
+        return [round(float(v), 3) for v in np.quantile(a, qs)] if len(a) else None
+
+    return {"pos_q05_25_50": q(pos, [0.05, 0.25, 0.5]), "neg_q50_95_99_max": q(neg, [0.5, 0.95, 0.99, 1.0]),
+            "recall@0.5": float((pos >= 0.5).mean()) if len(pos) else None,
+            "fp@0.5": int((neg >= 0.5).sum()), "fp@0.8": int((neg >= 0.8).sum())}
+
+
+def load_folds(path: Path) -> dict[str, int]:
+    """Группа -> фолд из *_folds.npz (ключ groups) или JSON (group_fold или плоский словарь)."""
+    if path.suffix == ".npz":
+        return {k: int(v) for k, v in json.loads(str(np.load(path)["groups"])).items()}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return {k: int(v) for k, v in (data.get("group_fold") or data).items()}
+
+
+def label_at(segments: list[tuple[float, float, Any]], t: float) -> Optional[Any]:
     state = None
     for t0, t1, s in segments:
         if t0 - 1e-6 <= t <= t1 + 1e-6:
@@ -203,6 +265,155 @@ def zero_shot_lookup(raw_dir: Path, key: str) -> dict[str, dict[float, float]]:
     return out
 
 
+def scene_values(scene_dir: Path, fields: list[str]) -> dict[tuple[str, int], dict[str, float]]:
+    """(video_id, t в мс) -> значения полей состояний готовой сцены (для сравнения с головой)."""
+    out: dict[tuple[str, int], dict[str, float]] = {}
+    if not scene_dir.is_dir():
+        return out
+    for path in scene_dir.glob("*.json"):
+        if path.name.startswith("_"):
+            continue
+        scene = json.loads(path.read_text(encoding="utf-8"))
+        vid = normalize_video_id(scene.get("video_id") or path.stem)
+        for s in scene.get("states", []):
+            out[(vid, int(round(float(s["t"]) * 1000)))] = {f: s.get(f) for f in fields}
+    return out
+
+
+def load_multi_data(spec: dict[str, Any], sources: list[tuple[str, Path]],
+                    labels: dict[str, list[tuple[float, float, dict[str, int]]]],
+                    aliases: dict[str, tuple[str, ...]]) -> list[dict[str, Any]]:
+    """Вырезки размеченных видео: y — по классу 1 / 0 / -1 (не учим); метка кадра — по round(t) (листы — шаг 1 с)."""
+    classes = spec["classes"]
+    items = []
+    for name, vdir in sources:
+        for path in sorted(vdir.glob("*.npz")):
+            vid = normalize_video_id(path.stem)
+            segs = labels.get(vid)
+            if not segs:
+                continue
+            data = np.load(path)
+            t_ms = data["t_ms"] if "t_ms" in data else np.round(data["t"].astype(np.float64) * 1000).astype(np.int64)
+            for t, ms, e in zip(data["t"], t_ms, data["emb"].astype(np.float32)):
+                lab = label_at(segs, float(round(float(t))))
+                items.append({"variant": name, "video": vid, "group": group_of(vid, aliases), "t": float(t),
+                              "t_ms": int(ms), "y": [-1 if lab is None else lab[c] for c in classes], "emb": e})
+    return items
+
+
+def train_multilabel(args: argparse.Namespace, spec: dict[str, Any], aliases: dict[str, tuple[str, ...]]) -> int:
+    """Мультиметочная голова: по классу своя логрегрессия на тех же фолдах; отчёт — класс × вариант."""
+    classes = tuple(args.classes or spec.get("train_classes") or spec["classes"])
+    labels = load_multilabels(args.labels or ROOT / "training" / "labels" / f"{args.head}.csv", classes)
+    aug = tuple(v for v in VARIANTS if v != "orig")
+    sources = [(v, args.emb / spec["zone"] / v) for v in VARIANTS]
+    sources += [(f"cache_{v}", args.aug_emb / v / spec["zone"] / "orig") for v in aug]
+    items = load_multi_data({**spec, "classes": classes}, sources, labels, aliases)
+    if not items:
+        print("нет данных: сначала эмбеддинги зоны и метки", file=sys.stderr)
+        return 2
+    folds_path = args.folds_from or ROOT / "data" / "ml_results" / "r3" / "heads" / "safe_open_folds.npz"
+    if folds_path.exists():
+        folds = load_folds(folds_path)
+    else:
+        print(f"нет {folds_path} — фолды заново по группам", file=sys.stderr)
+        folds = {g: i % args.folds for i, g in enumerate(sorted({it["group"] for it in items}))}
+        folds_path = None
+    missing = sorted({it["group"] for it in items} - set(folds))
+    if missing:
+        print(f"группы без фолда: {', '.join(missing)}", file=sys.stderr)
+        return 2
+    k = max(folds.values()) + 1
+    x = np.stack([it["emb"] for it in items])
+    y = np.array([it["y"] for it in items], dtype=np.int8)            # N × C
+    var = np.array([it["variant"] for it in items])
+    fold = np.array([folds[it["group"]] for it in items])
+    variants = [name for name, _ in sources if (var == name).any()]
+    train_var = np.isin(var, args.train_variants)
+
+    print(f"[{args.head}] видео {len({it['video'] for it in items})}, фолдов {k}; по вариантам — вырезок / положительных:")
+    for v in variants:
+        m = var == v
+        print(f"  {v:<12}{int(m.sum()):>6}  " + "  ".join(f"{c} {int((y[m, i] == 1).sum())}/{int((y[m, i] >= 0).sum())}"
+                                                        for i, c in enumerate(classes)))
+
+    oof = np.full(y.shape, np.nan, dtype=np.float32)
+    fold_w = np.zeros((k, len(classes), x.shape[1]), dtype=np.float32)
+    fold_b = np.zeros((k, len(classes)), dtype=np.float32)
+    final_w = np.zeros((len(classes), x.shape[1]), dtype=np.float32)
+    final_b = np.zeros(len(classes), dtype=np.float32)
+    for ci in range(len(classes)):
+        lab = y[:, ci] >= 0
+        for f in range(k):
+            tr = (fold != f) & train_var & lab
+            te = fold == f
+            if (y[tr, ci] == 1).sum() == 0 or (y[tr, ci] == 0).sum() == 0:
+                continue
+            fold_w[f, ci], fold_b[f, ci] = fit_logreg(x[tr], y[tr, ci], args.l2)
+            oof[te, ci] = predict(x[te], fold_w[f, ci], fold_b[f, ci])
+        tr = train_var & lab
+        if (y[tr, ci] == 1).any() and (y[tr, ci] == 0).any():
+            final_w[ci], final_b[ci] = fit_logreg(x[tr], y[tr, ci], args.l2)
+
+    # Сравнение: те же кадры, поля сцены (OWLv2-скан стола и zero-shot SigLIP).
+    compare = spec.get("compare") or {}
+    fields = sorted({f for fs in compare.values() for f in fs})
+    scene_dirs = {"orig": args.scene, **{f"cache_{v}": args.scene.parent / f"scene_cache_aug_{v}" for v in aug}}
+    scene = {name: scene_values(d, fields) for name, d in scene_dirs.items() if name in variants}
+
+    summary: dict[str, dict[str, Any]] = {}
+    for ci, c in enumerate(classes):
+        summary[c] = {}
+        for v in variants:
+            m = (var == v) & (y[:, ci] >= 0) & ~np.isnan(oof[:, ci])
+            yy, pp = y[m, ci].astype(int), oof[m, ci]
+            row: dict[str, Any] = {"n": int(m.sum()), "pos": int(yy.sum()), "videos_pos": len({items[i]["video"] for i in np.where(m)[0] if y[i, ci] == 1}),
+                                   "auc": roc_auc(yy, pp), "ap": average_precision(yy, pp), **calibration(yy, pp)}
+            if v in scene:
+                for fld in compare.get(c, ()):
+                    vals = [(int(y[i, ci]), scene[v].get((items[i]["video"], items[i]["t_ms"]), {}).get(fld))
+                            for i in np.where(m)[0]]
+                    vals = [(a, b) for a, b in vals if b is not None]
+                    if vals:
+                        ya, pa = np.array([a for a, _ in vals]), np.array([b for _, b in vals], dtype=float)
+                        row[f"auc_{fld}"] = roc_auc(ya, pa)
+                        row[f"ap_{fld}"] = average_precision(ya, pa)
+            summary[c][v] = row
+
+    def fmt(val: Optional[float]) -> str:
+        return "  —  " if val is None else f"{val:.3f}"
+
+    print(f"\nOOF по фолдам видео (обучение: {', '.join(args.train_variants)}; l2 {args.l2:g}). AUC / AP; "
+          "для orig и cache_* — AUC полей сцены на тех же кадрах:")
+    for c in classes:
+        print(f"[{c}]  {'вариант':<12}{'n':>6}{'pos':>6}{'вид+':>5}{'AUC':>7}{'AP':>7}   pos q05/25/50        neg q50/95/99/max      FP@.5  сцена")
+        for v, r in summary[c].items():
+            sc = "  ".join(f"{k_[4:]} {fmt(val)}" for k_, val in r.items() if k_.startswith("auc_"))
+            print(f"      {v:<12}{r['n']:>6}{r['pos']:>6}{r['videos_pos']:>5}{fmt(r['auc']):>7}{fmt(r['ap']):>7}   "
+                  f"{str(r['pos_q05_25_50']):<20} {str(r['neg_q50_95_99_max']):<24} {r['fp@0.5']:>4}  {sc}")
+
+    args.out.mkdir(parents=True, exist_ok=True)
+    meta = {"head": args.head, "zone": spec["zone"], "classes": list(classes), "l2": args.l2,
+            "train_variants": args.train_variants, "folds_from": str(folds_path) if folds_path else None,
+            "n": {c: int(((y[:, i] >= 0) & train_var).sum()) for i, c in enumerate(classes)},
+            "pos": {c: int(((y[:, i] == 1) & train_var).sum()) for i, c in enumerate(classes)},
+            "embedding": "google/siglip-base-patch16-224 get_image_features, L2-нормированный",
+            "cv": {c: {v: summary[c][v]["auc"] for v in summary[c]} for c in classes}}
+    np.savez(args.out / f"{args.head}.npz", w=final_w, b=final_b, classes=np.array(classes),
+             meta=json.dumps(meta, ensure_ascii=False))
+    args.report.mkdir(parents=True, exist_ok=True)
+    np.savez(args.report / f"{args.head}_folds.npz", w=fold_w, b=fold_b, classes=np.array(classes),
+             groups=json.dumps(folds, ensure_ascii=False))
+    np.savez_compressed(args.report / f"{args.head}_oof.npz", variant=var, video=np.array([it["video"] for it in items]),
+                        t=np.array([it["t"] for it in items], dtype=np.float32),
+                        t_ms=np.array([it["t_ms"] for it in items], dtype=np.int64),
+                        y=y, p=oof, fold=fold.astype(np.int8), classes=np.array(classes))
+    (args.report / f"{args.head}_report.json").write_text(
+        json.dumps({"summary": summary, "meta": meta}, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"\nголова -> {args.out / (args.head + '.npz')} (w {final_w.shape}, b {final_b.shape}, классы {list(classes)})")
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     p = argparse.ArgumentParser(description="Обучение головы на эмбеддингах SigLIP.")
     p.add_argument("head", choices=sorted(HEADS))
@@ -214,16 +425,28 @@ def main(argv: Optional[list[str]] = None) -> int:
     p.add_argument("--train-variants", nargs="+", default=list(VARIANTS))
     p.add_argument("--out", type=Path, default=ROOT / "models" / "heads")
     p.add_argument("--report", type=Path, default=ROOT / "data" / "ml_results" / "r3" / "heads")
+    p.add_argument("--folds-from", type=Path, default=None,
+                   help="готовое разбиение группа -> фолд (*_folds.npz или JSON); для desk_items по умолчанию — "
+                        "фолды safe_open (data/ml_results/r3/heads/safe_open_folds.npz), чтобы головы и "
+                        "многозадачное дообучение сравнивались на одних фолдах")
+    p.add_argument("--classes", nargs="+", default=None,
+                   help="desk_items: какие классы учить (по умолчанию train_classes: cash bag)")
+    p.add_argument("--aug-emb", type=Path, default=ROOT / "data" / "emb_aug",
+                   help="desk_items: эмбеддинги кадров аугментированных кэшей <v>/<zone>/orig — варианты cache_<v>")
+    p.add_argument("--scene", type=Path, default=ROOT / "data" / "scene_cache_r3",
+                   help="desk_items: сцены для сравнения с OWLv2/zero-shot (cache_<v> — <scene>/../scene_cache_aug_<v>)")
     args = p.parse_args(argv)
 
     spec = HEADS[args.head]
-    labels = load_labels(args.labels or ROOT / "training" / "labels" / f"{args.head}.csv")
     aliases = {normalize_video_id(k): v for k, v in known_aliases().items()}
+    if "classes" in spec:
+        return train_multilabel(args, spec, aliases)
+    labels = load_labels(args.labels or ROOT / "training" / "labels" / f"{args.head}.csv")
     items = load_data(args.head, args.emb, labels, aliases, args.raw)
     if not items:
         print("нет данных: сначала scripts/embed_zones.py embed и метки", file=sys.stderr)
         return 2
-    folds = assign_folds(items, args.folds)
+    folds = load_folds(args.folds_from) if args.folds_from else assign_folds(items, args.folds)
     x = np.stack([it["emb"] for it in items])
     y = np.array([it["y"] for it in items])
     var = np.array([it["variant"] for it in items])

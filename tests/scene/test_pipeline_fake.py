@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -147,6 +148,123 @@ class PipelineHeadTest(unittest.TestCase):
         scene = self._run(5, 8)                                   # веса не той размерности
         self.assertEqual(scene.states[4].safe_open, 0.9)          # zero-shot, задача не упала
         self.assertIn("error", scene.meta["safe_head"])
+
+
+class _FakeTower:
+    """Дообученная башня: «сейф открыт» = 0,03, «наличные на столе» = 0,8 на любой вырезке."""
+    name = "siglip_states"
+    meta = {"trainable_blocks": 4}
+
+    def __init__(self, tasks=("safe_open",)) -> None:
+        self.tasks = {t: i for i, t in enumerate(tasks)}
+        self.crops_seen = 0
+        self.shapes = []
+
+    def __call__(self, crops, tasks=None, *, batch_size=32):
+        import numpy as np
+
+        self.crops_seen += len(crops)
+        self.shapes.extend(c.shape for c in crops)
+        value = {"safe_open": 0.03, "desk_cash": 0.8}
+        return {t: np.full(len(crops), value[t], dtype=np.float32) for t in tasks}
+
+
+class PipelineFtTest(unittest.TestCase):
+    """SceneConfig.safe_ft: по умолчанию выключен; без весов — сцена как без флага; с башней — её safe_open."""
+
+    def _run(self, config: SceneConfig, tower=None, raw: bool = False):
+        bundle = FakeBundle()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            video = root / "Х-башня.avi"
+            make_video(video, seconds=3.0, size=(232, 424))
+            raw_path = root / "raw" / "Х-башня.json" if raw else None
+            with contextlib.ExitStack() as stack:
+                stack.enter_context(mock.patch("worker.scene.pipeline.load_models", return_value=bundle))
+                if tower is not None:
+                    stack.enter_context(mock.patch("worker.scene.pipeline.load_ft_tower", return_value=(tower, None)))
+                scene = build_scene(video, root / "job", root / "models", "cpu", config=config, raw_out=raw_path)
+            if raw:
+                from worker.scene.raw_cache import load_raw
+
+                return scene, load_raw(raw_path)
+            return scene
+
+    def test_on_by_default_and_can_be_disabled(self) -> None:
+        scene = self._run(SceneConfig(fps=3.0))                    # весов в tmp нет — ошибка, не исключение
+        self.assertIn("error", scene.meta["safe_ft"])
+        self.assertIn("safe_ft_sec", scene.meta["timings"])
+        off = self._run(SceneConfig(fps=3.0, safe_ft=""))
+        self.assertNotIn("safe_ft", off.meta)
+        self.assertNotIn("safe_ft_sec", off.meta["timings"])
+
+    def test_old_raw_cache_rebuilt_with_flag_marks_error(self) -> None:
+        """Сырой кэш без данных башни, пересобранный кодом с флагом (--code-config), — сцена та же,
+        meta.safe_ft.error, R14 по OWLv2."""
+        from worker.scene import scene_to_dict
+        from worker.scene.raw_cache import rebuild_scene
+
+        scene, raw = self._run(SceneConfig(fps=3.0, safe_ft=""), raw=True)
+        rebuilt = rebuild_scene(raw, SceneConfig(fps=3.0))
+        self.assertIn("error", rebuilt.meta["safe_ft"])
+        self.assertEqual(scene_to_dict(rebuilt)["states"], scene_to_dict(scene)["states"])
+        self.assertIsNone(rebuilt.states[4].value("desk_cash_ft"))
+
+    def test_missing_weights_scene_as_without_flag(self) -> None:
+        from worker.scene import scene_to_dict
+
+        plain = self._run(SceneConfig(fps=3.0, safe_ft=""))
+        flagged = self._run(SceneConfig(fps=3.0, safe_ft="ft/siglip_states"))
+        self.assertIn("error", flagged.meta["safe_ft"])
+        self.assertEqual(scene_to_dict(flagged)["states"], scene_to_dict(plain)["states"])
+
+    def test_tower_replaces_safe_open(self) -> None:
+        tower = _FakeTower()
+        scene, raw = self._run(SceneConfig(fps=3.0, safe_ft="ft/siglip_states", safe_ft_fields=("safe_open",)),
+                               tower=tower, raw=True)
+        self.assertEqual(scene.states[4].safe_open, 0.03)
+        self.assertEqual(scene.states[4].cash_on_desk, 0.1)        # общий SigLIP не подменён
+        self.assertEqual(scene.meta["safe_ft"]["name"], "siglip_states")
+        self.assertEqual(scene.meta["safe_ft"]["samples"], {"safe_open": 3})
+        self.assertEqual(scene.meta["safe_ft"]["fields"], ["safe_open"])
+        self.assertEqual(tower.crops_seen, 3)                      # вырезки сейфа раз в секунду
+        samples = raw["state_samples"]
+        self.assertEqual([p for _, p in samples["safe_open_zero_shot"]], [0.9, 0.9, 0.9])
+        self.assertEqual([p for _, p in samples["safe_open"]], [0.03, 0.03, 0.03])
+        self.assertNotIn("desk_cash", samples)
+        self.assertEqual(raw["meta"]["safe_ft"]["name"], "siglip_states")
+
+    def test_tower_desk_cash_separate_field(self) -> None:
+        from worker.scene import scene_to_dict
+        from worker.scene.raw_cache import rebuild_scene
+
+        tower = _FakeTower(("safe_open", "desk_cash"))
+        scene, raw = self._run(SceneConfig(fps=3.0, safe_ft="ft/siglip_states",
+                                           safe_ft_fields=("safe_open", "desk_cash")), tower=tower, raw=True)
+        self.assertEqual(scene.meta["safe_ft"]["fields"], ["safe_open", "desk_cash"])
+        self.assertEqual(tower.crops_seen, 6)                      # сейф и стол раз в секунду
+        self.assertEqual(scene.states[4].value("desk_cash_ft"), 0.8)
+        plain = self._run(SceneConfig(fps=3.0))
+        self.assertEqual(scene.states[4].value("desk_cash"), plain.states[4].value("desk_cash"))  # OWLv2 не тронут
+        self.assertEqual([p for _, p in raw["state_samples"]["desk_cash"]], [0.8, 0.8, 0.8])
+        rebuilt = rebuild_scene(raw)                               # сырой кэш воспроизводит поле
+        self.assertEqual(scene_to_dict(rebuilt)["states"], scene_to_dict(scene)["states"])
+
+    def test_default_fields_only_desk_cash(self) -> None:
+        tower = _FakeTower(("safe_open", "desk_cash"))
+        scene = self._run(SceneConfig(fps=3.0, safe_ft="ft/siglip_states"), tower=tower)
+        self.assertEqual(scene.meta["safe_ft"]["fields"], ["desk_cash"])
+        self.assertEqual(scene.states[4].safe_open, 0.9)            # сейф — как без башни
+        self.assertEqual(scene.states[4].value("desk_cash_ft"), 0.8)
+        self.assertEqual(tower.crops_seen, 3)                       # только стол
+
+    def test_tower_without_requested_task_is_error(self) -> None:
+        from worker.scene import scene_to_dict
+
+        plain = self._run(SceneConfig(fps=3.0, safe_ft=""))
+        scene = self._run(SceneConfig(fps=3.0, safe_ft="ft/siglip_states"), tower=_FakeTower(("safe_open",)))
+        self.assertIn("error", scene.meta["safe_ft"])
+        self.assertEqual(scene_to_dict(scene)["states"], scene_to_dict(plain)["states"])
 
 
 if __name__ == "__main__":
