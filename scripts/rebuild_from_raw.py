@@ -26,8 +26,10 @@ from worker.scene.raw_cache import load_raw, rebuild_scene  # noqa: E402
 
 
 # Поля SceneConfig, которыми собрано восприятие (кадры, зоны, zero-shot): с --code-config берутся из кэша.
+# door_pick_signal — дверь выбрана по сигналу прохода (door_diff в кэше посчитан для неё): без него --rezone
+# выбрал бы группу OWLv2 по сумме score, и зона двери разошлась бы с door_diff.
 PERCEPTION_FIELDS = ("fps", "state_prompts", "mask_people_in_desk", "desk_by_people", "zone_keyframes",
-                     "state_every_sec", "enable_door_state", "enable_collection_bag")
+                     "state_every_sec", "enable_door_state", "enable_collection_bag", "door_pick_signal")
 
 
 def parse_overrides(items: list[str]) -> dict[str, Any]:
@@ -89,6 +91,9 @@ def main(argv: Optional[list[str]] = None) -> int:
                     config = SceneConfig(**{k: v for k, v in raw.get("config", {}).items() if k in known})
                 config = dataclasses.replace(config, **overrides)
             scene = rebuild_scene(raw, config, rezone=args.rezone)
+            if scene.meta.get("door_diff_stale"):
+                print(f"{path.stem}: --rezone сменил дверь, door_diff в кэше посчитан для прежней "
+                      f"(R15 по нему неверен до пересчёта: scripts/redoor_raw.py или GPU)", file=sys.stderr)
             save_scene(scene, args.out / f"{path.stem}.json")
         except Exception as exc:  # noqa: BLE001 — одно видео не останавливает пересборку
             failed += 1
