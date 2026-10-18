@@ -732,7 +732,23 @@ def door_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Even
                 or s.value("cashier_returned") or s.value("cashier_left_room")]
     step = 1.0 / scene.fps_sampled
 
+    diff_field = str(params.get("diff_field", "door_diff"))
+    # Начало интервала -> (секунд с оценкой: у двери никого и свет тот же; медиана door_diff на них / пик door_diff
+    # за passage_sec до начала — дверь осталась открытой так же, как при проходе, или её прикрыли).
+    checks: dict[float, tuple[float, Optional[float]]] = {}
+
+    def check(sc: SceneTimeline, iv: Interval) -> tuple[float, Optional[float]]:
+        st = sc.states
+        t0 = st[iv.start].t
+        held = [st[k].value(diff_field) for k in range(iv.start, iv.end + 1) if raw[k] is not None]
+        held = [d for d in held if d is not None]
+        peak = [s.value(diff_field) for s in st if t0 - passage_sec - 1e-6 <= s.t <= t0 + 2.0 + 1e-6]
+        peak = [d for d in peak if d is not None]
+        ratio = median(held) / max(peak) if held and peak and max(peak) > 0 else None
+        return sum(1 for k in range(iv.start, iv.end + 1) if raw[k] is not None) * step, ratio
+
     def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
+        checks[round(sc.states[iv.start].t, 1)] = check(sc, iv)
         seconds = sc.states[iv.end].t - sc.states[iv.start].t + step
         what = f"дверь кассы остаётся открытой не меньше {seconds:.0f} с, у двери никого нет"
         if any(sc.states[k].person_entered or sc.states[k].value("visitor_entered_ids")
@@ -743,6 +759,18 @@ def door_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Even
     events = _events_from_series(scene, raw, params, describe)
     events = [ev for ev in events
               if any(ev.timecode_sec - passage_sec - 1e-6 <= t <= ev.timecode_sec + step for t in passages)]
+    # min_scored_sec: кадры с человеком у двери пропускаются и интервал не рвут — человек, долго стоящий у открытой
+    # двери (crop Х-16: 2,7 с с оценкой из 15), давал событие из пары кадров по краям; у позитивов ≥ 6 с.
+    # min_held_ratio: уровень открытой двери (медиана door_diff по кадрам с оценкой) против пика при проходе —
+    # дверь осталась открытой так же (Х-32 0,92–0,96, Х-33 0,82–0,89) или её прикрыли не до конца (Х-39 0,59–0,74).
+    min_scored = float(params.get("min_scored_sec", 0.0))
+    min_ratio = float(params.get("min_held_ratio", 0.0))
+
+    def keep(ev: Event) -> bool:
+        scored, ratio = checks.get(ev.timecode_sec, (0.0, None))
+        return scored + 1e-6 >= min_scored and (min_ratio <= 0 or ratio is None or ratio + 1e-6 >= min_ratio)
+
+    events = [ev for ev in events if keep(ev)]
     settle_sec = float(params.get("settle_sec", 0.0))
     settle_max = float(params.get("settle_max_sec", 6.0))
     if settle_sec <= 0 or not events:

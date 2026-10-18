@@ -100,10 +100,10 @@ def test_door_select_moves_door_before_safe():
     assert "door" in str(info["safe"]["reason"])
 
 
-def test_flag_off_by_default_keeps_old_choice():
-    assert SceneConfig().door_pick_signal is False
+def test_enabled_by_default_flag_off_keeps_old_choice():
+    assert SceneConfig().door_pick_signal is True
     tracks = [Track(1, [TrackPoint(0, 0.0, (0.4, 0.4, 0.7, 0.9), 0.9)])]
-    zones, _ = select_zones(_owl(), [], tracks, SceneConfig())
+    zones, _ = select_zones(_owl(), [], tracks, SceneConfig(door_pick_signal=False))
     assert zones["door"] == PANEL
 
 
@@ -233,7 +233,7 @@ def test_rezone_keeps_signal_door(tmp_path, code_config):
     if code_config:
         keep = {k: out["config"][k] for k in _rebuild_cli().PERCEPTION_FIELDS if k in out["config"]}
         config = dataclasses.replace(SceneConfig(), **keep)
-        assert SceneConfig().door_pick_signal is False and config.door_pick_signal is True
+        assert config.door_pick_signal is True
     scene = rebuild_scene(out, config, rezone=True)
     assert _door(scene) == pytest.approx(DOOR) and "door_diff_stale" not in scene.meta
 

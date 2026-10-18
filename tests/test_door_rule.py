@@ -185,3 +185,31 @@ def test_settle_keeps_first_frame_and_evidence_on_timecode(r15):
         **_enter(t), "door_change": 1.0 if t >= 3.3 else 0.0,
         **({"cashier_bbox": AT_DOOR, "cashier_present": 0.0} if abs(t - 6.33) < 0.1 else {})}), r15.params)[0]
     assert ev.evidence_timestamps_sec[0] == pytest.approx(ev.timecode_sec, abs=0.05)
+
+
+def test_person_lingering_at_open_door_is_not_violation(r15):
+    """crop Х-16: человек ~15 с стоит у открытой двери (кадры «у двери» пропускаются, интервал не рвут) — оценённых
+    кадров по краям меньше min_scored_sec, события нет."""
+    def state(t: float) -> dict[str, Any]:
+        st: dict[str, Any] = {**_enter(t, 1.5, 2.6), "door_change": 1.0 if t >= 3.0 else 0.0, "door_diff": 0.8}
+        if 3.6 <= t < 18.0:
+            st.update(cashier_bbox=AT_DOOR, cashier_present=0.0)
+        elif t >= 19.0:
+            st.update(door_change=0.0)
+        return st
+    assert det.door_left_open(_scene(30, state), r15.params) == []
+    assert det.door_left_open(_scene(30, state), {**r15.params, "min_scored_sec": 0.0})     # без фильтра — ложное
+
+
+def test_door_pulled_back_after_passage_is_not_violation(r15):
+    """Х-39: при проходе door_diff 0,95, потом створку прикрыли не до конца — плато 0,62 (door_change 0,9 выше p_on),
+    0,62 / 0,95 = 0,65 < min_held_ratio; дверь, оставшаяся открытой так же, — событие."""
+    def ajar(t: float) -> dict[str, Any]:
+        d = 0.95 if 3.0 <= t < 5.0 else 0.62 if t >= 5.0 else 0.03
+        return {**_enter(t), "door_diff": d, "door_change": min(1.0, max(0.0, (d - 0.35) / 0.3))}
+    assert det.door_left_open(_scene(30, ajar), r15.params) == []
+
+    def open_(t: float) -> dict[str, Any]:
+        d = 0.75 if t >= 3.0 else 0.03
+        return {**_enter(t), "door_diff": d, "door_change": min(1.0, max(0.0, (d - 0.35) / 0.3))}
+    assert len(det.door_left_open(_scene(30, open_), r15.params)) == 1
