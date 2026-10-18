@@ -139,3 +139,49 @@ def test_weakest_positive_still_fires(r15):
     """Х-32: удерживаемый 6 с уровень door_diff 0,71 (door_change 1,0 после обрезки), плато не ниже 0,62."""
     scene = _scene(20, lambda t: {**_enter(t), "door_change": 0.95 if t >= 3.0 else 0.0})
     assert len(det.door_left_open(scene, r15.params)) == 1
+
+
+def test_timecode_when_entrant_left_the_door(r15):
+    """Х-33: дверь распахнулась на 3,3 с, детектор теряет кассира в проёме; она снова видна у двери на 4,0
+    и 6,3 с и отходит к 6,7 с. Таймкод — когда отошла (эталон 6 с), а не когда дверь распахнулась."""
+    def state(t: float) -> dict[str, Any]:
+        st: dict[str, Any] = {"door_change": 1.0 if t >= 3.3 else 0.0}
+        if 1.3 <= t < 2.6 or abs(t - 4.0) < 0.1 or abs(t - 6.33) < 0.1:
+            st.update(cashier_bbox=AT_DOOR, cashier_present=0.0, cashier_returned=abs(t - 1.33) < 0.1)
+        elif 2.6 <= t < 6.6:
+            st.update(cashier_bbox=None, cashier_present=0.0, persons_in_room=0)
+        return st
+    events = det.door_left_open(_scene(20, state), r15.params)
+    assert len(events) == 1
+    assert 6.0 <= events[0].timecode_sec <= 7.0
+    old = det.door_left_open(_scene(20, state), {**r15.params, "settle_sec": 0.0})
+    assert old[0].timecode_sec < 4.0                                 # без settle_sec — момент распахивания
+
+
+def _crowded_doorway(t: float) -> dict[str, Any]:
+    """Дверь открыта с 3 до конца, человек в проёме каждые 1,33 с до 12 с — спокойного окна нет."""
+    st: dict[str, Any] = {**_enter(t), "door_change": 1.0 if t >= 3.0 else 0.0}
+    if 3.0 <= t <= 12.0 and round(t * 3) % 4 == 0:
+        st.update(cashier_bbox=AT_DOOR, cashier_present=0.0)
+    return st
+
+
+def test_settle_not_found_keeps_event_at_interval_start(r15):
+    """Ревью 18.10: без спокойного окна за settle_max_sec событие остаётся с таймкодом начала, а не пропадает."""
+    events = det.door_left_open(_scene(25, _crowded_doorway), r15.params)
+    base = det.door_left_open(_scene(25, _crowded_doorway), {**r15.params, "settle_sec": 0.0})
+    assert len(events) == len(base) == 1
+    assert events[0].timecode_sec == base[0].timecode_sec
+
+
+def test_settle_keeps_first_frame_and_evidence_on_timecode(r15):
+    """Дверь открылась на 4,667 с (таймкод округлён до 4,7), у двери после этого никого: таймкод не съезжает
+    на кадр; при сдвиге первый кадр-доказательство — кадр таймкода."""
+    scene = _scene(20, lambda t: {**_enter(t, 1.5, 4.6), "door_change": 1.0 if t >= 4.6 else 0.0})
+    plain = det.door_left_open(scene, {**r15.params, "settle_sec": 0.0})
+    events = det.door_left_open(scene, r15.params)
+    assert [e.timecode_sec for e in events] == [e.timecode_sec for e in plain]
+    ev = det.door_left_open(_scene(20, lambda t: {
+        **_enter(t), "door_change": 1.0 if t >= 3.3 else 0.0,
+        **({"cashier_bbox": AT_DOOR, "cashier_present": 0.0} if abs(t - 6.33) < 0.1 else {})}), r15.params)[0]
+    assert ev.evidence_timestamps_sec[0] == pytest.approx(ev.timecode_sec, abs=0.05)

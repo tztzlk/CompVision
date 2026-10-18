@@ -698,6 +698,10 @@ def door_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Even
         при уходе кассира (Х-11, Х-12), и меняется весь вид двери.
     Событие остаётся, только если не раньше чем за passage_sec до его начала через дверь проходили
     (вход, выход или человек у двери): изменение без прохода — сдвиг камеры или отражение, а не дверь.
+    Таймкод — «вошедший отошёл от открытой двери»: при settle_sec > 0 — первый кадр не раньше начала
+    интервала (и не позже settle_max_sec после него), после которого settle_sec у двери никого нет; начало
+    интервала — это момент, когда дверь распахнулась и детектор на кадр-другой потерял человека в проёме
+    (Х-33: 3,3 с при эталоне 6 с). Не нашли такого кадра — начало интервала.
     Нет зоны двери или поля door_change (кэш собран до R15) — событий нет.
     """
     states = scene.states
@@ -737,8 +741,34 @@ def door_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Even
         return {"what_visible": what, "bbox": list(door)}
 
     events = _events_from_series(scene, raw, params, describe)
-    return [ev for ev in events
-            if any(ev.timecode_sec - passage_sec - 1e-6 <= t <= ev.timecode_sec + step for t in passages)]
+    events = [ev for ev in events
+              if any(ev.timecode_sec - passage_sec - 1e-6 <= t <= ev.timecode_sec + step for t in passages)]
+    settle_sec = float(params.get("settle_sec", 0.0))
+    settle_max = float(params.get("settle_max_sec", 6.0))
+    if settle_sec <= 0 or not events:
+        return events
+    door_t = [s.t for s in states if at_door(s)]
+    end_t = states[-1].t + step
+    out = []
+    for ev in events:
+        start = ev.timecode_sec - 0.05 - 1e-6       # таймкод округлён до 0,1 с — не пропустить кадр начала
+        settled = None
+        for s in states:
+            if s.t < start or at_door(s):
+                continue
+            if s.t > ev.timecode_sec + settle_max + 1e-6 or s.t + settle_sec > end_t + 1e-6:
+                break                               # дальше settle_max или окно не помещается до конца ролика
+            if not any(s.t < t <= s.t + settle_sec + 1e-6 for t in door_t):
+                settled = s
+                break
+        if settled is None or abs(settled.t - ev.timecode_sec) < 0.05:
+            out.append(ev)                          # не нашли — таймкод начала интервала
+            continue
+        stamps = [round(settled.t, 3)] + [t for t in ev.evidence_timestamps_sec if abs(t - settled.t) > 1e-3][:2]
+        frames = [next(x.frame for x in states if abs(x.t - t) < 1e-3) for t in stamps]
+        out.append(dataclasses.replace(ev, timecode_sec=round(settled.t, 1), evidence_timestamps_sec=stamps,
+                                       facts={**ev.facts, "frames": frames}))
+    return out
 
 
 def phone_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
