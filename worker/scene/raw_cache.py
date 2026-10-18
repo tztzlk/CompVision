@@ -128,6 +128,15 @@ def _keep_door(raw: Mapping[str, Any]) -> Any:
     return select
 
 
+def _moved(old: Any, new: Any) -> bool:
+    """Дверь после rezone — другая рамка (IoU < 0,9, как в _keep_door; меньше — не округление кэша)."""
+    from worker.perception.geometry import iou
+
+    if old is None or new is None:
+        return (old is None) != (new is None)
+    return iou(tuple(old), tuple(new)) < 0.9
+
+
 def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, *,
                   rezone: bool = False) -> SceneTimeline:
     """Собрать SceneTimeline текущим builder из сырого кэша (без моделей).
@@ -144,6 +153,7 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
                                    for fi, tt, b, s in t["points"]]) for t in raw["tracks"]]
     objects = [[det(d) for d in dets] for dets in raw["objects"]]
     zones = {k: (tuple(v) if v is not None else None) for k, v in raw["zones"].items()}
+    old_door = new_door = zones.get("door")
     if rezone:
         from worker.perception.zones import infer_zones
 
@@ -154,10 +164,16 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
                                    person_boxes=people if cfg.desk_by_people else None,
                                    person_height=track_height(tracks),
                                    door_select=_keep_door(raw) if cfg.door_pick_signal else None)
+        old_door, new_door = zones.get("door"), new_zones.get("door")
         zones.update(new_zones)
     samples = {k: [(float(t), None if p is None else float(p)) for t, p in v] for k, v in raw["state_samples"].items()}
     meta = dict(raw.get("meta") or {})
     meta["rebuilt_from_raw"] = True
+    if rezone and raw.get("door_diff") is not None and _moved(old_door, new_door):
+        # door_diff посчитан по полосе прежней двери: R15 по нему с новой зоной сочетал бы рамку одной двери
+        # и сигнал другой (дверь по сигналу прохода без door_pick_signal в конфиге — пример)
+        meta["door_diff_stale"] = {"cached_door": None if old_door is None else list(old_door),
+                                   "rezoned_door": None if new_door is None else list(new_door)}
     if _config(raw, config).safe_ft and "safe_ft" not in meta:
         # сырой кэш собран без дообученной башни: её полей нет — правила как без неё (R14 по OWLv2)
         meta["safe_ft"] = {"error": "в сыром кэше нет данных дообученной башни (собран без SceneConfig.safe_ft)"}

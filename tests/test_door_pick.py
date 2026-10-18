@@ -182,3 +182,69 @@ def test_redoor_raw(tmp_path):
     off = mod.redoor(raw, fdir, dataclasses.replace(cfg, door_pick_signal=False))
     assert off["zones"]["door"] == list(PANEL) and off["door_diff"] == raw["door_diff"]
     assert off["meta"]["redoor"]["door_changed"] is False
+
+
+# ---------- --rezone на кэше redoor_raw: дверь та же, для которой посчитан door_diff ----------
+
+def _rebuild_cli():
+    import sys
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import rebuild_from_raw
+
+    return rebuild_from_raw
+
+
+def _redoored(tmp_path) -> dict:
+    fdir = tmp_path / "frames" / "Х-синт"
+    fdir.mkdir(parents=True)
+    frames, _ = _frames(fdir)
+    raw = {
+        "raw_version": 1, "video_id": "Х-синт", "duration_sec": 10.0, "frame_size": [200, 200],
+        "frames": [[f.index, f.timestamp_sec, f"frames/{f.path.name}"] for f in frames],
+        "tracks": [{"id": 1, "points": [[i, round(i / 3, 3), list(NEAR_DOOR), 0.9] for i in range(10, 15)]}],
+        "objects": [[] for _ in frames],
+        "owl_keyframes": [[[d.label, d.score, list(d.bbox_xyxy)] for d in dets] for dets in _owl()],
+        "zones": {"desk": None, "safe": None, "door": list(PANEL), "laptop": None},
+        "zone_info": {"door": {"source": "owlv2", "score": 0.5}},
+        "state_samples": {}, "config": {"fps": 3.0}, "meta": {}, "door_diff": [0.0] * N,
+    }
+    return _load_redoor().redoor(raw, fdir, dataclasses.replace(SceneConfig(), fps=3.0, door_pick_signal=True))
+
+
+def _door(scene) -> tuple:
+    z = scene.zones["door"]
+    return tuple(getattr(z, "bbox", z))
+
+
+def test_redoor_records_signal_in_config(tmp_path):
+    out = _redoored(tmp_path)
+    assert out["config"]["door_pick_signal"] is True and out["config"]["fps"] == 3.0
+    assert "door_pick_signal" in _rebuild_cli().PERCEPTION_FIELDS
+
+
+@pytest.mark.parametrize("code_config", [False, True])
+def test_rezone_keeps_signal_door(tmp_path, code_config):
+    """rebuild_scene(rezone=True): с конфигом кэша и с --code-config (PERCEPTION_FIELDS) дверь — та, по сигналу."""
+    from worker.scene.raw_cache import rebuild_scene
+
+    out = _redoored(tmp_path)
+    config = None
+    if code_config:
+        keep = {k: out["config"][k] for k in _rebuild_cli().PERCEPTION_FIELDS if k in out["config"]}
+        config = dataclasses.replace(SceneConfig(), **keep)
+        assert SceneConfig().door_pick_signal is False and config.door_pick_signal is True
+    scene = rebuild_scene(out, config, rezone=True)
+    assert _door(scene) == pytest.approx(DOOR) and "door_diff_stale" not in scene.meta
+
+
+def test_rezone_marks_stale_door_diff(tmp_path):
+    """Без door_pick_signal rezone берёт панель (лучшая по сумме), а door_diff — от двери: сцена помечена."""
+    from worker.scene.raw_cache import rebuild_scene
+
+    out = _redoored(tmp_path)
+    out["config"]["door_pick_signal"] = False
+    scene = rebuild_scene(out, None, rezone=True)
+    assert _door(scene) == pytest.approx(PANEL)
+    assert scene.meta["door_diff_stale"]["cached_door"] == pytest.approx(list(DOOR))
+    assert "door_diff_stale" not in rebuild_scene(out, None, rezone=False).meta

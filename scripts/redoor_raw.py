@@ -10,7 +10,9 @@
   2. сейф — заново (pick_safe отбрасывает кандидатов в зоне двери). Сменился — meta.redoor.safe_changed:
      zero-shot и дообученная башня сейфа в state_samples посчитаны по старой вырезке и верны только после
      пересборки на GPU;
-  3. door_diff — для новой двери, как scripts/add_door_to_raw.py.
+  3. door_diff — для новой двери, как scripts/add_door_to_raw.py;
+  4. config.door_pick_signal — чем выбрана дверь: rebuild_from_raw.py --rezone (и с --code-config) по нему
+     сохраняет её, а не берёт лучшую по сумме score с door_diff другой рамки.
 Люди (закрашиваются в полосе двери и подтверждают проход) — точки треков, как в add_door_to_raw.
 Стол и ноутбук берутся из кэша. Остальное в файле не меняется. Дальше — scripts/rebuild_from_raw.py.
 """
@@ -88,6 +90,9 @@ def redoor(raw: dict[str, Any], frames_dir: Path, cfg: SceneConfig) -> dict[str,
         diffs = cache[tuple(door)] if door is not None and tuple(door) in cache else door_signal(frames, persons, door, cfg)
         out["door_diff"] = None if diffs is None else [None if d is None else round(float(d), 4) for d in diffs]
     out["zones"], out["zone_info"] = new_zones, new_info
+    # чем выбрана дверь: rebuild_scene(rezone=True) по нему сохраняет её (_keep_door), иначе берёт лучшую
+    # по сумме score, и зона расходится с door_diff
+    out["config"] = {**(raw.get("config") or {}), "door_pick_signal": cfg.door_pick_signal}
     door_changed, safe_changed = changed["door"], changed["safe"]
     meta = dict(raw.get("meta") or {})
     meta["zones"] = new_info
