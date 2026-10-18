@@ -35,6 +35,7 @@ from worker.perception.geometry import (
 from worker.perception.states import BAG_LABELS, FOOD_LABELS, PHONE_LABELS
 from worker.perception.tracking import Track, TrackPoint
 from worker.scene.contract import ZONE_NAMES, Person, SceneState, SceneTimeline
+from worker.scene.reid import reid_stitch
 
 __all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness", "with_door_change",
            "ITEM_QUERIES", "item_check_times", "with_left_items", "track_height",
@@ -217,6 +218,17 @@ class SceneConfig:
     pose_leg_score: float = 0.4
     pose_foot_band: float = 0.03
     pose_stand_ratio: float = 0.8
+    # Повторная идентификация кассира (worker.scene.reid): трек кассира оборвался, и не позже чем через
+    # reid_gap_sec (или с перекрытием до reid_overlap_sec) у двери или на его месте начался трек, чей
+    # эмбеддинг SigLIP первых точек похож на эмбеддинг последних точек кассира (косинус >= reid_min_cos), —
+    # тот же кассир: треки склеиваются (не выход и не вход). Эмбеддинги — person_reid сырого кэша
+    # (scripts/add_reid_to_raw.py; в конвейере не считаются). Замер 18.10: кассир↔посетитель до 0,90, та же
+    # кассир сидя↔у двери 0,75–0,83 (SigLIP видит позу и фон, а не человека); смена трека Х-35 — 0,975,
+    # Х-32 — 0,82–0,93; при 0,93 закрыт только Х-35, eval_cache без изменений — выключена.
+    cashier_reid: bool = False
+    reid_gap_sec: float = 2.0
+    reid_overlap_sec: float = 1.0
+    reid_min_cos: float = 0.93
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -842,6 +854,7 @@ def assemble_timeline(
     person_head: Optional[Sequence[Sequence[Any]]] = None,
     person_ft: Optional[Sequence[Sequence[Any]]] = None,
     person_pose: Optional[Sequence[Sequence[Any]]] = None,
+    person_reid: Optional[Sequence[Sequence[Any]]] = None,
 ) -> SceneTimeline:
     """Собрать SceneTimeline.
 
@@ -852,6 +865,7 @@ def assemble_timeline(
     person_head — [(кадр, рамка, p)] головы «внутри кассы» по точкам исходных треков (SceneConfig.inside_head).
     person_ft — то же от дообученной башни (SceneConfig.inside_ft; без флага не используется).
     person_pose — [(кадр, рамка, 17 точек [x, y, score])] позы людей (SceneConfig.pose_departure).
+    person_reid — [(id трека, эмбеддинг первых точек, последних)] по исходным трекам (SceneConfig.cashier_reid).
     """
     cfg = config or SceneConfig()
     if len(objects) != len(frames):
@@ -883,6 +897,19 @@ def assemble_timeline(
         cashier.role = "cashier"
         workplace = _workplace(cashier, desk, cfg)
         _mark_extra_cashiers(infos, cashier, workplace, cfg)
+    if cfg.cashier_reid and person_reid and cashier is not None:
+        restitched = reid_stitch(tracks, stitched, [i.track.track_id for i in infos if i.role == "cashier"],
+                                 workplace, door, person_reid, cfg)
+        if restitched is not None:      # склейка по эмбеддингу — роли и рабочее место заново
+            stitched = restitched
+            infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door, head)) for t in stitched]
+            for info in infos:
+                _fill_frames(info, times, cfg)
+            cashier = _select_cashier(infos, desk, cfg, zones.get("safe"))
+            if cashier is not None:
+                cashier.role = "cashier"
+                workplace = _workplace(cashier, desk, cfg)
+                _mark_extra_cashiers(infos, cashier, workplace, cfg)
     entered_ev, exited_ev = _door_events(infos, door, duration, cfg)
     entered = {e.pos for e in entered_ev}
     exited = {e.pos for e in exited_ev}

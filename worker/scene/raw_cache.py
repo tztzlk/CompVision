@@ -158,6 +158,7 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
         person_head=raw.get("person_head"),
         person_ft=raw.get("person_ft"),
         person_pose=raw.get("person_pose"),
+        person_reid=raw.get("person_reid"),
     )
     brightness = raw.get("brightness")
     if brightness:
