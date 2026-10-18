@@ -38,7 +38,7 @@ from worker.scene.contract import ZONE_NAMES, Person, SceneState, SceneTimeline
 
 __all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness",
            "ITEM_QUERIES", "item_check_times", "with_left_items", "track_height",
-           "SCAN_QUERIES", "DESK_ITEM_GROUPS", "with_desk_items", "people_at"]
+           "SCAN_QUERIES", "DESK_ITEM_GROUPS", "with_desk_items", "with_ft_items", "people_at"]
 
 
 @dataclass(frozen=True)
@@ -151,6 +151,19 @@ class SceneConfig:
     # под именем safe_open_zero_shot. Замер 18.10 (вне фолда, кэши r3 и аугментаций): на оригинале и
     # flip без изменений, на persp возвращает Х-20 (R10), ложных 0 — включена по умолчанию.
     safe_head: str = "heads/safe_open.npz"
+    # Дообученная башня SigLIP (worker.perception.ft_tower, scripts/finetune_siglip.py final): каталог
+    # весов относительно каталога моделей (state.pt — последние блоки, post_layernorm, pooling и голова,
+    # fp16; meta.json). Включена — safe_open берётся из её задачи safe_open на тех же вырезках сейфа,
+    # значение головы safe_head остаётся в state_samples.safe_open_head; общий SigLIP не подменяется.
+    # Нет весов или ошибка — сцена как без флага (предупреждение в meta.safe_ft.error). R10 при флаге
+    # берёт параметры ft_* поверх head_* (rules.yaml). Пусто — выключена (по умолчанию);
+    # включить: SceneConfig(safe_ft="ft/siglip_states").
+    safe_ft: str = ""
+    # Какие задачи башни идут в сцену: safe_open (вместо головы safe_head) и/или desk_cash (поле
+    # desk_cash_ft для R14). Замер 18.10 (вне фолда, 5 вариантов): desk_cash + «пустое окно» R14 —
+    # Х-4 на flip/crop/light, 0 ложных; safe_open башни сдвигает R10 на Х-20 на 1 с раньше (persp/crop:
+    # таймкод вне ±3 с) — по умолчанию только desk_cash, сейф — голова safe_head.
+    safe_ft_fields: tuple[str, ...] = ("desk_cash",)
     # Голова «человек внутри кассы» (worker.perception.heads, scripts/train_heads.py person_inside):
     # путь к .npz относительно каталога моделей; пусто — внутри/за стеклом решает только геометрия.
     # Голова решает лишь спорные точки: геометрия «за стеклом», но низ рамки не выше верха стола больше
@@ -635,6 +648,21 @@ def with_desk_items(timeline: SceneTimeline, scan: Sequence[tuple[float, Sequenc
         i = bisect_right(times, s.t + 1e-6) - 1
         row = values[max(i, 0)][1]
         states.append(replace(s, extra={**s.extra, **row}))
+    return replace(timeline, states=tuple(states))
+
+
+def with_ft_items(timeline: SceneTimeline,
+                  samples: Mapping[str, Sequence[tuple[float, Optional[float]]]]) -> SceneTimeline:
+    """Поле desk_cash_ft — «наличные на столе» дообученной башни (SceneConfig.safe_ft, ряд
+    state_samples.desk_cash раз в state_every_sec): в каждом состоянии — последняя оценка не позже него
+    (как zero-shot-поля). Отдельное поле только для R14 (rules.yaml ft_field): desk_cash OWLv2-скана
+    остаётся для всех прочих потребителей — башня путает банки напитка и планшет с деньгами (Х-24, Х-25).
+    Нет ряда — сцена без изменений."""
+    series = samples.get("desk_cash")
+    if not series:
+        return timeline
+    held = _Held(series)
+    states = [replace(s, extra={**s.extra, "desk_cash_ft": held.at(s.t)}) for s in timeline.states]
     return replace(timeline, states=tuple(states))
 
 

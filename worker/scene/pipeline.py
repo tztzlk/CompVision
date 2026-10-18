@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Optional, Sequence
 
 from worker.perception import Detection, Frame
+from worker.perception.ft_tower import ft_tower_info, load_ft_tower
 from worker.perception.geometry import BBox, nms
 from worker.perception.heads import PERSON_GEO_SCALE, LinearHead, crop_person, load_head, person_geo
 from worker.perception.models import load_models
@@ -28,11 +29,11 @@ from worker.perception.tracking import IoUTracker, Track
 from worker.perception.video import VideoError, imread_unicode, imwrite_unicode, iter_sampled_frames, probe_video
 from worker.perception.zones import all_zone_queries, infer_zones
 from worker.scene.builder import (FrameRef, SceneConfig, ITEM_QUERIES, SCAN_QUERIES, assemble_timeline, item_check_times, track_height,
-                                  with_desk_items, people_at,
+                                  with_desk_items, with_ft_items, people_at,
                                   with_brightness, with_left_items)
 from worker.scene.contract import SceneTimeline
 
-__all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled"]
+__all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled", "apply_safe_ft", "FT_FIELDS"]
 
 LOG = logging.getLogger("worker.scene")
 
@@ -85,6 +86,12 @@ def run_pipeline(
         safe_head = None
     timings["states_sec"] = round(time.monotonic() - mark, 2)
 
+    ft_meta: Optional[dict[str, Any]] = None
+    if cfg.safe_ft:
+        mark = time.monotonic()
+        ft_meta = apply_safe_ft(samples, frames, zones, Path(models_dir), bundle.device, cfg)
+        timings["safe_ft_sec"] = round(time.monotonic() - mark, 2)
+
     person_head = None
     inside_head = load_head(Path(models_dir), cfg.inside_head)
     if inside_head is not None:
@@ -113,6 +120,8 @@ def run_pipeline(
     if cfg.safe_head:
         meta["safe_head"] = ({"name": safe_head.name, **{k: safe_head.meta.get(k) for k in ("n", "pos", "cv")}}
                              if safe_head is not None else {"error": "; ".join(head_errors) or f"не загружена: {cfg.safe_head}"})
+    if ft_meta is not None:
+        meta["safe_ft"] = ft_meta
     timeline = assemble_timeline(
         video_id=vid,
         duration_sec=info.duration_sec or frames[-1].timestamp_sec,
@@ -132,6 +141,7 @@ def run_pipeline(
     timeline = with_left_items(timeline, item_checks)
     item_scan = scan_desk_items(frames, bundle, cfg)
     timeline = with_desk_items(timeline, item_scan, people_at(item_scan, frames, tracks))
+    timeline = with_ft_items(timeline, samples)
     timings["items_sec"] = round(time.monotonic() - mark, 2)
     if raw_out is not None:
         from worker.scene.raw_cache import save_raw
@@ -314,6 +324,84 @@ def person_inside_probs(frames: Sequence[Frame], tracks: Sequence[Track], zones:
     return [(fi, box, round(float(p), 4)) for (fi, box), p in zip(keep, head(feats))]
 
 
+# Задачи дообученной башни, которые конвейер подставляет в сцену: задача -> зона вырезки.
+# safe_open заменяет ряд state_samples.safe_open (голова/zero-shot), desk_cash — отдельное поле сцены
+# desk_cash_ft (builder.with_ft_items) только для R14; desk_cash OWLv2-скана не меняется.
+FT_FIELDS: dict[str, str] = {"safe_open": "safe", "desk_cash": "desk"}
+
+
+def apply_safe_ft(samples: dict[str, list[tuple[float, Optional[float]]]], frames: Sequence[Frame],
+                  zones: dict[str, Optional[BBox]], models_dir: Path, device: str, cfg: SceneConfig,
+                  ) -> dict[str, Any]:
+    """Поля из дообученной башни (SceneConfig.safe_ft, задачи — SceneConfig.safe_ft_fields) — на месте в samples.
+
+    safe_open: вырезки те же, что у _sample_states (crop_zone зоны сейфа с ZONE_CROP_MARGIN на кадрах
+    выборок safe_open); safe_open := вероятность башни, прежнее значение (голова раунда 3 или zero-shot)
+    уходит в safe_open_head / safe_open_zero_shot.
+    desk_cash (если башня его обучала): вырезка стола раз в cfg.state_every_sec — те же секунды, что
+    у zero-shot стола, но без закрашивания людей (так башню учили, scripts/finetune_siglip.py);
+    ряд samples["desk_cash"], в сцену (поле desk_cash_ft) его ставит builder.with_ft_items.
+    Нет весов или ошибка инференса — samples не меняются (сцена как без флага), в meta — error.
+    Возвращает meta.safe_ft (fields — какие поля пришли из башни).
+    """
+    tower, error = load_ft_tower(models_dir, cfg.safe_ft, device)
+    if tower is None:
+        return {"error": error or f"не загружена: {cfg.safe_ft}"}
+    tasks = [t for t in cfg.safe_ft_fields if t in FT_FIELDS and t in tower.tasks]
+    if not tasks:
+        msg = f"в башне {tower.name} нет задач {list(cfg.safe_ft_fields)} (есть {sorted(tower.tasks)})"
+        LOG.warning("%s: сцена считается без неё", msg)
+        return {"error": msg}
+    info = ft_tower_info(tower)
+    by_ms = {int(round(f.timestamp_sec * 1000)): f for f in frames}
+
+    def crops_at(times: Sequence[float], zone: str) -> tuple[list[float], list[Any]]:
+        kept, crops = [], []
+        for t in times:
+            frame = by_ms.get(int(round(t * 1000)))
+            image = imread_unicode(frame.path) if frame is not None else None
+            crop = crop_zone(image, zones[zone], ZONE_CROP_MARGIN.get(zone, 0.1)) if image is not None else None
+            if crop is not None:
+                kept.append(t)
+                crops.append(crop)
+        return kept, crops
+
+    wanted: dict[str, list[float]] = {}
+    if "safe_open" in tasks and zones.get("safe") is not None and samples.get("safe_open"):
+        wanted["safe_open"] = [t for t, _ in samples["safe_open"]]
+    if "desk_cash" in tasks and zones.get("desk") is not None:
+        wanted["desk_cash"] = [frames[pos].timestamp_sec for pos in _pick_positions(frames, cfg.state_every_sec)]
+    out: dict[str, dict[int, float]] = {}
+    try:
+        for task, times in wanted.items():
+            kept, crops = crops_at(times, FT_FIELDS[task])
+            probs = tower(crops, [task], batch_size=cfg.state_batch_frames)[task] if crops else []
+            out[task] = {int(round(t * 1000)): round(float(p), 4) for t, p in zip(kept, probs)}
+    except Exception as exc:         # нехватка памяти и т.п.: сцена как без флага, задача не падает
+        LOG.warning("дообученная башня %s: %s — сцена без неё", tower.name, exc)
+        return {"error": f"{type(exc).__name__}: {exc}"}
+    if "safe_open" in out:
+        current = samples["safe_open"]
+        keep = "safe_open_head" if "safe_open_zero_shot" in samples else "safe_open_zero_shot"
+        samples[keep] = list(current)
+        samples["safe_open"] = [(t, out["safe_open"].get(int(round(t * 1000)))) for t, _ in current]
+    if out.get("desk_cash"):
+        samples["desk_cash"] = sorted((ms / 1000.0, p) for ms, p in out["desk_cash"].items())
+    fields = [t for t in tasks if t == "safe_open" or out.get(t)]
+    return {**info, "fields": fields, "samples": {k: len(v) for k, v in out.items()}}
+
+
+def _pick_positions(frames: Sequence[Frame], every_sec: float) -> list[int]:
+    """Позиции кадров раз в every_sec (первый кадр не раньше предыдущего + every_sec) — как в _sample_states."""
+    picks: list[int] = []
+    next_t = 0.0
+    for pos, frame in enumerate(frames):
+        if frame.timestamp_sec + 1e-6 >= next_t:
+            picks.append(pos)
+            next_t = frame.timestamp_sec + every_sec
+    return picks
+
+
 def _mask_people(image: Any, people: Sequence[Detection]) -> Any:
     """Копия кадра, где рамки людей закрашены серым (люди не попадают в zero-shot-оценку стола)."""
     out = image.copy()
@@ -347,12 +435,7 @@ def _sample_states(
     if not by_zone:
         return {}
 
-    picks: list[int] = []
-    next_t = 0.0
-    for pos, frame in enumerate(frames):
-        if frame.timestamp_sec + 1e-6 >= next_t:
-            picks.append(pos)
-            next_t = frame.timestamp_sec + cfg.state_every_sec
+    picks = _pick_positions(frames, cfg.state_every_sec)
 
     samples: dict[str, list[tuple[float, Optional[float]]]] = {n: [] for names in by_zone.values() for n in names}
     for start in range(0, len(picks), cfg.state_batch_frames):

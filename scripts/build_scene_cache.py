@@ -98,6 +98,11 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                    help="закрашивать людей в вырезке стола перед SigLIP; по умолчанию — SceneConfig")
     p.add_argument("--desk-by-people", choices=("on", "off"), default=None,
                    help="рабочий стол — тот, где сидели люди, а не самый заметный; по умолчанию — SceneConfig")
+    p.add_argument("--safe-ft", default=None, metavar="DIR",
+                   help="дообученная башня «сейф открыт» (SceneConfig.safe_ft, каталог весов относительно "
+                        "--models-dir, напр. ft/siglip_states); по умолчанию — SceneConfig (выключена)")
+    p.add_argument("--safe-ft-fields", nargs="+", default=None, choices=("safe_open", "desk_cash"),
+                   help="задачи башни в сцену (SceneConfig.safe_ft_fields); по умолчанию — SceneConfig (desk_cash)")
     p.add_argument("--raw-out", type=Path, default=None,
                    help="каталог сырого кэша (data/raw_cache): правки builder потом без GPU, scripts/rebuild_from_raw.py")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -134,6 +139,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         over["mask_people_in_desk"] = args.mask_people == "on"
     if args.desk_by_people:
         over["desk_by_people"] = args.desk_by_people == "on"
+    if args.safe_ft is not None:
+        over["safe_ft"] = args.safe_ft
+    if args.safe_ft_fields:
+        over["safe_ft_fields"] = tuple(args.safe_ft_fields)
     config = SceneConfig(**over)
     LOG.info("видео: %d, device=%s, fps=%.1f, веса: %s", len(videos), device, args.fps, args.models_dir)
 

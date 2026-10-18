@@ -277,6 +277,32 @@ def _safe_change(scene: SceneTimeline, baseline_sec: float, delta: float) -> Ser
     return [None if s.safe_open is None else (s.safe_open if s.safe_open - base >= delta else 0.0) for s in states]
 
 
+def _ft_fields(scene: SceneTimeline) -> tuple[str, ...]:
+    """Поля сцены из дообученной башни (meta.safe_ft.fields; без списка — только safe_open, как
+    в первых кэшах scripts/apply_ft.py). Башня не загрузилась (нет name) — пусто."""
+    ft = scene.meta.get("safe_ft") or {}
+    if "name" not in ft:
+        return ()
+    return tuple(ft.get("fields") or ("safe_open",))
+
+
+def _ft_params(params: Mapping[str, Any]) -> dict[str, Any]:
+    return {**params, **{k[len("ft_"):]: v for k, v in params.items() if k.startswith("ft_")}}
+
+
+def _safe_model_params(scene: SceneTimeline, params: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Параметры под источник safe_open. С головой «сейф открыт» (meta.safe_head) или дообученной башней
+    (meta.safe_ft, SceneConfig.safe_ft) — head_<имя> вместо <имя> и baseline_sec 0; с башней ещё и
+    ft_<имя> поверх: у неё своё распределение вероятностей (пороги — по вероятностям вне фолда)."""
+    ft = "safe_open" in _ft_fields(scene)
+    if ft or "name" in (scene.meta.get("safe_head") or {}):
+        params = {**params, "baseline_sec": 0.0,
+                  **{k[len("head_"):]: v for k, v in params.items() if k.startswith("head_")}}
+    if ft:
+        params = _ft_params(params)
+    return params
+
+
 def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
     """R10: сейф открыт, а кассир не у сейфа (рамка кассира не пересекается с зоной сейфа).
 
@@ -285,15 +311,14 @@ def storage_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[E
     head_<имя> заменяют <имя>: head_baseline_sec (по умолчанию 0) — голова различает дверцу, а не общий
     вид вырезки, и на Х-20 дверца открыта уже на 2-й секунде, внутри окна «первых 3 с»; head_merge_gap_sec —
     голова видит и короткие законные открытия (Х-25: 8–11 и 15–18 с), склейка через 5 с дала бы 10 с.
+    С дообученной башней (meta.safe_ft, SceneConfig.safe_ft) поверх head_* — ft_<имя> (_safe_model_params).
     away_mode=home — кассир у сейфа, только если он не на рабочем месте (дальше home_dist ширин
     рабочего места от его центра) и рамка задевает сейф на near_safe_overlap.
     require_away=false — не проверять, у сейфа ли кассир: когда кассир сидит лицом к камере, сейф
     у него за спиной и рамка сидящего кассира перекрывает зону сейфа (Х-20); тогда от того, что
     кассир просто стоит у сейфа и заслоняет его, защищает min_duration_sec.
     """
-    if "name" in (scene.meta.get("safe_head") or {}):
-        params = {**params, "baseline_sec": 0.0,
-                  **{k[len("head_"):]: v for k, v in params.items() if k.startswith("head_")}}
+    params = _safe_model_params(scene, params)
     safe_zone = _expand(scene.zones.get("safe"), float(params.get("safe_margin", 0.05)))
     near_share = float(params.get("near_safe_overlap", 0.15))
     require_away = bool(params.get("require_away", True))
@@ -571,15 +596,40 @@ def outsider_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> li
     return events
 
 
+def _only_cashier_sec(scene: SceneTimeline, i: int, window_sec: float) -> float:
+    """Самый длинный отрезок (с) в [t − window_sec, t) перед состоянием i, где в кассе не больше одного
+    человека (persons_in_room <= 1) — только кассир."""
+    states = scene.states
+    t = states[i].t
+    run = best = 0
+    for s in states[:i]:
+        if s.t < t - window_sec:
+            continue
+        if s.persons_in_room is not None and s.persons_in_room <= 1:
+            run += 1
+            best = max(best, run)
+        else:
+            run = 0
+    return best / max(scene.fps_sampled, 1e-6)
+
+
 def entry_with_cash_on_desk(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
     """R14: посетитель входит через дверь, а на рабочем столе ещё лежат наличные (cash_on_desk
     за 2 с до входа >= cash_p). По п. 20 Правил № 231 на рабочем месте — только наличные
     обслуживаемого клиента, ранее принятые хранятся в сейфе/ящиках. Вошедший остаётся в кассе
-    не меньше min_duration_sec. Таймкод — момент входа (Х-4, 57 с; Х-38, 33 с)."""
+    не меньше min_duration_sec. Таймкод — момент входа (Х-4, 57 с; Х-38, 33 с).
+    empty_before_sec > 0 — «пустое окно»: вход засчитывается, только если в [t − empty_before_sec, t)
+    был отрезок не короче empty_min_sec, когда в кассе был один кассир (предыдущий посетитель ушёл —
+    деньги на столе не принадлежат вошедшему; вход третьего при стоящем клиенте не проверяется).
+    С дообученной башней (meta.safe_ft.fields содержит desk_cash) — ft_<имя> вместо <имя>."""
     states = scene.states
     if not states:
         return []
+    if "desk_cash" in _ft_fields(scene):
+        params = _ft_params(params)
     cash_p = float(params.get("cash_p", 0.5))
+    empty_sec = float(params.get("empty_before_sec", 0.0))
+    empty_min = float(params.get("empty_min_sec", 0.3))
     before_sec = float(params.get("before_sec", 2.0))
     after_sec = float(params.get("after_sec", 0.0))     # окно проверки и после входа (стол виден не сразу)
     min_dur = _param(params, "min_duration_sec")
@@ -591,6 +641,8 @@ def entry_with_cash_on_desk(scene: SceneTimeline, params: Mapping[str, Any]) -> 
         t = states[i].t
         after = _stays(scene, i, max(min_dur, 1.0))
         if after is None:
+            continue
+        if empty_sec > 0 and _only_cashier_sec(scene, i, empty_sec) < empty_min:
             continue
         before = [cash[k] for k, s in enumerate(states) if t - before_sec <= s.t <= t + after_sec and cash[k] is not None]
         if not before or max(before) < cash_p:
@@ -651,9 +703,7 @@ def left_during_service(scene: SceneTimeline, params: Mapping[str, Any]) -> list
 
     Кассир у сейфа рабочее место не покидал: по п. 20 Правил № 231 сейф находится на рабочем месте.
     """
-    if "name" in (scene.meta.get("safe_head") or {}):
-        params = {**params, "baseline_sec": 0.0,
-                  **{k[len("head_"):]: v for k, v in params.items() if k.startswith("head_")}}
+    params = _safe_model_params(scene, params)
     safe_zone = _expand(scene.zones.get("safe"), float(params.get("safe_margin", 0.05)))
     near_share = float(params.get("near_safe_overlap", 0.15))
 
