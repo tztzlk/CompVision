@@ -25,8 +25,8 @@ import apply_ft  # noqa: E402
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-def test_flag_off_by_default():
-    assert SceneConfig().safe_ft == ""
+def test_flag_on_by_default():
+    assert SceneConfig().safe_ft == "ft/siglip_states"          # отключается safe_ft=""
     assert SceneConfig().safe_ft_fields == ("desk_cash",)
     assert "safe_ft" in SceneConfig().as_dict()
 

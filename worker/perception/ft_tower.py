@@ -105,12 +105,15 @@ def load_ft_tower(models_dir: Path, rel: str, device: str) -> tuple[Optional[Fin
 
 
 def _load(models_dir: Path, path: Path, device: str) -> FinetunedTower:
+    meta = json.loads((path / FT_META).read_text(encoding="utf-8"))   # нет весов — ошибка до импорта torch
+    if not (path / FT_STATE).is_file():
+        raise FileNotFoundError(f"нет {path / FT_STATE}")
+
     import torch
     from transformers import AutoImageProcessor, SiglipVisionModel
 
     from worker.perception.models import model_path
 
-    meta = json.loads((path / FT_META).read_text(encoding="utf-8"))
     state = torch.load(path / FT_STATE, map_location="cpu", weights_only=True)
     base = model_path(models_dir, "zero_shot")
     model = SiglipVisionModel.from_pretrained(base, local_files_only=True)

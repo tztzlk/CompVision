@@ -129,6 +129,9 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
     samples = {k: [(float(t), None if p is None else float(p)) for t, p in v] for k, v in raw["state_samples"].items()}
     meta = dict(raw.get("meta") or {})
     meta["rebuilt_from_raw"] = True
+    if _config(raw, config).safe_ft and "safe_ft" not in meta:
+        # сырой кэш собран без дообученной башни: её полей нет — правила как без неё (R14 по OWLv2)
+        meta["safe_ft"] = {"error": "в сыром кэше нет данных дообученной башни (собран без SceneConfig.safe_ft)"}
     timeline = assemble_timeline(
         video_id=raw["video_id"],
         duration_sec=raw["duration_sec"],

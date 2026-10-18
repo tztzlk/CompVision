@@ -190,15 +190,30 @@ class PipelineFtTest(unittest.TestCase):
                 return scene, load_raw(raw_path)
             return scene
 
-    def test_off_by_default(self) -> None:
-        scene = self._run(SceneConfig(fps=3.0))
-        self.assertNotIn("safe_ft", scene.meta)
-        self.assertNotIn("safe_ft_sec", scene.meta["timings"])
+    def test_on_by_default_and_can_be_disabled(self) -> None:
+        scene = self._run(SceneConfig(fps=3.0))                    # весов в tmp нет — ошибка, не исключение
+        self.assertIn("error", scene.meta["safe_ft"])
+        self.assertIn("safe_ft_sec", scene.meta["timings"])
+        off = self._run(SceneConfig(fps=3.0, safe_ft=""))
+        self.assertNotIn("safe_ft", off.meta)
+        self.assertNotIn("safe_ft_sec", off.meta["timings"])
+
+    def test_old_raw_cache_rebuilt_with_flag_marks_error(self) -> None:
+        """Сырой кэш без данных башни, пересобранный кодом с флагом (--code-config), — сцена та же,
+        meta.safe_ft.error, R14 по OWLv2."""
+        from worker.scene import scene_to_dict
+        from worker.scene.raw_cache import rebuild_scene
+
+        scene, raw = self._run(SceneConfig(fps=3.0, safe_ft=""), raw=True)
+        rebuilt = rebuild_scene(raw, SceneConfig(fps=3.0))
+        self.assertIn("error", rebuilt.meta["safe_ft"])
+        self.assertEqual(scene_to_dict(rebuilt)["states"], scene_to_dict(scene)["states"])
+        self.assertIsNone(rebuilt.states[4].value("desk_cash_ft"))
 
     def test_missing_weights_scene_as_without_flag(self) -> None:
         from worker.scene import scene_to_dict
 
-        plain = self._run(SceneConfig(fps=3.0))
+        plain = self._run(SceneConfig(fps=3.0, safe_ft=""))
         flagged = self._run(SceneConfig(fps=3.0, safe_ft="ft/siglip_states"))
         self.assertIn("error", flagged.meta["safe_ft"])
         self.assertEqual(scene_to_dict(flagged)["states"], scene_to_dict(plain)["states"])
@@ -246,7 +261,7 @@ class PipelineFtTest(unittest.TestCase):
     def test_tower_without_requested_task_is_error(self) -> None:
         from worker.scene import scene_to_dict
 
-        plain = self._run(SceneConfig(fps=3.0))
+        plain = self._run(SceneConfig(fps=3.0, safe_ft=""))
         scene = self._run(SceneConfig(fps=3.0, safe_ft="ft/siglip_states"), tower=_FakeTower(("safe_open",)))
         self.assertIn("error", scene.meta["safe_ft"])
         self.assertEqual(scene_to_dict(scene)["states"], scene_to_dict(plain)["states"])

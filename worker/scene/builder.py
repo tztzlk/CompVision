@@ -151,18 +151,18 @@ class SceneConfig:
     # под именем safe_open_zero_shot. Замер 18.10 (вне фолда, кэши r3 и аугментаций): на оригинале и
     # flip без изменений, на persp возвращает Х-20 (R10), ложных 0 — включена по умолчанию.
     safe_head: str = "heads/safe_open.npz"
-    # Дообученная башня SigLIP (worker.perception.ft_tower, scripts/finetune_siglip.py final): каталог
-    # весов относительно каталога моделей (state.pt — последние блоки, post_layernorm, pooling и голова,
-    # fp16; meta.json). Включена — safe_open берётся из её задачи safe_open на тех же вырезках сейфа,
-    # значение головы safe_head остаётся в state_samples.safe_open_head; общий SigLIP не подменяется.
-    # Нет весов или ошибка — сцена как без флага (предупреждение в meta.safe_ft.error). R10 при флаге
-    # берёт параметры ft_* поверх head_* (rules.yaml). Пусто — выключена (по умолчанию);
-    # включить: SceneConfig(safe_ft="ft/siglip_states").
-    safe_ft: str = ""
-    # Какие задачи башни идут в сцену: safe_open (вместо головы safe_head) и/или desk_cash (поле
-    # desk_cash_ft для R14). Замер 18.10 (вне фолда, 5 вариантов): desk_cash + «пустое окно» R14 —
-    # Х-4 на flip/crop/light, 0 ложных; safe_open башни сдвигает R10 на Х-20 на 1 с раньше (persp/crop:
-    # таймкод вне ±3 с) — по умолчанию только desk_cash, сейф — голова safe_head.
+    # Дообученная башня SigLIP (worker.perception.ft_tower, scripts/finetune_siglip.py final) — вторая,
+    # отдельная от общего SigLIP (тот не подменяется): каталог весов относительно каталога моделей
+    # (в контейнере /models/ft/siglip_states; state.pt — последние 4 блока, post_layernorm, pooling и
+    # голова, fp16; meta.json). Нет весов или ошибка — сцена как без башни (предупреждение в
+    # meta.safe_ft.error). Пусто — выключена.
+    safe_ft: str = "ft/siglip_states"
+    # Какие задачи башни идут в сцену: desk_cash — поле desk_cash_ft только для R14 (desk_cash OWLv2 не
+    # меняется; R14 при нём — ft_* и «пустое окно» в rules.yaml); safe_open — вместо головы safe_head
+    # (значение головы остаётся в state_samples.safe_open_head; R10 — ft_* поверх head_*).
+    # Замер 18.10 (вне фолда на всех секундах, кэш r3 и 4 аугментации): desk_cash + «пустое окно» —
+    # Х-4 ловится на flip/crop/light (было только на оригинале), ложных 0, таймкод не хуже ни на одном
+    # варианте; safe_open башни сдвигает R10 на Х-20 на 1 с раньше (persp/crop: вне ±3 с) — не включён.
     safe_ft_fields: tuple[str, ...] = ("desk_cash",)
     # Голова «человек внутри кассы» (worker.perception.heads, scripts/train_heads.py person_inside):
     # путь к .npz относительно каталога моделей; пусто — внутри/за стеклом решает только геометрия.
