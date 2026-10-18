@@ -5,7 +5,7 @@
   1. кадры с частотой SceneConfig.fps (JPEG в work_dir/frames/) + RT-DETR пачками;
   2. трекинг людей (IoU + центры);
   3. зоны: OWLv2 по нескольким ключевым кадрам (+ COCO как запасной источник);
-  4. zero-shot SigLIP по вырезкам зон раз в state_every_sec;
+  4. zero-shot SigLIP по вырезкам зон раз в state_every_sec; вид двери против начала ролика (R15, без моделей);
   5. сборка SceneTimeline (builder).
 Модели загружаются один раз на процесс (worker.perception.models.load_models).
 """
@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Optional, Sequence
 
 from worker.perception import Detection, Frame
+from worker.perception.door import door_band, door_diffs, door_patch
 from worker.perception.ft_tower import ft_tower_info, load_ft_tower
 from worker.perception.geometry import BBox, nms
 from worker.perception.heads import PERSON_GEO_SCALE, LinearHead, crop_person, load_head, person_geo
@@ -30,10 +31,10 @@ from worker.perception.video import VideoError, imread_unicode, imwrite_unicode,
 from worker.perception.zones import all_zone_queries, infer_zones
 from worker.scene.builder import (FrameRef, SceneConfig, ITEM_QUERIES, SCAN_QUERIES, assemble_timeline, item_check_times, track_height,
                                   with_desk_items, with_ft_items, people_at,
-                                  with_brightness, with_left_items)
+                                  with_brightness, with_door_change, with_left_items)
 from worker.scene.contract import SceneTimeline
 
-__all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled", "apply_safe_ft", "FT_FIELDS"]
+__all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled", "apply_safe_ft", "FT_FIELDS", "door_signal"]
 
 LOG = logging.getLogger("worker.scene")
 
@@ -77,6 +78,12 @@ def run_pipeline(
     mark = time.monotonic()
     zones, zone_info, owl = _find_zones(frames, objects, tracks, bundle, cfg)
     timings["zones_sec"] = round(time.monotonic() - mark, 2)
+
+    door_diff: Optional[list[Optional[float]]] = None
+    if cfg.door_change:
+        mark = time.monotonic()
+        door_diff = door_signal(frames, persons, zones.get("door"), cfg)
+        timings["door_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
     safe_head = load_head(Path(models_dir), cfg.safe_head)
@@ -136,6 +143,8 @@ def run_pipeline(
         person_head=person_head,
     )
     timeline = with_brightness(timeline, brightness)
+    if door_diff is not None:
+        timeline = with_door_change(timeline, door_diff, cfg)
     mark = time.monotonic()
     item_checks = check_left_items(timeline, frames, bundle, cfg)
     timeline = with_left_items(timeline, item_checks)
@@ -149,7 +158,8 @@ def run_pipeline(
         save_raw(raw_out, video_id=vid, duration_sec=info.duration_sec or frames[-1].timestamp_sec,
                  frame_size=frame_size, frames=refs, tracks=tracks, objects=objects, zones=zones,
                  zone_info=zone_info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta,
-                 brightness=brightness, item_checks=item_checks, item_scan=item_scan, person_head=person_head)
+                 brightness=brightness, item_checks=item_checks, item_scan=item_scan, person_head=person_head,
+                 door_diff=door_diff)
     if pose_enabled():
         from worker.scene.pose_pass import run_pose_pass
 
@@ -243,6 +253,24 @@ def select_zones(
                               person_boxes=people if cfg.desk_by_people else None,
                               person_height=track_height(tracks))
     return zones, info
+
+
+def door_signal(frames: Sequence[Frame], persons: Sequence[Sequence[Detection]], door: Optional[BBox],
+                cfg: SceneConfig) -> Optional[list[Optional[float]]]:
+    """Расхождение полосы двери с её видом в начале ролика по каждому кадру (worker.perception.door).
+
+    Людей закрашивают все рамки person детектора (и за стеклом тоже). Без моделей: кадры уже на диске.
+    None — зоны двери нет (R15 молчит)."""
+    if door is None or not frames:
+        return None
+    band = door_band(door, cfg.door_band_top, cfg.door_band_bottom)
+    patches = []
+    for frame, dets in zip(frames, persons):
+        image = imread_unicode(frame.path)
+        patches.append(None if image is None else
+                       door_patch(image, band, [d.bbox_xyxy for d in dets], margin=cfg.door_person_margin))
+    return door_diffs(patches, [f.timestamp_sec for f in frames],
+                      baseline_sec=cfg.door_baseline_sec, max_masked=cfg.door_max_masked)
 
 
 def scan_desk_items(frames: Sequence[Frame], bundle: Any, cfg: SceneConfig) -> list[tuple[float, list[Detection]]]:

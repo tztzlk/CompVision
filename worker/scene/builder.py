@@ -36,7 +36,7 @@ from worker.perception.states import BAG_LABELS, FOOD_LABELS, PHONE_LABELS
 from worker.perception.tracking import Track, TrackPoint
 from worker.scene.contract import ZONE_NAMES, Person, SceneState, SceneTimeline
 
-__all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness",
+__all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness", "with_door_change",
            "ITEM_QUERIES", "item_check_times", "with_left_items", "track_height",
            "SCAN_QUERIES", "DESK_ITEM_GROUPS", "with_desk_items", "with_ft_items", "people_at"]
 
@@ -137,6 +137,19 @@ class SceneConfig:
     state_batch_frames: int = 16
     enable_door_state: bool = False
     enable_collection_bag: bool = False
+    # Дверь не в том виде, что в начале ролика (R15, worker.perception.door): полоса зоны двери от
+    # door_band_top до door_band_bottom её высоты (ниже — стул клиента), эталон — первые door_baseline_sec
+    # секунд, кадр без оценки, если люди закрывают больше door_max_masked полосы. В сцену — door_diff
+    # (сырое расхождение) и door_change = (door_diff - door_diff_floor) / door_diff_span в 0..1.
+    # Замер 18.10 по кадрам: дверь открыта (Х-32, Х-33) 0,77–0,99; закрыта после прохода 0,03–0,2.
+    door_change: bool = True
+    door_band_top: float = 0.0
+    door_band_bottom: float = 0.65
+    door_baseline_sec: float = 1.0
+    door_max_masked: float = 0.5
+    door_person_margin: float = 0.02
+    door_diff_floor: float = 0.35
+    door_diff_span: float = 0.3
     # Zero-shot: набор подписей ("v1" | "v2", worker.perception.states) и закрашивание людей
     # в вырезке стола перед SigLIP (спина или торс кассира в вырезке путают «одежду на столе»).
     # Замер 18.10 (кэш r2, правильные зоны): v2 + маска — 8 нарушений из 21 при 0 ложных, v1 — 6 и 0.
@@ -725,6 +738,26 @@ def with_brightness(timeline: SceneTimeline, values: Sequence[Optional[float]]) 
     )
     return replace(timeline, states=states)
 
+
+def with_door_change(timeline: SceneTimeline, diffs: Sequence[Optional[float]],
+                     config: Optional[SceneConfig] = None) -> SceneTimeline:
+    """Добавить в состояния door_diff — расхождение полосы двери с её видом в начале ролика
+    (worker.perception.door.door_diffs, по одному значению на состояние) — и door_change: то же,
+    приведённое к 0..1 порогами SceneConfig.door_diff_floor / door_diff_span (их можно менять без GPU
+    по сырому кэшу). None — оценки нет (людей в полосе двери много, зоны двери нет)."""
+    cfg = config or SceneConfig()
+    if len(diffs) != len(timeline.states):
+        raise ValueError("door_diff: ожидается по одному значению на состояние")
+    span = max(cfg.door_diff_span, 1e-6)
+
+    def change(d: Optional[float]) -> Optional[float]:
+        return None if d is None else round(min(1.0, max(0.0, (float(d) - cfg.door_diff_floor) / span)), 3)
+
+    states = tuple(
+        replace(s, extra={**s.extra, "door_diff": None if d is None else round(float(d), 3), "door_change": change(d)})
+        for s, d in zip(timeline.states, diffs)
+    )
+    return replace(timeline, states=states)
 
 
 def assemble_timeline(

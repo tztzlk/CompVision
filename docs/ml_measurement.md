@@ -1,5 +1,25 @@
 # Замер ML-правок на машине с GPU
 
+## R15 «Дверь кассы оставлена открытой» (18.10)
+
+Новое поле сцены `door_change` — насколько полоса зоны двери отличается от её вида в первую секунду
+ролика (`worker/perception/door.py`, без моделей). R15 включено. Пороги подобраны по кадрам 16 роликов
+с зоной двери, отмеченной вручную; на зонах OWLv2 и с закрашиванием людей ещё не мерили. GPU для
+сигнала не нужен — нужны кадры и сырой кэш:
+
+```
+git pull origin main
+PYTHONPATH=. .venv/bin/python scripts/add_door_to_raw.py --raw data/raw_cache_r3 --frames data/frames_r2
+PYTHONPATH=. .venv/bin/python scripts/rebuild_from_raw.py --raw data/raw_cache_r3 --out data/scene_cache_r15 --code-config
+PYTHONPATH=. .venv/bin/python scripts/eval_cache.py --cache data/scene_cache_r15 --json data/eval_r15.json > data/eval_r15.txt
+```
+
+Ожидание: R15 на Х-32 (~5 с) и Х-33 (~6 с); ни одного R15 на чистых видео. Особо проверить Х-3, Х-5,
+Х-19, Х-35, Х-37 (вход и закрытие двери), Х-12 и Х-11 (гаснет свет — по яркости кадра не засчитывается).
+Если на чистых R15 есть — прислать `data/eval_r15.txt` и строки `door_diff` этих видео из сцен:
+пороги — `SceneConfig.door_diff_floor` / `door_diff_span` и `params` R15 в `rules.yaml`. Новый полный
+прогон `build_scene_cache.py --raw-out` пишет `door_diff` в сырой кэш сам.
+
 ## Раунд 2 (18.10) — зоны, уход с рабочего места, предметы OWLv2
 
 Что изменилось: сейф выбирается по геометрии (не на столешнице и не перед столом, не за стеклом, не

@@ -688,6 +688,59 @@ def drink_at_workplace(scene: SceneTimeline, params: Mapping[str, Any]) -> list[
     return _events_from_series(scene, raw, params, describe)
 
 
+def door_left_open(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
+    """R15: дверь кассы осталась открытой — полоса двери не вернулась к виду начала ролика (поле
+    door_change, worker.perception.door) дольше min_duration_sec, и у двери никого нет.
+
+    Без оценки (None) состояния, где
+      - у двери стоит человек внутри кассы (рамка на door_person_ioa в зоне двери) — проход, дверь держат;
+      - яркость кадра отличается от первых baseline_sec секунд больше чем на light_tol — свет гаснет
+        при уходе кассира (Х-11, Х-12), и меняется весь вид двери.
+    Событие остаётся, только если не раньше чем за passage_sec до его начала через дверь проходили
+    (вход, выход или человек у двери): изменение без прохода — сдвиг камеры или отражение, а не дверь.
+    Нет зоны двери или поля door_change (кэш собран до R15) — событий нет.
+    """
+    states = scene.states
+    door = scene.zones.get("door")
+    field_name = str(params.get("field", "door_change"))
+    if not states or door is None or all(s.value(field_name) is None for s in states):
+        return []
+    zone = _expand(door, float(params.get("door_margin", 0.03)))
+    person_ioa = float(params.get("door_person_ioa", 0.5))
+    light_tol = float(params.get("light_tol", 0.06))
+    baseline_sec = float(params.get("baseline_sec", 1.0))
+    passage_sec = float(params.get("passage_sec", 8.0))
+    t0 = states[0].t
+    first = [s.value("brightness") for s in states if s.t <= t0 + baseline_sec and s.value("brightness") is not None]
+    b0 = median(first) if first else None
+
+    def at_door(s: SceneState) -> bool:
+        boxes = ([s.cashier_bbox] if s.cashier_bbox is not None else []) + [p.bbox for p in s.others]
+        return any(_overlap(b, zone) >= person_ioa for b in boxes)
+
+    def same_light(s: SceneState) -> bool:
+        b = s.value("brightness")
+        return b is None or b0 is None or abs(b - b0) <= light_tol
+
+    raw = [s.value(field_name) if same_light(s) and not at_door(s) else None for s in states]
+    passages = [s.t for s in states if at_door(s) or s.person_entered or s.person_exited
+                or s.value("visitor_entered_ids") or s.value("visitor_exited_ids")
+                or s.value("cashier_returned") or s.value("cashier_left_room")]
+    step = 1.0 / scene.fps_sampled
+
+    def describe(sc: SceneTimeline, iv: Interval) -> dict[str, Any]:
+        seconds = sc.states[iv.end].t - sc.states[iv.start].t + step
+        what = f"дверь кассы остаётся открытой не меньше {seconds:.0f} с, у двери никого нет"
+        if any(sc.states[k].person_entered or sc.states[k].value("visitor_entered_ids")
+               for k in range(iv.start, iv.end + 1)):
+            what += "; за это время в открытую дверь входит человек"
+        return {"what_visible": what, "bbox": list(door)}
+
+    events = _events_from_series(scene, raw, params, describe)
+    return [ev for ev in events
+            if any(ev.timecode_sec - passage_sec - 1e-6 <= t <= ev.timecode_sec + step for t in passages)]
+
+
 def phone_in_cash_room(scene: SceneTimeline, params: Mapping[str, Any]) -> list[Event]:
     """R06: телефон в руке кассира."""
     raw = [_fmin(s.phone_in_hand, s.cashier_present) for s in scene.states]
@@ -731,6 +784,7 @@ DETECTORS: dict[str, Callable[[SceneTimeline, Mapping[str, Any]], list[Event]]] 
     "drink_at_workplace": drink_at_workplace,
     "phone_in_cash_room": phone_in_cash_room,
     "left_during_service": left_during_service,
+    "door_left_open": door_left_open,
 }
 
 # Детекторы позы — в отдельном модуле; импорт после всех определений, чтобы модуль позы мог

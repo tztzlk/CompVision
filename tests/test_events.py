@@ -22,7 +22,8 @@ def test_rules_yaml_loads_all_enabled(rules):
     ids = [r.id for r in rules]
     assert ids == ["R01_left_during_service", "R02_cash_unattended", "R06_phone_at_workplace",
                    "R09_personal_items", "R10_storage_left_open", "R11_outsider_in_cash_room",
-                   "R14_cash_on_desk_at_entry", "R12_collection_inside", "R13_drink_at_workplace"]
+                   "R14_cash_on_desk_at_entry", "R12_collection_inside", "R13_drink_at_workplace",
+                   "R15_door_left_open"]
     assert all(r.detector in det.DETECTORS for r in rules)
     # каждый детектор реестра в работе; детекторы позы — в «ЗАПЛАНИРОВАНО» до замера по кэшу
     from worker.events.pose_detectors import POSE_DETECTORS

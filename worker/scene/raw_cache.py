@@ -19,7 +19,8 @@ from typing import Any, Mapping, Optional, Sequence
 from worker.perception import Detection
 from worker.perception.tracking import Track, TrackPoint
 from worker.scene.builder import (FrameRef, SceneConfig, assemble_timeline, people_at, track_height,
-                                  with_brightness, with_desk_items, with_ft_items, with_left_items)
+                                  with_brightness, with_desk_items, with_door_change, with_ft_items,
+                                  with_left_items)
 from worker.scene.contract import SceneTimeline
 
 __all__ = ["RAW_VERSION", "save_raw", "load_raw", "rebuild_scene"]
@@ -54,6 +55,7 @@ def save_raw(
     item_checks: Optional[Sequence[tuple[float, Sequence[Detection]]]] = None,
     item_scan: Optional[Sequence[tuple[float, Sequence[Detection]]]] = None,
     person_head: Optional[Sequence[Sequence[Any]]] = None,
+    door_diff: Optional[Sequence[Optional[float]]] = None,
 ) -> Path:
     """Записать входы assemble_timeline атомарно (через временный файл)."""
     data = {
@@ -78,6 +80,8 @@ def save_raw(
     }
     if person_head:
         data["person_head"] = [[int(fi), _box(b), round(float(pr), 4)] for fi, b, pr in person_head]
+    if door_diff is not None:
+        data["door_diff"] = [None if d is None else round(float(d), 4) for d in door_diff]
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_name(p.name + ".tmp")
@@ -148,6 +152,10 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
     brightness = raw.get("brightness")
     if brightness:
         timeline = with_brightness(timeline, brightness)
+    door_diff = raw.get("door_diff")
+    if door_diff is not None and len(door_diff) == len(timeline.states):
+        # сырое расхождение не зависит от порогов: door_change пересчитывается текущим SceneConfig
+        timeline = with_door_change(timeline, door_diff, _config(raw, config))
     checks = [(float(t), [det(d) for d in dets]) for t, dets in raw.get("item_checks") or []]
     timeline = with_left_items(timeline, checks)
     scan = [(float(t), [det(d) for d in dets]) for t, dets in raw.get("item_scan") or []]

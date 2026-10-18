@@ -77,6 +77,8 @@ class PipelineFakeTest(unittest.TestCase):
         self.assertEqual(state.cash_on_desk, 0.1)
         self.assertEqual(state.laptop_unlocked, 0.1)
         self.assertIsNone(state.door_open)                     # выключено в SceneConfig по умолчанию
+        self.assertIn("door_change", state.extra)              # R15: вид двери против начала ролика, без моделей
+        self.assertIn("door_sec", loaded.meta["timings"])
         self.assertFalse(any(s.person_entered for s in loaded.states))
         # zero-shot раз в секунду: 4 момента × 3 зоны (стол, сейф, ноутбук)
         self.assertEqual(bundle.crops_seen, 12)
