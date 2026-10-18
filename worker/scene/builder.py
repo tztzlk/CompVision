@@ -35,6 +35,7 @@ from worker.perception.geometry import (
 from worker.perception.states import BAG_LABELS, FOOD_LABELS, PHONE_LABELS
 from worker.perception.tracking import Track, TrackPoint
 from worker.scene.contract import ZONE_NAMES, Person, SceneState, SceneTimeline
+from worker.scene.reid import reid_stitch
 
 __all__ = ["SceneConfig", "FrameRef", "stitch_tracks", "assemble_timeline", "with_brightness", "with_door_change",
            "ITEM_QUERIES", "item_check_times", "with_left_items", "track_height",
@@ -191,6 +192,48 @@ class SceneConfig:
     inside_head_lo: float = 0.1
     inside_head_band: float = 0.08
     inside_head_max_dt: float = 0.7     # оценка головы берётся с ближайшей точки трека не дальше, с
+    # Дообученная башня «человек внутри кассы» (scripts/finetune_siglip.py person-final, worker.perception.ft_tower):
+    # каталог весов относительно каталога моделей (models/ft/person_inside: последние 4 блока SigLIP, pooling и
+    # голова на [эмбеддинг вырезки crop_person, person_geo]). Пусто — выключена. Оценка — на каждой точке трека
+    # (сырой кэш: person_ft). Правит точки в обе стороны: p < inside_ft_lo — за стеклом (кассир в коридоре над
+    # рабочим местом не «у места», не возвращение, не в persons_in_room; выход из кассы — последняя точка внутри
+    # у двери), геометрия «за стеклом», но p >= inside_ft_hi и рамка не мельче inside_height_ratio роста и низом
+    # не выше верха стола больше чем на inside_head_band — внутри. В зоне двери (проём размечен «?», башня его
+    # не училась) правка «за стеклом» по inside_ft_door: "" — не правим; "exit" — только после того, как человек
+    # побывал в комнате вне зоны двери (хвост трека за стеклянной дверью после выхода; до входа не трогаем —
+    # иначе теряется вход и R15 на приходе Х-32, Х-33); "all" — везде.
+    # Замер 18.10 (p вне фолда, docs/ml_measurement.md): выход из кассы 9 -> 12 из 12, опоздание +2,0 -> −0,67 с,
+    # ложных выходов 2 (Х-32, Х-35), eval_cache и R11/R14/R15 без изменений; на flip ложных выходов 3 -> 4 —
+    # выключена до решения.
+    inside_ft: str = ""
+    inside_ft_lo: float = 0.2
+    inside_ft_hi: float = 0.9
+    inside_ft_door: str = "exit"
+    # Поза кассира в уходе с места (worker.scene.pose_departure; точки — поле person_pose сырого кэша,
+    # scripts/add_pose_to_raw.py; в проде позы нет). pose_dep_glass — точка с видимыми ногами и ступнями
+    # не ниже верха стола + pose_foot_band не «у места» (кассир за стеклом: Х-31, Х-32 до входа);
+    # pose_dep_anchor — расстояние до места от середины таза, не от центра рамки; pose_dep_stand —
+    # таймкод «встал» по бедру (pose_stand_ratio), а не по росту рамки. Замер 18.10 (data/ml_results/inside_ft/pose):
+    # glass — ложных уходов 3 -> 1 (Х-31, Х-32; на flip 4 -> 1, light 4 -> 2), eval_cache без изменений;
+    # anchor закрывает Х-12 18 с, но Х-22 уходит за ±3 с; stand таймкод не улучшает — оба выключены.
+    pose_departure: bool = False
+    pose_dep_glass: bool = True
+    pose_dep_anchor: bool = False
+    pose_dep_stand: bool = False
+    pose_leg_score: float = 0.4
+    pose_foot_band: float = 0.03
+    pose_stand_ratio: float = 0.8
+    # Повторная идентификация кассира (worker.scene.reid): трек кассира оборвался, и не позже чем через
+    # reid_gap_sec (или с перекрытием до reid_overlap_sec) у двери или на его месте начался трек, чей
+    # эмбеддинг SigLIP первых точек похож на эмбеддинг последних точек кассира (косинус >= reid_min_cos), —
+    # тот же кассир: треки склеиваются (не выход и не вход). Эмбеддинги — person_reid сырого кэша
+    # (scripts/add_reid_to_raw.py; в конвейере не считаются). Замер 18.10: кассир↔посетитель до 0,90, та же
+    # кассир сидя↔у двери 0,75–0,83 (SigLIP видит позу и фон, а не человека); смена трека Х-35 — 0,975,
+    # Х-32 — 0,82–0,93; при 0,93 закрыт только Х-35, eval_cache без изменений — выключена.
+    cashier_reid: bool = False
+    reid_gap_sec: float = 2.0
+    reid_overlap_sec: float = 1.0
+    reid_min_cos: float = 0.93
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -280,13 +323,15 @@ def _head_key(frame_index: int, bbox: Sequence[float]) -> tuple:
 
 
 def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config: SceneConfig,
-                  door: Optional[BBox] = None, head: Optional[Mapping[tuple, float]] = None) -> list[bool]:
+                  door: Optional[BBox] = None, head: Optional[Mapping[tuple, float]] = None,
+                  ft: Optional[Mapping[tuple, float]] = None) -> list[bool]:
     """Внутри кассы ли человек в каждой точке трека (сглажено большинством по 3 точкам).
 
     Люди за стеклом и отражения — мелкие рамки, низ которых выше верхнего края стола.
     Человек, который весь трек остаётся в зоне стеклянной двери и ни разу не становится крупным,
     виден сквозь стекло (door — зона двери): он целиком снаружи.
     head — вероятности головы «внутри кассы» по точкам (_head_key): правят спорные точки (SceneConfig.inside_head).
+    ft — вероятности дообученной башни по точкам (_head_key, SceneConfig.inside_ft): после головы, см. _apply_ft.
     """
     if door is not None and ref_height > 0:
         door_zone = pad(door, config.door_margin)
@@ -317,12 +362,45 @@ def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config:
             elif raw[i] and ph <= config.inside_head_lo and not (door_zone and _near_door(point.bbox, door_zone, config)):
                 # в зоне двери не правим: там входят и выходят, а голова путает проём со стеклом (Х-38 flip)
                 raw[i] = False
+    if ft:
+        raw = _apply_ft(track, raw, ref_height, desk, config, door, ft)
     smoothed = []
     for i, value in enumerate(raw):
         window = raw[max(0, i - 1): i + 2]
         votes = sum(window) * 2
         smoothed.append(value if votes == len(window) else votes > len(window))
     return smoothed
+
+
+def _apply_ft(track: Track, raw: list[bool], ref_height: float, desk: Optional[BBox], config: SceneConfig,
+              door: Optional[BBox], ft: Mapping[tuple, float]) -> list[bool]:
+    """Флаги «внутри» по вероятностям башни inside_ft (точка без оценки — по ближайшей не дальше
+    inside_head_max_dt): p < inside_ft_lo — за стеклом (в зоне двери — только при inside_ft_door),
+    геометрия «за стеклом», p >= inside_ft_hi, рамка не мельче inside_height_ratio роста и низом у стола — внутри."""
+    door_zone = pad(door, config.door_margin) if door is not None else None
+    probs = [(p.t, ft.get(_head_key(p.frame_index, p.bbox))) for p in track.points]
+    known = [(t, v) for t, v in probs if v is not None]
+    out = list(raw)
+    been_in = False                     # был внутри вне зоны двери до этой точки (inside_ft_door="exit")
+    for i, point in enumerate(track.points):
+        at_door = bool(door_zone and _near_door(point.bbox, door_zone, config))
+        pf = probs[i][1]
+        if pf is None:
+            near = min(known, key=lambda tv: abs(tv[0] - point.t), default=None)
+            if near is None or abs(near[0] - point.t) > config.inside_head_max_dt:
+                continue
+            pf = near[1]
+        if out[i] and pf < config.inside_ft_lo:
+            door_ok = config.inside_ft_door == "all" or (config.inside_ft_door == "exit" and been_in)
+            if not at_door or door_ok:
+                out[i] = False
+        elif not out[i] and pf >= config.inside_ft_hi and desk is not None \
+                and point.bbox[3] >= desk[1] - config.inside_head_band \
+                and ref_height > 0 and height(point.bbox) >= config.inside_height_ratio * ref_height:
+            out[i] = True
+        if out[i] and not at_door and pf >= config.inside_ft_lo:
+            been_in = True
+    return out
 
 
 def _fill_frames(info: _TrackInfo, times: Sequence[float], config: SceneConfig) -> None:
@@ -482,7 +560,8 @@ class Departure:
 
 
 def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times: Sequence[float],
-                workplace: Optional[BBox], safe: Optional[BBox], config: SceneConfig) -> list[Departure]:
+                workplace: Optional[BBox], safe: Optional[BBox], config: SceneConfig,
+                pose: Optional[Sequence[Any]] = None, desk: Optional[BBox] = None) -> list[Departure]:
     """Уходы кассира с рабочего места по его рамке в каждом кадре (None — кассира нет в кадре).
 
     Расстояние до места — между центрами рамки и рабочего места в долях ширины рабочего места.
@@ -490,6 +569,7 @@ def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times:
     входит в рабочее место) и не возвращался не меньше leave_min_away_sec. Возвращение — кассир
     leave_return_sec подряд у места с score детекции не ниже leave_return_score: человек за
     стеклянной перегородкой в коридоре проходит мимо места с низким score и не засчитывается.
+    pose — точки кассира по кадрам (SceneConfig.pose_departure, worker.scene.pose_departure) или None.
     """
     if workplace is None or not boxes:
         return []
@@ -501,10 +581,16 @@ def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times:
         cx, cy = center(box)
         return math.hypot(cx - wx, cy - wy) / width
 
-    home = [b is not None and dist(b) <= config.leave_home for b in boxes]
+    if pose is not None:
+        from worker.scene.pose_departure import pose_departure_inputs
+        dist_at, not_home, standing = pose_departure_inputs(boxes, pose, workplace, desk, config)
+        home = [b is not None and dist_at[k] <= config.leave_home and not not_home[k] for k, b in enumerate(boxes)]
+    else:
+        dist_at, standing = [dist(b) if b is not None else 0.0 for b in boxes], None
+        home = [b is not None and dist(b) <= config.leave_home for b in boxes]
     steady = [h and sc >= config.leave_return_score for h, sc in zip(home, scores)]
-    far = [b is not None and dist(b) >= config.leave_far
-           and not (safe_zone is not None and ioa(b, safe_zone) >= config.cashier_safe_ioa) for b in boxes]
+    far = [b is not None and dist_at[k] >= config.leave_far
+           and not (safe_zone is not None and ioa(b, safe_zone) >= config.cashier_safe_ioa) for k, b in enumerate(boxes)]
     seated = sorted(height(b) for b, h in zip(boxes, home) if h and b is not None)
     seated_h = seated[len(seated) // 5] if seated else 0.0
 
@@ -534,7 +620,10 @@ def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times:
             continue
         left = last_home
         box = boxes[last_home]
-        if seated_h > 0 and box is not None and height(box) >= config.leave_up_ratio * seated_h:
+        if standing is not None and standing[last_home] is not None:
+            from worker.scene.pose_departure import stood_up_at
+            left = stood_up_at(standing, times, last_home, config.leave_up_sec)
+        elif seated_h > 0 and box is not None and height(box) >= config.leave_up_ratio * seated_h:
             k = last_home
             while k > 0 and times[last_home] - times[k - 1] <= config.leave_up_sec:
                 prev = boxes[k - 1]
@@ -773,6 +862,9 @@ def assemble_timeline(
     config: Optional[SceneConfig] = None,
     meta: Optional[Mapping[str, Any]] = None,
     person_head: Optional[Sequence[Sequence[Any]]] = None,
+    person_ft: Optional[Sequence[Sequence[Any]]] = None,
+    person_pose: Optional[Sequence[Sequence[Any]]] = None,
+    person_reid: Optional[Sequence[Sequence[Any]]] = None,
 ) -> SceneTimeline:
     """Собрать SceneTimeline.
 
@@ -781,6 +873,9 @@ def assemble_timeline(
     сейф, дверь, ноутбук (workplace считается здесь); state_samples — zero-shot-оценки
     {состояние: [(t, вероятность)]}, между оценками держится последнее значение.
     person_head — [(кадр, рамка, p)] головы «внутри кассы» по точкам исходных треков (SceneConfig.inside_head).
+    person_ft — то же от дообученной башни (SceneConfig.inside_ft; без флага не используется).
+    person_pose — [(кадр, рамка, 17 точек [x, y, score])] позы людей (SceneConfig.pose_departure).
+    person_reid — [(id трека, эмбеддинг первых точек, последних)] по исходным трекам (SceneConfig.cashier_reid).
     """
     cfg = config or SceneConfig()
     if len(objects) != len(frames):
@@ -799,7 +894,8 @@ def assemble_timeline(
     stitched = [t for t in stitch_tracks(tracks, cfg, door) if len(t.points) >= cfg.min_track_points]
     ref_height = _reference_height(stitched)
     head = {_head_key(fi, box): float(p) for fi, box, p in person_head} if person_head else None
-    infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door, head)) for t in stitched]
+    ft = {_head_key(fi, box): float(p) for fi, box, p in person_ft} if person_ft and cfg.inside_ft else None
+    infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door, head, ft)) for t in stitched]
     for info in infos:
         _fill_frames(info, times, cfg)
 
@@ -811,6 +907,19 @@ def assemble_timeline(
         cashier.role = "cashier"
         workplace = _workplace(cashier, desk, cfg)
         _mark_extra_cashiers(infos, cashier, workplace, cfg)
+    if cfg.cashier_reid and person_reid and cashier is not None:
+        restitched = reid_stitch(tracks, stitched, [i.track.track_id for i in infos if i.role == "cashier"],
+                                 workplace, door, person_reid, cfg)
+        if restitched is not None:      # склейка по эмбеддингу — роли и рабочее место заново
+            stitched = restitched
+            infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door, head)) for t in stitched]
+            for info in infos:
+                _fill_frames(info, times, cfg)
+            cashier = _select_cashier(infos, desk, cfg, zones.get("safe"))
+            if cashier is not None:
+                cashier.role = "cashier"
+                workplace = _workplace(cashier, desk, cfg)
+                _mark_extra_cashiers(infos, cashier, workplace, cfg)
     entered_ev, exited_ev = _door_events(infos, door, duration, cfg)
     entered = {e.pos for e in entered_ev}
     exited = {e.pos for e in exited_ev}
@@ -850,7 +959,14 @@ def assemble_timeline(
 
     # Уход с рабочего места: от первого кадра вдали до возвращения кассира нет — рамка «кассира» в это
     # время чаще человек за стеклом или сам кассир в коридоре (worker.scene.builder._departures).
-    departures = _departures([b for _, b, _ in per_frame], cashier_scores, times, workplace, zones.get("safe"), cfg)
+    if cfg.pose_departure and person_pose:
+        from worker.scene.pose_departure import match_pose, pose_by_frame
+        pose_index = pose_by_frame(person_pose)
+        departures = _departures([b for _, b, _ in per_frame], cashier_scores, times, workplace, zones.get("safe"),
+                                 cfg, pose=[match_pose(pose_index, pos, b) for pos, (_, b, _) in enumerate(per_frame)],
+                                 desk=desk)
+    else:
+        departures = _departures([b for _, b, _ in per_frame], cashier_scores, times, workplace, zones.get("safe"), cfg)
     left_at = {d.left_pos for d in departures}
     away: set[int] = set()
     for d in departures:

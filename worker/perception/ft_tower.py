@@ -40,13 +40,16 @@ class FinetunedTower:
     zones: dict[str, str]               # имя задачи -> зона вырезки
     device: str
     meta: dict[str, Any] = field(default_factory=dict)
+    extra_dim: int = 0                  # числа после эмбеддинга на входе cls (person_inside: person_geo × масштаб)
 
     def tasks_for_zone(self, zone: str) -> list[str]:
         return [t for t, z in self.zones.items() if z == zone]
 
     def __call__(self, crops_bgr: Sequence[Any], tasks: Optional[Sequence[str]] = None, *,
-                 batch_size: int = 32) -> dict[str, Any]:
-        """{задача: numpy (N,) вероятностей 0..1} для вырезок зоны (BGR, как crop_zone)."""
+                 batch_size: int = 32, extra: Optional[Any] = None) -> dict[str, Any]:
+        """{задача: numpy (N,) вероятностей 0..1} для вырезок зоны (BGR, как crop_zone).
+
+        extra — N×extra_dim чисел, приписываемых к эмбеддингу (башня person_inside: геометрия рамки)."""
         import numpy as np
         import torch
 
@@ -64,6 +67,9 @@ class FinetunedTower:
                 px = inputs["pixel_values"].to(self.device, dtype=dtype)
                 emb = self.model(pixel_values=px).pooler_output
                 emb = torch.nn.functional.normalize(emb.float(), dim=-1)
+                if self.extra_dim:
+                    ex = torch.as_tensor(np.asarray(extra[start:start + batch_size], dtype=np.float32), device=emb.device)
+                    emb = torch.cat([emb, ex], dim=1)
                 logits = emb @ self.weight[rows].T + self.bias[rows]
                 out.append(torch.sigmoid(logits).cpu().numpy())
         probs = np.concatenate(out) if out else np.zeros((0, len(rows)), dtype=np.float32)
@@ -144,11 +150,12 @@ def _load(models_dir: Path, path: Path, device: str) -> FinetunedTower:
     trained = meta.get("tasks") or [{"name": t, "index": i} for i, t in enumerate(all_tasks)]
     tasks = {str(t["name"]): int(t["index"]) for t in trained}
     zones = {str(t["name"]): str(t.get("zone", "")) for t in trained}
-    if not tasks or max(tasks.values()) >= weight.shape[0] or weight.shape[1] != vm.config.hidden_size:
+    extra_dim = int(meta.get("extra_dim", 0))
+    if not tasks or max(tasks.values()) >= weight.shape[0] or weight.shape[1] != vm.config.hidden_size + extra_dim:
         raise ValueError(f"голова cls {tuple(weight.shape)} не сходится с задачами {tasks}")
     model = model.half() if device == "cuda" else model.float()
     model = model.to(device).eval()
     processor = AutoImageProcessor.from_pretrained(base, local_files_only=True)
     LOG.info("дообученная башня %s: задачи %s, блоков %s (%s)", path, sorted(tasks), blocks, device)
     return FinetunedTower(name=path.name, model=model, processor=processor, weight=weight.to(device),
-                          bias=bias.to(device), tasks=tasks, zones=zones, device=device, meta=meta)
+                          bias=bias.to(device), tasks=tasks, zones=zones, device=device, meta=meta, extra_dim=extra_dim)

@@ -63,6 +63,7 @@ for extra in (ROOT, ROOT / "scripts"):
 
 from eval_cache import known_aliases, normalize_video_id  # noqa: E402
 from worker.perception.geometry import expand  # noqa: E402
+from worker.perception.heads import PERSON_GEO_SCALE as PERSON_GEO_SCALE_F  # noqa: E402
 from worker.perception.states import ZONE_CROP_MARGIN  # noqa: E402
 
 SIZE = 224
@@ -593,7 +594,10 @@ class CropDataset:
 
 # ---------------------------------------------------------------- модель
 
-def build_model(n_blocks: int, grad_ckpt: bool, device: str, train_pool: bool = True) -> Any:
+def build_model(n_blocks: int, grad_ckpt: bool, device: str, train_pool: bool = True,
+                n_out: int = len(TASKS), extra_dim: int = 0) -> Any:
+    """Башня + линейная голова на n_out выходов; extra_dim — числа, приписанные к эмбеддингу перед головой
+    (геометрия рамки у person_inside)."""
     import torch
     from torch import nn
     from transformers import SiglipVisionModel
@@ -619,7 +623,7 @@ def build_model(n_blocks: int, grad_ckpt: bool, device: str, train_pool: bool = 
                 layer.half()
             if not train_pool:
                 vm.head.half()
-            self.cls = nn.Linear(vm.config.hidden_size, len(TASKS))
+            self.cls = nn.Linear(vm.config.hidden_size + extra_dim, n_out)
             nn.init.zeros_(self.cls.weight)
             nn.init.zeros_(self.cls.bias)
 
@@ -644,8 +648,11 @@ def build_model(n_blocks: int, grad_ckpt: bool, device: str, train_pool: bool = 
             e = self.vm.head(h)
             return torch.nn.functional.normalize(e.float(), dim=-1)
 
-        def forward(self, px: Any) -> Any:
-            return self.cls(self.embed(px))
+        def forward(self, px: Any, extra: Any = None) -> Any:
+            e = self.embed(px)
+            if extra is not None:
+                e = torch.cat([e, extra.to(e.dtype)], dim=1)
+            return self.cls(e)
 
         def trainable_state(self) -> dict[str, Any]:
             names = {n for n, p in self.named_parameters() if p.requires_grad}
@@ -1230,7 +1237,8 @@ def load_finetuned(state_dir: Path, device: str = "cuda") -> tuple[Any, dict[str
     import torch
 
     meta = json.loads((state_dir / "meta.json").read_text(encoding="utf-8"))
-    model = build_model(int(meta["trainable_blocks"]), False, device, bool(meta.get("train_pool", True)))
+    model = build_model(int(meta["trainable_blocks"]), False, device, bool(meta.get("train_pool", True)),
+                        int(meta.get("n_out", len(TASKS))), int(meta.get("extra_dim", 0)))
     sd = model.state_dict()
     state = torch.load(state_dir / "state.pt", map_location=device)
     model.load_state_dict({**sd, **{n: t.to(sd[n].dtype) for n, t in state.items()}})
@@ -1239,12 +1247,399 @@ def load_finetuned(state_dir: Path, device: str = "cuda") -> tuple[Any, dict[str
     return model.eval(), meta
 
 
+# ---------------------------------------------------------------- person_inside: человек внутри кассы / за стеклом
+#
+# Вырезка — рамка человека с полем heads.PERSON_MARGIN (crop_person), а не зона. Точка — каждая точка трека
+# сырого кэша (3 к/с). Метки — training/labels/person_inside.csv по (видео, трек, t): 1 внутри, 0 за стеклом
+# или отражение, «?» — не учим. К эмбеддингу башни приписывается геометрия heads.person_geo × PERSON_GEO_SCALE
+# (как у линейной головы person_inside.npz) — один логит. Фолды — те же группы, что у линейной головы
+# (person_inside_folds.npz), чтобы сравнить OOF AUC. Отдельная башня: models/ft/person_inside/, башня
+# siglip_states (desk_cash_ft в проде) не меняется.
+
+def person_crops_for_video(raw: dict[str, Any], frames_dir: Path, ctx_margin: float, ctx_size: int,
+                           quality: int) -> Optional[dict[str, Any]]:
+    """Вырезки людей одного видео по всем точкам треков: eval — crop_person после resize процессора (JPEG),
+    ctx — рамка с запасом под онлайн-сдвиг, rel — рамка вырезки внутри ctx; geo — person_geo."""
+    from worker.perception.heads import PERSON_MARGIN, crop_person, person_geo
+    from worker.perception.tracking import Track, TrackPoint
+    from worker.perception.video import imread_unicode
+    from worker.scene.builder import track_height
+
+    tracks = [Track(int(t["id"]), [TrackPoint(int(a), float(b), tuple(c), float(d)) for a, b, c, d in t["points"]])
+              for t in raw["tracks"]]
+    ref, desk = track_height(tracks), raw["zones"].get("desk")
+    by_frame: dict[int, list] = defaultdict(list)
+    for t in raw["tracks"]:
+        for fi, tt, box, sc in t["points"]:
+            by_frame[int(fi)].append((int(t["id"]), float(tt), box, float(sc)))
+    rows: dict[str, list] = defaultdict(list)
+    for fi, pts in sorted(by_frame.items()):
+        image = imread_unicode(frames_dir / f"{int(raw['frames'][fi][0]):06d}.jpg")
+        if image is None:
+            continue
+        ih, iw = image.shape[:2]
+        rgb = np.ascontiguousarray(image[:, :, ::-1])
+        for tid, tt, box, sc in pts:
+            crop = crop_person(rgb, box)
+            if crop is None:
+                continue
+            x1, y1, x2, y2 = box
+            mx, my = (x2 - x1) * PERSON_MARGIN, (y2 - y1) * PERSON_MARGIN
+            a, b = int(max(0, (x1 - mx) * iw)), int(max(0, (y1 - my) * ih))
+            c, d = int(min(iw, (x2 + mx) * iw + 1)), int(min(ih, (y2 + my) * ih + 1))
+            cw, ch = (c - a) * ctx_margin, (d - b) * ctx_margin
+            ca, cb = int(max(0, a - cw)), int(max(0, b - ch))
+            cc, cd = int(min(iw, c + cw)), int(min(ih, d + ch))
+            ctx = cv2.resize(rgb[cb:cd, ca:cc], (ctx_size, ctx_size),
+                             interpolation=cv2.INTER_AREA if (cc - ca) > ctx_size else cv2.INTER_CUBIC)
+            rows["track"].append(tid)
+            rows["t"].append(tt)
+            rows["frame"].append(fi)
+            rows["bbox"].append(box)
+            rows["score"].append(sc)
+            rows["geo"].append(person_geo(box, sc, ref, desk))
+            rows["eval"].append(_jpeg(processor_resize(np.ascontiguousarray(crop)), quality))
+            rows["ctx"].append(_jpeg(ctx, quality))
+            rows["rel"].append(((a - ca) / (cc - ca), (b - cb) / (cd - cb), (c - ca) / (cc - ca), (d - cb) / (cd - cb)))
+    if not rows["t"]:
+        return None
+    return rows
+
+
+def _person_frames_dir(frames_root: Path, variant: Optional[str], video_id: str) -> Path:
+    """frames_r2/<видео> или кадры аугментированного кэша scene_work_aug_<v>/<каталог>/frames (--person-variant)."""
+    if not variant:
+        return frames_root / video_id
+    fdir, _work = _frames_dir(frames_root, f"cache_{variant}", video_id)
+    return fdir / "frames"
+
+
+def _person_cache_job(job: tuple) -> tuple[str, int, int]:
+    raw, frames_dir, ctx_margin, ctx_size, quality, target = job
+    out = person_crops_for_video(raw, frames_dir, ctx_margin, ctx_size, quality)
+    if out is None:
+        return str(target), 0, 0
+    ev, ev_off = _pack(out["eval"])
+    cx, cx_off = _pack(out["ctx"])
+    target.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(target, track=np.array(out["track"], np.int32), t=np.array(out["t"], np.float32),
+             frame=np.array(out["frame"], np.int32), bbox=np.array(out["bbox"], np.float32),
+             score=np.array(out["score"], np.float32), geo=np.array(out["geo"], np.float32),
+             rel=np.array(out["rel"], np.float32), eval=ev, eval_off=ev_off, ctx=cx, ctx_off=cx_off)
+    return str(target), len(out["t"]), int(ev.nbytes + cx.nbytes)
+
+
+def cmd_person_cache(args: argparse.Namespace) -> int:
+    """Вырезки людей один раз на CPU: <person-cache>/<video_id>.npz (кадры data/frames_r2)."""
+    from multiprocessing import Pool
+
+    from embed_zones import load_raw
+
+    jobs = []
+    for raw in load_raw(args.person_raw, args.only):
+        target = args.person_cache / f"{raw['video_id']}.npz"
+        if target.exists() and not args.force:
+            continue
+        jobs.append((raw, _person_frames_dir(args.frames, args.person_variant, raw["video_id"]), args.ctx_margin,
+                     args.ctx_size, args.quality, target))
+    t0, n, nbytes = time.time(), 0, 0
+    with Pool(args.workers) as pool:
+        for _target, k, b in pool.imap_unordered(_person_cache_job, jobs):
+            n, nbytes = n + k, nbytes + b
+    print(f"{n} вырезок людей, {nbytes / 1e6:.0f} МБ за {time.time() - t0:.0f} с -> {args.person_cache}", flush=True)
+    return 0
+
+
+def load_person_items(args: argparse.Namespace) -> list[dict[str, Any]]:
+    """Все точки кэша вырезок людей: y — 1 / 0 / nan («?», нет метки — не учим, но предсказываем)."""
+    from train_heads import label_at, load_labels
+
+    labels = load_labels(args.person_labels)
+    aliases = {normalize_video_id(k): v for k, v in known_aliases().items()}
+    scale = np.asarray(PERSON_GEO_SCALE_F, dtype=np.float32)
+    items = []
+    for path in sorted(args.person_cache.glob("*.npz")):
+        vid = normalize_video_id(path.stem)
+        d = np.load(path)
+        for i, (tr, t) in enumerate(zip(d["track"], d["t"])):
+            s = label_at(labels.get((vid, int(tr)), []), float(t))
+            y = 1.0 if s == "1" else 0.0 if s == "0" else float("nan")
+            items.append({"video": vid, "group": group_of(vid, aliases), "raw_id": path.stem, "path": str(path),
+                          "i": i, "track": int(tr), "t": float(t), "t_ms": int(round(float(t) * 1000)),
+                          "frame": int(d["frame"][i]), "bbox": d["bbox"][i].tolist(),
+                          "geo": (d["geo"][i] * scale).astype(np.float32), "y": np.array([y], np.float32)})
+    return items
+
+
+class PersonDataset(CropDataset):
+    """Как CropDataset, плюс геометрия рамки: (пиксели, geo, y). Оценка — eval-вырезка кэша (JPEG q95)."""
+
+    def __init__(self, items: list[dict[str, Any]], train: bool, seed: int = 0, p_clean: float = 0.3,
+                 geo: bool = True) -> None:
+        super().__init__(items, train, seed, p_clean)
+        self.geo = geo
+
+    def __getitem__(self, k: int) -> tuple[Any, Any, Any]:
+        import torch
+
+        x, y = super().__getitem__(k)
+        g = self.items[k]["geo"] if self.geo else np.zeros(0, np.float32)
+        return x, torch.from_numpy(g), y
+
+
+def _person_loader(items: list[dict[str, Any]], train: bool, args: argparse.Namespace, seed: int = 0) -> Any:
+    import torch
+
+    ds = PersonDataset(items, train, seed, args.p_clean, not args.no_geo)
+    return torch.utils.data.DataLoader(ds, batch_size=args.batch if train else args.eval_batch, shuffle=train,
+                                       num_workers=args.workers, drop_last=train and len(items) > args.batch)
+
+
+def person_predict(model: Any, items: list[dict[str, Any]], args: argparse.Namespace) -> np.ndarray:
+    import torch
+
+    model.eval()
+    out = []
+    with torch.inference_mode(), torch.autocast("cuda", dtype=torch.float16):
+        for x, g, _y in _person_loader(items, False, args):
+            out.append(torch.sigmoid(model(x.cuda(), g.cuda() if g.shape[1] else None).float()).cpu().numpy()[:, 0])
+    return np.concatenate(out) if out else np.zeros(0, np.float32)
+
+
+def _person_frozen(args: argparse.Namespace) -> dict[tuple[str, int, int], np.ndarray]:
+    """(видео, трек, t в мс) -> замороженный эмбеддинг SigLIP (embed_people.py, точки раз в 1 с)."""
+    out = {}
+    for path in sorted(args.person_emb.glob("*.npz")):
+        vid = normalize_video_id(path.stem)
+        d = np.load(path)
+        for tr, t, e in zip(d["track"], d["t"], d["emb"]):
+            out[(vid, int(tr), int(round(float(t) * 1000)))] = e.astype(np.float32)
+    return out
+
+
+def person_linear(train: list[dict[str, Any]], frozen: dict, args: argparse.Namespace) -> Optional[tuple[np.ndarray, float]]:
+    """Линейная голова на замороженных эмбеддингах (+ geo) — тёплый старт и база для сравнения OOF."""
+    from train_heads import fit_logreg
+
+    xs, ys = [], []
+    for it in train:
+        e = frozen.get((it["video"], it["track"], it["t_ms"]))
+        if e is None or np.isnan(it["y"][0]):
+            continue
+        xs.append(np.concatenate([e, it["geo"]]) if not args.no_geo else e)
+        ys.append(float(it["y"][0]))
+    ya = np.array(ys)
+    if len(ys) < 10 or ya.sum() in (0, len(ya)):
+        return None
+    return fit_logreg(np.stack(xs), ya, args.init_l2)
+
+
+def person_train_one(train: list[dict[str, Any]], val: list[dict[str, Any]], frozen: dict, args: argparse.Namespace,
+                     seed: int) -> tuple[Any, dict[str, Any]]:
+    import torch
+
+    torch.manual_seed(seed)
+    random.seed(seed)
+    extra = 0 if args.no_geo else len(PERSON_GEO_SCALE_F)
+    model = build_model(args.blocks, args.grad_ckpt, "cuda", not args.freeze_pool, n_out=1, extra_dim=extra)
+    lin = person_linear(train, frozen, args)
+    if lin is not None:
+        with torch.no_grad():
+            model.cls.weight[0] = torch.from_numpy(lin[0]).to(model.cls.weight.device)
+            model.cls.bias[0] = float(lin[1])
+    log: dict[str, Any] = {"warm_start": "fit_logreg" if lin is not None else "zero", "epochs": []}
+    pw_np, nw_np = class_weights(np.stack([it["y"] for it in train]))
+    pw, nw = torch.from_numpy(pw_np).cuda(), torch.from_numpy(nw_np).cuda()
+    opt = torch.optim.AdamW(param_groups(model, args.lr_blocks, args.lr_head, args.wd))
+    scaler = torch.amp.GradScaler("cuda")
+    loader = _person_loader(train, True, args, seed)
+    steps = max(1, len(loader)) if args.max_steps <= 0 else min(len(loader), args.max_steps)
+    total, warm = steps * args.epochs, max(1, int(0.05 * steps * args.epochs))
+    sched = torch.optim.lr_scheduler.LambdaLR(
+        opt, lambda s: min(1.0, (s + 1) / warm) * 0.5 * (1 + math.cos(math.pi * min(1.0, s / max(total, 1)))))
+    best, best_state, bad = float("inf"), None, 0
+    yv = np.stack([it["y"] for it in val]) if val else None
+    for ep in range(args.epochs):
+        model.train()
+        loader.dataset.epoch = ep
+        t0, losses = time.time(), []
+        for step, (x, g, yy) in enumerate(loader):
+            if step >= steps:
+                break
+            with torch.autocast("cuda", dtype=torch.float16):
+                loss = masked_bce(model(x.cuda(non_blocking=True), g.cuda() if g.shape[1] else None),
+                                  yy.cuda(non_blocking=True), pw, nw)
+            opt.zero_grad(set_to_none=True)
+            scaler.scale(loss).backward()
+            scaler.unscale_(opt)
+            torch.nn.utils.clip_grad_norm_([p for gr in opt.param_groups for p in gr["params"]], 1.0)
+            scaler.step(opt)
+            scaler.update()
+            sched.step()
+            losses.append(float(loss))
+        row = {"epoch": ep, "train_loss": float(np.mean(losses)) if losses else None, "sec": round(time.time() - t0, 1),
+               "peak_mb": round(torch.cuda.max_memory_allocated() / 1024 ** 2)}
+        if val:
+            pv = person_predict(model, val, args)
+            with torch.no_grad():
+                row["val_loss"] = float(masked_bce(torch.logit(torch.from_numpy(pv[:, None]).clamp(1e-6, 1 - 1e-6)),
+                                                   torch.from_numpy(yv), pw.cpu(), nw.cpu()))
+        log["epochs"].append(row)
+        print(f"    эпоха {ep}: {json.dumps(row, ensure_ascii=False)}", flush=True)
+        if val:
+            if row["val_loss"] < best - 1e-4:
+                best, bad, log["best_epoch"] = row["val_loss"], 0, ep
+                names = set(model.trainable_state())
+                best_state = {n: t.detach().clone() for n, t in model.state_dict().items() if n in names}
+            else:
+                bad += 1
+                if bad > args.patience:
+                    break
+    if best_state is not None:
+        model.load_state_dict({**model.state_dict(), **best_state})
+    return model, log
+
+
+def _person_metrics(y: np.ndarray, p: np.ndarray) -> dict[str, Any]:
+    from train_heads import calibration, roc_auc
+
+    m = ~np.isnan(y) & ~np.isnan(p)
+    return {"n": int(m.sum()), "pos": int(y[m].sum()), "auc": roc_auc(y[m], p[m]),
+            "ap_neg": average_precision(1 - y[m], 1 - p[m]), **calibration(y[m], p[m])}
+
+
+def save_person_oof(items: list[dict[str, Any]], p: np.ndarray, path: Path, extra: Optional[dict] = None) -> None:
+    """Вероятности по точкам: video, track, t, t_ms, frame, bbox, y (-1 — не учим), p, fold."""
+    np.savez(path, video=np.array([it["video"] for it in items]), raw_id=np.array([it["raw_id"] for it in items]),
+             track=np.array([it["track"] for it in items], np.int32), t=np.array([it["t"] for it in items], np.float32),
+             t_ms=np.array([it["t_ms"] for it in items], np.int64), frame=np.array([it["frame"] for it in items], np.int32),
+             bbox=np.array([it["bbox"] for it in items], np.float32),
+             y=np.array([-1 if np.isnan(it["y"][0]) else int(it["y"][0]) for it in items], np.int8),
+             p=p.astype(np.float32), fold=np.array([it.get("fold", -1) for it in items], np.int8),
+             **(extra or {}))
+
+
+def cmd_person_cv(args: argparse.Namespace) -> int:
+    """OOF по фолдам групп видео линейной головы; рядом — OOF линейной головы с новыми метками на тех же фолдах."""
+    import torch
+    from train_heads import load_folds as load_group_folds
+
+    limit_memory(args.mem_gb)
+    items = load_person_items(args)
+    groups = load_group_folds(args.person_folds)
+    for it in items:
+        it["fold"] = groups.get(it["group"], groups.get(it["video"], -1))
+    k_all = sorted({it["fold"] for it in items if it["fold"] >= 0})
+    lab = [it for it in items if not np.isnan(it["y"][0])]
+    print(f"точек {len(items)}, размечено {len(lab)} (1: {sum(it['y'][0] == 1 for it in lab)}, "
+          f"0: {sum(it['y'][0] == 0 for it in lab)}); фолды {k_all}; без фолда {sum(it['fold'] < 0 for it in items)}",
+          flush=True)
+    frozen = _person_frozen(args)
+    p = np.full(len(items), np.nan, np.float32)
+    p_lin = np.full(len(items), np.nan, np.float32)
+    logs, t_start = [], time.time()
+    run_folds = args.only_fold if args.only_fold is not None else k_all
+    for f in run_folds:
+        test_idx = [i for i, it in enumerate(items) if it["fold"] == f]
+        others = [g for g in k_all if g != f]
+        val_fold = others[k_all.index(f) % len(others)] if args.val == "inner" else None
+        train = [it for it in lab if it["fold"] not in (f, val_fold, -1)]
+        val = [it for it in lab if it["fold"] == val_fold]
+        print(f"фолд {f}: обучение {len(train)}, валидация {len(val)} (фолд {val_fold}), тест {len(test_idx)}", flush=True)
+        lin = person_linear([it for it in lab if it["fold"] not in (f, -1)], frozen, args)
+        if lin is not None:
+            for i in test_idx:
+                e = frozen.get((items[i]["video"], items[i]["track"], items[i]["t_ms"]))
+                if e is not None:
+                    x = np.concatenate([e, items[i]["geo"]]) if not args.no_geo else e
+                    p_lin[i] = 1.0 / (1.0 + np.exp(-(x @ lin[0] + lin[1])))
+        torch.cuda.reset_peak_memory_stats()
+        model, log = person_train_one(train, val, frozen, args, seed=args.seed + f)
+        p[test_idx] = person_predict(model, [items[i] for i in test_idx], args)
+        yt = np.array([items[i]["y"][0] for i in test_idx])
+        log.update({"fold": f, "val_fold": val_fold, "n_train": len(train), "n_test": len(test_idx),
+                    "test": _person_metrics(yt, p[test_idx])})
+        print(f"  фолд {f}: AUC {log['test']['auc']}", flush=True)
+        logs.append(log)
+        del model
+        torch.cuda.empty_cache()
+    out = args.oof_dir or (args.person_out / (args.run or "cv"))
+    out.mkdir(parents=True, exist_ok=True)
+    save_person_oof(items, p, out / "person_inside_ft_oof.npz", {"p_linear": p_lin})
+    y = np.array([it["y"][0] for it in items])
+    common = ~np.isnan(p_lin)
+    summary = {"ft_all": _person_metrics(y, p), "ft_on_linear_points": _person_metrics(y[common], p[common]),
+               "linear_same_folds": _person_metrics(y[common], p_lin[common])}
+    report = {"summary": summary, "folds": logs, "folds_src": str(args.person_folds), "args": hparams(args),
+              "geo": not args.no_geo, "minutes": round((time.time() - t_start) / 60, 1), "commit": git_commit()}
+    (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    for k, v in summary.items():
+        print(f"{k}: {json.dumps(v, ensure_ascii=False)}")
+    print(f"-> {out}  ({report['minutes']} мин)")
+    return 0
+
+
+def cmd_person_final(args: argparse.Namespace) -> int:
+    """Башня person_inside на всех размеченных точках -> models/ft/person_inside (state.pt + meta.json)
+    и её вероятности на всех точках кэша (не вне фолда!) -> <person-out>/final/person_inside_ft_final.npz."""
+    import torch
+
+    limit_memory(args.mem_gb)
+    items = load_person_items(args)
+    lab = [it for it in items if not np.isnan(it["y"][0])]
+    epochs_src = "--epochs"
+    if args.cv_report is not None:
+        cv = json.loads(args.cv_report.read_text(encoding="utf-8"))
+        best = [f["best_epoch"] + 1 for f in cv.get("folds", []) if f.get("best_epoch") is not None]
+        if best:
+            args.epochs = max(1, int(round(float(np.median(best)))))
+            epochs_src = f"медиана best_epoch+1 по фолдам cv {args.cv_report}: {best}"
+    print(f"person final: {len(lab)} размеченных точек, {args.epochs} эпох ({epochs_src})", flush=True)
+    model, log = person_train_one(lab, [], _person_frozen(args), args, seed=args.seed)
+    out = models_dir() / "ft" / "person_inside" if args.out is None else args.out
+    out.mkdir(parents=True, exist_ok=True)
+    torch.save(model.trainable_state(), out / "state.pt")
+    from worker.perception.heads import PERSON_MARGIN
+
+    meta = {"base": "google/siglip-base-patch16-224", "base_dir": "models/hf/siglip-base-patch16-224",
+            "tasks": [{"name": "person_inside", "zone": "person", "index": 0}], "n_out": 1,
+            "extra_dim": 0 if args.no_geo else len(PERSON_GEO_SCALE_F),
+            "geo": None if args.no_geo else {"fn": "worker.perception.heads.person_geo", "scale": list(PERSON_GEO_SCALE_F)},
+            "trainable_blocks": args.blocks, "first_trainable_layer": 12 - args.blocks, "train_pool": not args.freeze_pool,
+            "crop": f"worker.perception.heads.crop_person, PERSON_MARGIN={PERSON_MARGIN}",
+            "preprocess": "RGB, PIL bicubic 224x224, x/255, (x-0.5)/0.5 (SiglipImageProcessor)",
+            "embedding": "head(post_layernorm(h)), L2; p = sigmoid(cat(emb, geo*scale) @ cls.weight.T + cls.bias)",
+            "labels": str(args.person_labels), "n_train": len(lab), "epochs": args.epochs, "epochs_src": epochs_src,
+            "hparams": hparams(args), "train_log": log, "commit": git_commit(), "date": time.strftime("%Y-%m-%d %H:%M")}
+    (out / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    p = person_predict(model, items, args)
+    (args.person_out / "final").mkdir(parents=True, exist_ok=True)
+    save_person_oof(items, p, args.person_out / "final" / "person_inside_ft_final.npz")
+    print(f"-> {out}/state.pt ({(out / 'state.pt').stat().st_size / 1e6:.0f} МБ), meta.json; "
+          f"вероятности на всех точках -> {args.person_out / 'final'}")
+    return 0
+
+
+def cmd_person_predict(args: argparse.Namespace) -> int:
+    """Вероятности готовой башни (--state-dir, по умолчанию models/ft/person_inside) на всех точках кэша вырезок
+    --person-cache -> --out (npz как у person-cv). Для проверки на аугментированных кэшах (--person-variant)."""
+    items = load_person_items(args)
+    model, meta = load_finetuned(args.state_dir or models_dir() / "ft" / "person_inside")
+    args.no_geo = int(meta.get("extra_dim", 0)) == 0
+    p = person_predict(model, items, args)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    save_person_oof(items, p, args.out)
+    print(f"{len(items)} точек -> {args.out}")
+    return 0
+
+
 # ---------------------------------------------------------------- CLI
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     r4 = ROOT / "data" / "ml_results" / "r4"      # фолды и OOF базы раунда 4
     p = argparse.ArgumentParser(description="Частичное дообучение визуальной башни SigLIP (safe_open + desk_items).")
-    p.add_argument("cmd", choices=("bench", "cache", "cv", "final"))
+    p.add_argument("cmd", choices=("bench", "cache", "cv", "final", "person-cache", "person-cv", "person-final",
+                                       "person-predict"))
     p.add_argument("--mem-gb", type=float, default=1.8, help="лимит аллокатора torch на GPU, ГБ")
     p.add_argument("--blocks", type=int, nargs="+", default=[4], help="число дообучаемых блоков (bench — список)")
     p.add_argument("--ckpt", choices=("off", "on", "both"), default="both", help="bench: gradient checkpointing")
@@ -1303,8 +1698,23 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p.add_argument("--samples-dir", type=Path, default=None,
                    help="cv: ещё и предсказания модели фолда на кадрах state_samples сырых кэшей (orig + cache_*)")
     p.add_argument("--force", action="store_true")
+    # person_inside: вырезки людей по точкам треков (person-cache / person-cv / person-final)
+    p.add_argument("--person-raw", type=Path, default=ROOT / "data" / "ml_results" / "dep" / "raw_base",
+                   help="сырой кэш с треками (треки = raw_cache_r3)")
+    p.add_argument("--person-cache", type=Path, default=ROOT / "data" / "ml_results" / "inside_ft" / "crops")
+    p.add_argument("--person-labels", type=Path, default=ROOT / "training" / "labels" / "person_inside.csv")
+    p.add_argument("--person-folds", type=Path,
+                   default=ROOT / "data" / "ml_results" / "r3" / "heads" / "person_inside_folds.npz",
+                   help="группа -> фолд линейной головы (те же фолды для сравнения)")
+    p.add_argument("--person-emb", type=Path, default=ROOT / "data" / "emb" / "person" / "orig",
+                   help="замороженные эмбеддинги людей (embed_people.py) для тёплого старта и линейной базы")
+    p.add_argument("--person-out", type=Path, default=ROOT / "data" / "ml_results" / "inside_ft")
+    p.add_argument("--no-geo", action="store_true", help="person: без геометрии рамки в логите")
+    p.add_argument("--person-variant", choices=VARIANTS[1:], default=None,
+                   help="person-cache: кадры scene_work_aug_<v> (сырой кэш — data/raw_cache_aug_<v> через --person-raw)")
+    p.add_argument("--state-dir", type=Path, default=None, help="person-predict: каталог весов башни")
     args = p.parse_args(argv)
-    if args.cmd in ("cv", "final"):
+    if args.cmd in ("cv", "final", "person-cv", "person-final"):
         args.blocks = args.blocks[0]
         args.batch = args.batch[0]
         if args.run is None:
@@ -1314,13 +1724,14 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
-    if args.cmd in ("bench", "cv", "final"):
+    if args.cmd in ("bench", "cv", "final", "person-cv", "person-final", "person-predict"):
         import torch
 
         if not torch.cuda.is_available():
             print("нужна видеокарта", file=sys.stderr)
             return 2
-    return {"bench": cmd_bench, "cache": cmd_cache, "cv": cmd_cv, "final": cmd_final}[args.cmd](args)
+    return {"bench": cmd_bench, "cache": cmd_cache, "cv": cmd_cv, "final": cmd_final, "person-cache": cmd_person_cache,
+            "person-cv": cmd_person_cv, "person-final": cmd_person_final, "person-predict": cmd_person_predict}[args.cmd](args)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@
 
 Сырой кэш пишет scripts/build_scene_cache.py --raw-out data/raw_cache на машине с GPU.
 Пороги SceneConfig берутся из сырого кэша (как при сборке) — кроме тех, что новые в коде:
-у них значения по умолчанию. Дальше замер: scripts/eval_cache.py --cache <out>.
+у них значения по умолчанию. --set имя=значение (повторяемо) — поле SceneConfig поверх этого. Дальше замер: scripts/eval_cache.py --cache <out>.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import argparse
 import dataclasses
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -30,6 +30,28 @@ PERCEPTION_FIELDS = ("fps", "state_prompts", "mask_people_in_desk", "desk_by_peo
                      "state_every_sec", "enable_door_state", "enable_collection_bag")
 
 
+def parse_overrides(items: list[str]) -> dict[str, Any]:
+    """--set имя=значение -> {поле SceneConfig: значение типа поля} (bool: true/false/1/0)."""
+    types = {f.name: type(f.default) for f in dataclasses.fields(SceneConfig)}
+    out: dict[str, Any] = {}
+    for item in items:
+        name, sep, value = item.partition("=")
+        name = name.strip()
+        if not sep or name not in types:
+            raise ValueError(f"--set {item!r}: ожидается поле SceneConfig=значение")
+        kind = types[name]
+        if kind is bool:
+            low = value.strip().lower()
+            if low not in ("true", "false", "1", "0", "yes", "no"):
+                raise ValueError(f"--set {item!r}: bool — true/false")
+            out[name] = low in ("true", "1", "yes")
+        elif kind in (int, float, str):
+            out[name] = kind(value)
+        else:
+            raise ValueError(f"--set {item!r}: поле типа {kind.__name__} не поддерживается")
+    return out
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Кэш сцен из сырого кэша восприятия, без GPU")
     ap.add_argument("--raw", type=Path, default=ROOT / "data" / "raw_cache")
@@ -39,7 +61,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--code-config", action="store_true",
                     help="пороги builder — из текущего кода (SceneConfig по умолчанию), из кэша — только то, "
                          "чем собиралось восприятие: fps, подписи, маска людей, выбор стола")
+    ap.add_argument("--set", dest="overrides", action="append", default=[], metavar="ИМЯ=ЗНАЧЕНИЕ",
+                    help="поле SceneConfig поверх конфига (повторяемо): --set pose_departure=true")
     args = ap.parse_args(argv)
+    try:
+        overrides = parse_overrides(args.overrides)
+    except ValueError as exc:
+        ap.error(str(exc))
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
@@ -55,6 +83,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             if args.code_config:
                 keep = {k: raw["config"][k] for k in PERCEPTION_FIELDS if k in raw.get("config", {})}
                 config = dataclasses.replace(SceneConfig(), **keep)
+            if overrides:
+                if config is None:
+                    known = {f.name for f in dataclasses.fields(SceneConfig)}
+                    config = SceneConfig(**{k: v for k, v in raw.get("config", {}).items() if k in known})
+                config = dataclasses.replace(config, **overrides)
             scene = rebuild_scene(raw, config, rezone=args.rezone)
             save_scene(scene, args.out / f"{path.stem}.json")
         except Exception as exc:  # noqa: BLE001 — одно видео не останавливает пересборку
