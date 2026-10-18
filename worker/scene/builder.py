@@ -204,8 +204,8 @@ class SceneConfig:
     # иначе теряется вход и R15 на приходе Х-32, Х-33); "all" — везде.
     # Замер 18.10 (p вне фолда, docs/ml_measurement.md): выход из кассы 9 -> 12 из 12, опоздание +2,0 -> −0,67 с,
     # ложных выходов 2 (Х-32, Х-35), eval_cache и R11/R14/R15 без изменений; на flip ложных выходов 3 -> 4 —
-    # выключена до решения.
-    inside_ft: str = ""
+    # включена по решению пользователя 18.10 (веса models/ft/person_inside; нет весов — как без башни).
+    inside_ft: str = "ft/person_inside"
     inside_ft_lo: float = 0.2
     inside_ft_hi: float = 0.9
     inside_ft_door: str = "exit"

@@ -33,8 +33,12 @@ def _states(scene):
 
 def test_flag_off_ignores_person_ft():
     boxes = {1: [SEATED] * 12, 3: [CORRIDOR] * 12}
-    off = SceneConfig(fps=3.0)
+    off = SceneConfig(fps=3.0, inside_ft="")
     assert _states(_timeline(boxes, {CORRIDOR: 0.01}, off)) == _states(_timeline(boxes, {}, off, with_ft=False))
+
+
+def test_enabled_by_default():
+    assert SceneConfig().inside_ft == "ft/person_inside" and SceneConfig().inside_ft_door == "exit"
 
 
 def test_corridor_point_not_counted_in_room():
