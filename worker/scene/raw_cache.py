@@ -112,6 +112,22 @@ def _config(raw: Mapping[str, Any], override: Optional[SceneConfig]) -> SceneCon
     return SceneConfig(**{k: v for k, v in raw.get("config", {}).items() if k in known})
 
 
+def _keep_door(raw: Mapping[str, Any]) -> Any:
+    """Выбор двери при rezone без кадров: сигнал прохода (SceneConfig.door_pick_signal) по сырому кэшу
+    не посчитать — берётся группа OWLv2, совпавшая с сохранённой зоной двери (иначе лучшая по сумме)."""
+    from worker.perception.geometry import iou
+
+    door = (raw.get("zones") or {}).get("door")
+
+    def select(groups: Sequence[Any]) -> int:
+        if door is None:
+            return 0
+        best = max(range(len(groups)), key=lambda k: iou(tuple(groups[k][0]), tuple(door)))
+        return best if iou(tuple(groups[best][0]), tuple(door)) >= 0.9 else 0
+
+    return select
+
+
 def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, *,
                   rezone: bool = False) -> SceneTimeline:
     """Собрать SceneTimeline текущим builder из сырого кэша (без моделей).
@@ -136,7 +152,8 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
         cfg = _config(raw, config)
         new_zones, _ = infer_zones(owl, objects, min_score=cfg.zone_min_score,
                                    person_boxes=people if cfg.desk_by_people else None,
-                                   person_height=track_height(tracks))
+                                   person_height=track_height(tracks),
+                                   door_select=_keep_door(raw) if cfg.door_pick_signal else None)
         zones.update(new_zones)
     samples = {k: [(float(t), None if p is None else float(p)) for t, p in v] for k, v in raw["state_samples"].items()}
     meta = dict(raw.get("meta") or {})

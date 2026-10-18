@@ -8,13 +8,18 @@
 
 from __future__ import annotations
 
-from typing import Optional, Sequence
+from typing import Any, Callable, Optional, Sequence, Union
 
 from worker.perception import Detection
 from worker.perception.geometry import BBox, ioa, iou, median_box
 from worker.perception.states import TABLE_LABELS
 
-__all__ = ["ZONE_QUERIES", "DECOY_QUERIES", "COCO_FALLBACK", "safe_candidates", "pick_safe", "all_zone_queries", "infer_zones", "desk_candidates", "pick_desk_by_people"]
+__all__ = ["ZONE_QUERIES", "DECOY_QUERIES", "COCO_FALLBACK", "safe_candidates", "pick_safe", "all_zone_queries", "infer_zones", "desk_candidates", "pick_desk_by_people", "door_groups", "DoorSelect"]
+
+# Выбор зоны двери среди групп OWLv2 (рамка, сумма score, рамок в группе; по убыванию суммы):
+# индекс группы или (индекс, сведения в zone_info["door"]). Пример — выбор по сигналу прохода
+# (worker.perception.door.pick_door_by_signal через worker.scene.pipeline.door_selector).
+DoorSelect = Callable[[list[tuple[BBox, float, int]]], Union[int, tuple[int, dict[str, Any]]]]
 
 # Текстовые запросы OWLv2 для каждой зоны (английский — язык обучения модели).
 ZONE_QUERIES: dict[str, tuple[str, ...]] = {
@@ -248,6 +253,16 @@ def pick_safe(candidates: Sequence[dict[str, object]], desk: Optional[BBox], doo
     return best["bbox"], "ok"  # type: ignore[return-value]
 
 
+def door_groups(owl_per_keyframe: Sequence[Sequence[Detection]], min_score: float = 0.12
+                ) -> list[tuple[BBox, float, int]]:
+    """Группы-кандидаты двери (медианная рамка, сумма score, рамок), лучшие по сумме первыми — тот же
+    порядок, в котором infer_zones без door_select берёт первую."""
+    dets = [(det.bbox_xyxy, det.score) for dets in owl_per_keyframe for det in dets
+            if det.label in ZONE_QUERIES["door"] and det.score >= min_score]
+    out = [(median_box(b for b, _ in cl), float(sum(s for _, s in cl)), len(cl)) for cl in _clusters(dets)]
+    return sorted(((b, s, n) for b, s, n in out if b is not None), key=lambda c: -c[1])
+
+
 def infer_zones(
     owl_per_keyframe: Sequence[Sequence[Detection]],
     coco_per_frame: Sequence[Sequence[Detection]],
@@ -257,12 +272,15 @@ def infer_zones(
     coco_min_share: float = 0.2,
     person_boxes: Optional[Sequence[BBox]] = None,
     person_height: float = 0.0,
+    door_select: Optional[DoorSelect] = None,
 ) -> tuple[dict[str, Optional[BBox]], dict[str, dict[str, object]]]:
     """Зоны и сведения о том, откуда они взяты: ({зона: рамка | None}, {зона: {source, score}}).
 
     person_boxes — рамки людей по всем кадрам: рабочий стол выбирается по ним (pick_desk_by_people).
     person_height — рост человека в кадре (доля высоты кадра) для отбора сейфа по размеру; 0 — без него.
     Сейф выбирается после стола и двери (pick_safe); не нашёлся — зоны нет, а в info причина.
+    door_select — выбор двери среди групп OWLv2 (door_groups, DoorSelect) вместо лучшей по сумме score;
+    None — как раньше. Дверь уточняется до сейфа: pick_safe отбрасывает кандидатов внутри двери.
     """
     keyframes = max(1, len(owl_per_keyframe))
     zones: dict[str, Optional[BBox]] = {}
@@ -281,6 +299,14 @@ def infer_zones(
         if box is not None:
             zones[zone] = box
             info[zone] = {"source": "owlv2", "score": round(min(1.0, total / keyframes), 3)}
+            if zone == "door" and door_select is not None:
+                groups = door_groups(owl_per_keyframe, min_score)
+                picked = door_select(groups) if len(groups) > 1 else 0
+                k, extra = picked if isinstance(picked, tuple) else (picked, {})
+                if not 0 <= k < len(groups):
+                    raise ValueError(f"door_select: индекс {k} вне 0..{len(groups) - 1}")
+                zones[zone] = groups[k][0]
+                info[zone] = {"source": "owlv2", "score": round(min(1.0, groups[k][1] / keyframes), 3), **extra}
             continue
 
         labels = COCO_FALLBACK.get(zone, ())

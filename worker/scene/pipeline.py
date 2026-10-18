@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Optional, Sequence
 
 from worker.perception import Detection, Frame
-from worker.perception.door import door_band, door_diffs, door_patch
+from worker.perception.door import door_band, door_diffs, door_patch, pick_door_by_signal
 from worker.perception.ft_tower import ft_tower_info, load_ft_tower
 from worker.perception.geometry import BBox, nms
 from worker.perception.heads import PERSON_GEO_SCALE, LinearHead, crop_person, load_head, person_geo
@@ -28,13 +28,14 @@ from worker.perception.models import load_models
 from worker.perception.states import COCO_LABELS_OF_INTEREST, ZONE_CROP_MARGIN, crop_zone, enabled_states
 from worker.perception.tracking import IoUTracker, Track
 from worker.perception.video import VideoError, imread_unicode, imwrite_unicode, iter_sampled_frames, probe_video
-from worker.perception.zones import all_zone_queries, infer_zones
+from worker.perception.zones import DoorSelect, all_zone_queries, infer_zones
 from worker.scene.builder import (FrameRef, SceneConfig, ITEM_QUERIES, SCAN_QUERIES, assemble_timeline, item_check_times, track_height,
                                   with_desk_items, with_ft_items, people_at,
                                   with_brightness, with_door_change, with_left_items)
 from worker.scene.contract import SceneTimeline
 
-__all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled", "apply_safe_ft", "FT_FIELDS", "door_signal"]
+__all__ = ["FRAMES_SUBDIR", "run_pipeline", "pose_enabled", "apply_safe_ft", "FT_FIELDS", "door_signal", "door_signals",
+           "door_selector", "select_zones"]
 
 LOG = logging.getLogger("worker.scene")
 
@@ -76,13 +77,18 @@ def run_pipeline(
     timings["tracking_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
-    zones, zone_info, owl = _find_zones(frames, objects, tracks, bundle, cfg)
+    # дверь — по сигналу прохода среди групп OWLv2 (до сейфа: pick_safe отбрасывает кандидатов в двери);
+    # door_diff выбранной группы уже посчитан — в door_cache
+    door_select, door_cache = door_selector(frames, persons, cfg) if cfg.door_pick_signal else (None, {})
+    zones, zone_info, owl = _find_zones(frames, objects, tracks, bundle, cfg, door_select)
     timings["zones_sec"] = round(time.monotonic() - mark, 2)
 
     door_diff: Optional[list[Optional[float]]] = None
     if cfg.door_change:
         mark = time.monotonic()
-        door_diff = door_signal(frames, persons, zones.get("door"), cfg)
+        door = zones.get("door")
+        door_diff = door_cache[tuple(door)] if door is not None and tuple(door) in door_cache else \
+            door_signal(frames, persons, door, cfg)
         timings["door_sec"] = round(time.monotonic() - mark, 2)
 
     mark = time.monotonic()
@@ -239,28 +245,29 @@ def _keyframe_positions(count: int, keyframes: int) -> list[int]:
 
 def _find_zones(
     frames: Sequence[Frame], objects: Sequence[Sequence[Detection]], tracks: Sequence[Track], bundle: Any,
-    cfg: SceneConfig,
+    cfg: SceneConfig, door_select: Optional[DoorSelect] = None,
 ) -> tuple[dict[str, Optional[BBox]], dict[str, dict[str, object]], list[list[Detection]]]:
     """Зоны, сведения об их источнике и сырые детекции OWLv2 по ключевым кадрам (для сырого кэша)."""
     positions = _keyframe_positions(len(frames), cfg.zone_keyframes)
     images = [image for image in (imread_unicode(frames[p].path) for p in positions) if image is not None]
     owl = (bundle.open_vocab(images, all_zone_queries(), score_threshold=cfg.zone_owl_score, top_k=cfg.zone_top_k)
            if images else [])
-    zones, info = select_zones(owl, objects, tracks, cfg)
+    zones, info = select_zones(owl, objects, tracks, cfg, door_select)
     return zones, info, owl
 
 
 def select_zones(
     owl: Sequence[Sequence[Detection]], objects: Sequence[Sequence[Detection]], tracks: Sequence[Track],
-    cfg: SceneConfig,
+    cfg: SceneConfig, door_select: Optional[DoorSelect] = None,
 ) -> tuple[dict[str, Optional[BBox]], dict[str, dict[str, object]]]:
     """Зоны по детекциям OWLv2 и COCO с учётом людей: рабочий стол — тот, у которого были люди
-    (cfg.desk_by_people), сейф — по геометрии относительно стола, двери и роста человека
-    (worker.perception.zones.infer_zones). Общая для пайплайна и scripts/rezone_raw.py."""
+    (cfg.desk_by_people), дверь — door_select (door_selector) или лучшая по сумме score, сейф — по
+    геометрии относительно стола, двери и роста человека (worker.perception.zones.infer_zones).
+    Общая для пайплайна, scripts/rezone_raw.py и scripts/redoor_raw.py."""
     people = [p.bbox for tr in tracks for p in tr.points]
     zones, info = infer_zones(owl, objects, min_score=cfg.zone_min_score,
                               person_boxes=people if cfg.desk_by_people else None,
-                              person_height=track_height(tracks))
+                              person_height=track_height(tracks), door_select=door_select)
     return zones, info
 
 
@@ -272,14 +279,48 @@ def door_signal(frames: Sequence[Frame], persons: Sequence[Sequence[Detection]],
     None — зоны двери нет (R15 молчит)."""
     if door is None or not frames:
         return None
-    band = door_band(door, cfg.door_band_top, cfg.door_band_bottom)
-    patches = []
+    return door_signals(frames, persons, [door], cfg)[0]
+
+
+def door_signals(frames: Sequence[Frame], persons: Sequence[Sequence[Detection]], doors: Sequence[BBox],
+                 cfg: SceneConfig) -> list[list[Optional[float]]]:
+    """door_signal сразу для нескольких рамок двери: каждый кадр читается один раз."""
+    bands = [door_band(d, cfg.door_band_top, cfg.door_band_bottom) for d in doors]
+    patches: list[list[Any]] = [[] for _ in doors]
     for frame, dets in zip(frames, persons):
         image = imread_unicode(frame.path)
-        patches.append(None if image is None else
-                       door_patch(image, band, [d.bbox_xyxy for d in dets], margin=cfg.door_person_margin))
-    return door_diffs(patches, [f.timestamp_sec for f in frames],
-                      baseline_sec=cfg.door_baseline_sec, max_masked=cfg.door_max_masked)
+        boxes = [d.bbox_xyxy for d in dets]
+        for k, band in enumerate(bands):
+            patches[k].append(None if image is None else
+                              door_patch(image, band, boxes, margin=cfg.door_person_margin))
+    times = [f.timestamp_sec for f in frames]
+    return [door_diffs(p, times, baseline_sec=cfg.door_baseline_sec, max_masked=cfg.door_max_masked)
+            for p in patches]
+
+
+def door_selector(frames: Sequence[Frame], persons: Sequence[Sequence[Detection]], cfg: SceneConfig
+                  ) -> tuple[DoorSelect, dict[tuple[float, ...], list[Optional[float]]]]:
+    """Выбор зоны двери по сигналу прохода (worker.perception.door.pick_door_by_signal) для infer_zones
+    и кэш посчитанных door_diff по рамкам (door_signal выбранной двери второй раз не считается).
+    persons — рамки людей по кадрам: закрашиваются в полосе двери и подтверждают проход у соперника."""
+    cache: dict[tuple[float, ...], list[Optional[float]]] = {}
+    boxes_per_frame = [[d.bbox_xyxy for d in dets] for dets in persons]
+
+    def diffs_for(boxes: Sequence[BBox]) -> list[Optional[list[Optional[float]]]]:
+        todo = [b for b in boxes if tuple(b) not in cache]
+        if todo and frames:
+            for b, diffs in zip(todo, door_signals(frames, persons, todo, cfg)):
+                cache[tuple(b)] = diffs
+        return [cache.get(tuple(b)) for b in boxes]
+
+    def select(groups: list[tuple[BBox, float, int]]) -> tuple[int, dict[str, Any]]:
+        k, info = pick_door_by_signal(
+            [g[0] for g in groups], diffs_for, boxes_per_frame, topk=cfg.door_pick_topk, nest=cfg.door_pick_nest,
+            win=cfg.door_pick_win, min_act=cfg.door_pick_min_act, ratio=cfg.door_pick_ratio,
+            near=cfg.door_pick_near, sync=cfg.door_pick_sync)
+        return k, {"signal": info}
+
+    return select, cache
 
 
 def scan_desk_items(frames: Sequence[Frame], bundle: Any, cfg: SceneConfig) -> list[tuple[float, list[Detection]]]:
