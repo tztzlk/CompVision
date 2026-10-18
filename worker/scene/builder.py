@@ -203,6 +203,20 @@ class SceneConfig:
     inside_ft_lo: float = 0.2
     inside_ft_hi: float = 0.9
     inside_ft_door: bool = False
+    # Поза кассира в уходе с места (worker.scene.pose_departure; точки — поле person_pose сырого кэша,
+    # scripts/add_pose_to_raw.py; в проде позы нет). pose_dep_glass — точка с видимыми ногами и ступнями
+    # не ниже верха стола + pose_foot_band не «у места» (кассир за стеклом: Х-31, Х-32 до входа);
+    # pose_dep_anchor — расстояние до места от середины таза, не от центра рамки; pose_dep_stand —
+    # таймкод «встал» по бедру (pose_stand_ratio), а не по росту рамки. Замер 18.10 (data/ml_results/inside_ft/pose):
+    # glass — ложных уходов 3 -> 1 (Х-31, Х-32; на flip 4 -> 1, light 4 -> 2), eval_cache без изменений;
+    # anchor закрывает Х-12 18 с, но Х-22 уходит за ±3 с; stand таймкод не улучшает — оба выключены.
+    pose_departure: bool = False
+    pose_dep_glass: bool = True
+    pose_dep_anchor: bool = False
+    pose_dep_stand: bool = False
+    pose_leg_score: float = 0.4
+    pose_foot_band: float = 0.03
+    pose_stand_ratio: float = 0.8
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -524,7 +538,8 @@ class Departure:
 
 
 def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times: Sequence[float],
-                workplace: Optional[BBox], safe: Optional[BBox], config: SceneConfig) -> list[Departure]:
+                workplace: Optional[BBox], safe: Optional[BBox], config: SceneConfig,
+                pose: Optional[Sequence[Any]] = None, desk: Optional[BBox] = None) -> list[Departure]:
     """Уходы кассира с рабочего места по его рамке в каждом кадре (None — кассира нет в кадре).
 
     Расстояние до места — между центрами рамки и рабочего места в долях ширины рабочего места.
@@ -532,6 +547,7 @@ def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times:
     входит в рабочее место) и не возвращался не меньше leave_min_away_sec. Возвращение — кассир
     leave_return_sec подряд у места с score детекции не ниже leave_return_score: человек за
     стеклянной перегородкой в коридоре проходит мимо места с низким score и не засчитывается.
+    pose — точки кассира по кадрам (SceneConfig.pose_departure, worker.scene.pose_departure) или None.
     """
     if workplace is None or not boxes:
         return []
@@ -543,10 +559,16 @@ def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times:
         cx, cy = center(box)
         return math.hypot(cx - wx, cy - wy) / width
 
-    home = [b is not None and dist(b) <= config.leave_home for b in boxes]
+    if pose is not None:
+        from worker.scene.pose_departure import pose_departure_inputs
+        dist_at, not_home, standing = pose_departure_inputs(boxes, pose, workplace, desk, config)
+        home = [b is not None and dist_at[k] <= config.leave_home and not not_home[k] for k, b in enumerate(boxes)]
+    else:
+        dist_at, standing = [dist(b) if b is not None else 0.0 for b in boxes], None
+        home = [b is not None and dist(b) <= config.leave_home for b in boxes]
     steady = [h and sc >= config.leave_return_score for h, sc in zip(home, scores)]
-    far = [b is not None and dist(b) >= config.leave_far
-           and not (safe_zone is not None and ioa(b, safe_zone) >= config.cashier_safe_ioa) for b in boxes]
+    far = [b is not None and dist_at[k] >= config.leave_far
+           and not (safe_zone is not None and ioa(b, safe_zone) >= config.cashier_safe_ioa) for k, b in enumerate(boxes)]
     seated = sorted(height(b) for b, h in zip(boxes, home) if h and b is not None)
     seated_h = seated[len(seated) // 5] if seated else 0.0
 
@@ -576,7 +598,10 @@ def _departures(boxes: Sequence[Optional[BBox]], scores: Sequence[float], times:
             continue
         left = last_home
         box = boxes[last_home]
-        if seated_h > 0 and box is not None and height(box) >= config.leave_up_ratio * seated_h:
+        if standing is not None and standing[last_home] is not None:
+            from worker.scene.pose_departure import stood_up_at
+            left = stood_up_at(standing, times, last_home, config.leave_up_sec)
+        elif seated_h > 0 and box is not None and height(box) >= config.leave_up_ratio * seated_h:
             k = last_home
             while k > 0 and times[last_home] - times[k - 1] <= config.leave_up_sec:
                 prev = boxes[k - 1]
@@ -816,6 +841,7 @@ def assemble_timeline(
     meta: Optional[Mapping[str, Any]] = None,
     person_head: Optional[Sequence[Sequence[Any]]] = None,
     person_ft: Optional[Sequence[Sequence[Any]]] = None,
+    person_pose: Optional[Sequence[Sequence[Any]]] = None,
 ) -> SceneTimeline:
     """Собрать SceneTimeline.
 
@@ -825,6 +851,7 @@ def assemble_timeline(
     {состояние: [(t, вероятность)]}, между оценками держится последнее значение.
     person_head — [(кадр, рамка, p)] головы «внутри кассы» по точкам исходных треков (SceneConfig.inside_head).
     person_ft — то же от дообученной башни (SceneConfig.inside_ft; без флага не используется).
+    person_pose — [(кадр, рамка, 17 точек [x, y, score])] позы людей (SceneConfig.pose_departure).
     """
     cfg = config or SceneConfig()
     if len(objects) != len(frames):
@@ -895,7 +922,14 @@ def assemble_timeline(
 
     # Уход с рабочего места: от первого кадра вдали до возвращения кассира нет — рамка «кассира» в это
     # время чаще человек за стеклом или сам кассир в коридоре (worker.scene.builder._departures).
-    departures = _departures([b for _, b, _ in per_frame], cashier_scores, times, workplace, zones.get("safe"), cfg)
+    if cfg.pose_departure and person_pose:
+        from worker.scene.pose_departure import match_pose, pose_by_frame
+        pose_index = pose_by_frame(person_pose)
+        departures = _departures([b for _, b, _ in per_frame], cashier_scores, times, workplace, zones.get("safe"),
+                                 cfg, pose=[match_pose(pose_index, pos, b) for pos, (_, b, _) in enumerate(per_frame)],
+                                 desk=desk)
+    else:
+        departures = _departures([b for _, b, _ in per_frame], cashier_scores, times, workplace, zones.get("safe"), cfg)
     left_at = {d.left_pos for d in departures}
     away: set[int] = set()
     for d in departures:
