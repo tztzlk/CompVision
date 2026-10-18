@@ -1306,9 +1306,17 @@ def person_crops_for_video(raw: dict[str, Any], frames_dir: Path, ctx_margin: fl
     return rows
 
 
+def _person_frames_dir(frames_root: Path, variant: Optional[str], video_id: str) -> Path:
+    """frames_r2/<видео> или кадры аугментированного кэша scene_work_aug_<v>/<каталог>/frames (--person-variant)."""
+    if not variant:
+        return frames_root / video_id
+    fdir, _work = _frames_dir(frames_root, f"cache_{variant}", video_id)
+    return fdir / "frames"
+
+
 def _person_cache_job(job: tuple) -> tuple[str, int, int]:
-    raw, frames_root, ctx_margin, ctx_size, quality, target = job
-    out = person_crops_for_video(raw, frames_root / raw["video_id"], ctx_margin, ctx_size, quality)
+    raw, frames_dir, ctx_margin, ctx_size, quality, target = job
+    out = person_crops_for_video(raw, frames_dir, ctx_margin, ctx_size, quality)
     if out is None:
         return str(target), 0, 0
     ev, ev_off = _pack(out["eval"])
@@ -1332,7 +1340,8 @@ def cmd_person_cache(args: argparse.Namespace) -> int:
         target = args.person_cache / f"{raw['video_id']}.npz"
         if target.exists() and not args.force:
             continue
-        jobs.append((raw, args.frames, args.ctx_margin, args.ctx_size, args.quality, target))
+        jobs.append((raw, _person_frames_dir(args.frames, args.person_variant, raw["video_id"]), args.ctx_margin,
+                     args.ctx_size, args.quality, target))
     t0, n, nbytes = time.time(), 0, 0
     with Pool(args.workers) as pool:
         for _target, k, b in pool.imap_unordered(_person_cache_job, jobs):
@@ -1611,12 +1620,26 @@ def cmd_person_final(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_person_predict(args: argparse.Namespace) -> int:
+    """Вероятности готовой башни (--state-dir, по умолчанию models/ft/person_inside) на всех точках кэша вырезок
+    --person-cache -> --out (npz как у person-cv). Для проверки на аугментированных кэшах (--person-variant)."""
+    items = load_person_items(args)
+    model, meta = load_finetuned(args.state_dir or models_dir() / "ft" / "person_inside")
+    args.no_geo = int(meta.get("extra_dim", 0)) == 0
+    p = person_predict(model, items, args)
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    save_person_oof(items, p, args.out)
+    print(f"{len(items)} точек -> {args.out}")
+    return 0
+
+
 # ---------------------------------------------------------------- CLI
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     r4 = ROOT / "data" / "ml_results" / "r4"      # фолды и OOF базы раунда 4
     p = argparse.ArgumentParser(description="Частичное дообучение визуальной башни SigLIP (safe_open + desk_items).")
-    p.add_argument("cmd", choices=("bench", "cache", "cv", "final", "person-cache", "person-cv", "person-final"))
+    p.add_argument("cmd", choices=("bench", "cache", "cv", "final", "person-cache", "person-cv", "person-final",
+                                       "person-predict"))
     p.add_argument("--mem-gb", type=float, default=1.8, help="лимит аллокатора torch на GPU, ГБ")
     p.add_argument("--blocks", type=int, nargs="+", default=[4], help="число дообучаемых блоков (bench — список)")
     p.add_argument("--ckpt", choices=("off", "on", "both"), default="both", help="bench: gradient checkpointing")
@@ -1687,6 +1710,9 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                    help="замороженные эмбеддинги людей (embed_people.py) для тёплого старта и линейной базы")
     p.add_argument("--person-out", type=Path, default=ROOT / "data" / "ml_results" / "inside_ft")
     p.add_argument("--no-geo", action="store_true", help="person: без геометрии рамки в логите")
+    p.add_argument("--person-variant", choices=VARIANTS[1:], default=None,
+                   help="person-cache: кадры scene_work_aug_<v> (сырой кэш — data/raw_cache_aug_<v> через --person-raw)")
+    p.add_argument("--state-dir", type=Path, default=None, help="person-predict: каталог весов башни")
     args = p.parse_args(argv)
     if args.cmd in ("cv", "final", "person-cv", "person-final"):
         args.blocks = args.blocks[0]
@@ -1698,14 +1724,14 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
-    if args.cmd in ("bench", "cv", "final", "person-cv", "person-final"):
+    if args.cmd in ("bench", "cv", "final", "person-cv", "person-final", "person-predict"):
         import torch
 
         if not torch.cuda.is_available():
             print("нужна видеокарта", file=sys.stderr)
             return 2
     return {"bench": cmd_bench, "cache": cmd_cache, "cv": cmd_cv, "final": cmd_final, "person-cache": cmd_person_cache,
-            "person-cv": cmd_person_cv, "person-final": cmd_person_final}[args.cmd](args)
+            "person-cv": cmd_person_cv, "person-final": cmd_person_final, "person-predict": cmd_person_predict}[args.cmd](args)
 
 
 if __name__ == "__main__":

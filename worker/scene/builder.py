@@ -198,12 +198,14 @@ class SceneConfig:
     # (сырой кэш: person_ft). Правит точки в обе стороны: p < inside_ft_lo — за стеклом (кассир в коридоре над
     # рабочим местом не «у места», не возвращение, не в persons_in_room; выход из кассы — последняя точка внутри
     # у двери), геометрия «за стеклом», но p >= inside_ft_hi и рамка не мельче inside_height_ratio роста и низом
-    # не выше верха стола больше чем на inside_head_band — внутри. В зоне двери правка «за стеклом» — только
-    # при inside_ft_door (проём размечен «?», башня его не училась; на Х-38 так терялся вход).
+    # не выше верха стола больше чем на inside_head_band — внутри. В зоне двери (проём размечен «?», башня его
+    # не училась) правка «за стеклом» по inside_ft_door: "" — не правим; "exit" — только после того, как человек
+    # побывал в комнате вне зоны двери (хвост трека за стеклянной дверью после выхода; до входа не трогаем —
+    # иначе теряется вход и R15 на приходе Х-32, Х-33); "all" — везде.
     inside_ft: str = ""
     inside_ft_lo: float = 0.2
     inside_ft_hi: float = 0.9
-    inside_ft_door: bool = False
+    inside_ft_door: str = "exit"
     # Поза кассира в уходе с места (worker.scene.pose_departure; точки — поле person_pose сырого кэша,
     # scripts/add_pose_to_raw.py; в проде позы нет). pose_dep_glass — точка с видимыми ногами и ступнями
     # не ниже верха стола + pose_foot_band не «у места» (кассир за стеклом: Х-31, Х-32 до входа);
@@ -376,7 +378,9 @@ def _apply_ft(track: Track, raw: list[bool], ref_height: float, desk: Optional[B
     probs = [(p.t, ft.get(_head_key(p.frame_index, p.bbox))) for p in track.points]
     known = [(t, v) for t, v in probs if v is not None]
     out = list(raw)
+    been_in = False                     # был внутри вне зоны двери до этой точки (inside_ft_door="exit")
     for i, point in enumerate(track.points):
+        at_door = bool(door_zone and _near_door(point.bbox, door_zone, config))
         pf = probs[i][1]
         if pf is None:
             near = min(known, key=lambda tv: abs(tv[0] - point.t), default=None)
@@ -384,12 +388,15 @@ def _apply_ft(track: Track, raw: list[bool], ref_height: float, desk: Optional[B
                 continue
             pf = near[1]
         if out[i] and pf < config.inside_ft_lo:
-            if config.inside_ft_door or not (door_zone and _near_door(point.bbox, door_zone, config)):
+            door_ok = config.inside_ft_door == "all" or (config.inside_ft_door == "exit" and been_in)
+            if not at_door or door_ok:
                 out[i] = False
         elif not out[i] and pf >= config.inside_ft_hi and desk is not None \
                 and point.bbox[3] >= desk[1] - config.inside_head_band \
                 and ref_height > 0 and height(point.bbox) >= config.inside_height_ratio * ref_height:
             out[i] = True
+        if out[i] and not at_door and pf >= config.inside_ft_lo:
+            been_in = True
     return out
 
 

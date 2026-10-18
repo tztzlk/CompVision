@@ -59,3 +59,40 @@ def test_behind_glass_over_workplace_is_not_return():
     assert any(s.value("cashier_left_workplace") for s in scene.states)
     assert scene.states[-1].value("cashier_away")                            # с башней — так и не вернулась
     assert scene.states[-1].cashier_bbox is None and scene.states[-1].persons_in_room == 0
+
+
+DOOR = (0.80, 0.10, 0.98, 0.80)
+BEHIND_DOOR = (0.82, 0.20, 0.96, 0.75)         # за стеклянной дверью в коридоре (геометрия «внутри»), p = 0.05
+IN_DOORWAY = (0.78, 0.25, 0.93, 0.78)          # у двери изнутри, p = 0.99
+
+
+def _door_scene(mode: str):
+    # 2 с за дверью до входа, 1 с у двери, 4 с на месте, 1 с у двери, 2 с за дверью после выхода
+    boxes = [BEHIND_DOOR] * 6 + [IN_DOORWAY] * 3 + [SEATED] * 12 + [IN_DOORWAY] * 3 + [BEHIND_DOOR] * 6
+    n = len(boxes)
+    times = [round(k / 3, 3) for k in range(n)]
+    tracks = [Track(1, [TrackPoint(k, times[k], b, 0.9) for k, b in enumerate(boxes)])]
+    person_ft = [(p.frame_index, p.bbox, 0.05 if p.bbox == BEHIND_DOOR else 0.99) for p in tracks[0].points]
+    return assemble_timeline(
+        video_id="Х-тест", duration_sec=times[-1] + 3, frame_size=(464, 848),
+        frames=[FrameRef(k, times[k], f"frames/{k:06d}.jpg") for k in range(n)], tracks=tracks,
+        objects=[[] for _ in range(n)], zones={"desk": DESK, "door": DOOR, "safe": None, "laptop": None},
+        state_samples={}, config=SceneConfig(fps=3.0, inside_ft="ft/person_inside", inside_ft_door=mode),
+        person_ft=person_ft)
+
+
+def _exits(scene) -> list[int]:
+    return [k for k, s in enumerate(scene.states) if s.value("cashier_left_room")]
+
+
+def test_door_zone_untouched_by_default():
+    scene = _door_scene("")
+    assert _exits(scene) == [29]                          # выход — последняя точка за дверью (поздно)
+    assert scene.states[1].persons_in_room == 1
+
+
+def test_door_exit_mode_trims_tail_keeps_entry():
+    scene = _door_scene("exit")
+    assert _exits(scene) == [23]                          # последняя точка внутри у двери
+    assert scene.states[1].persons_in_room == 1          # до входа за дверью — как по геометрии (вход не трогаем)
+    assert _door_scene("all").states[1].persons_in_room == 0
