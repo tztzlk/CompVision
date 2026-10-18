@@ -126,3 +126,16 @@ def test_silent_without_door_zone_or_signal(r15):
     assert det.door_left_open(_scene(20, opened, door=None), r15.params) == []
     old_cache = lambda t: {**_enter(t), "door_change": None}  # noqa: E731  (кэш собран до R15)
     assert det.door_left_open(_scene(20, old_cache), r15.params) == []
+
+
+def test_door_not_latched_after_visitor_is_not_violation(r15):
+    """Х-39: посетитель вошёл, створка прикрыта неплотно (отражения в стекле сдвинуты) — door_diff держится
+    0,55–0,58, то есть door_change 0,67–0,76, 20 с. Не нарушение (решение по разметке 18.10): p_on 0,9."""
+    scene = _scene(30, lambda t: {**_enter(t), "door_change": 0.75 if t >= 5.0 else 0.0})
+    assert det.door_left_open(scene, r15.params) == []
+
+
+def test_weakest_positive_still_fires(r15):
+    """Х-32: удерживаемый 6 с уровень door_diff 0,71 (door_change 1,0 после обрезки), плато не ниже 0,62."""
+    scene = _scene(20, lambda t: {**_enter(t), "door_change": 0.95 if t >= 3.0 else 0.0})
+    assert len(det.door_left_open(scene, r15.params)) == 1
