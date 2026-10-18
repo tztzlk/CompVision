@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import json
 import sys
 from pathlib import Path
 from typing import Optional
@@ -39,7 +40,21 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--code-config", action="store_true",
                     help="пороги builder — из текущего кода (SceneConfig по умолчанию), из кэша — только то, "
                          "чем собиралось восприятие: fps, подписи, маска людей, выбор стола")
+    ap.add_argument("--set", action="append", default=[], metavar="ПОЛЕ=ЗНАЧЕНИЕ",
+                    help="поле SceneConfig поверх конфига (JSON-значение или строка), можно несколько раз: "
+                         "--set inside_ft=ft/person_inside --set inside_ft_lo=0.3")
     args = ap.parse_args(argv)
+    overrides = {}
+    for item in args.set:
+        name, _, value = item.partition("=")
+        try:
+            overrides[name] = json.loads(value)
+        except json.JSONDecodeError:
+            overrides[name] = value
+    unknown = set(overrides) - {f.name for f in dataclasses.fields(SceneConfig)}
+    if unknown:
+        print(f"нет таких полей SceneConfig: {sorted(unknown)}", file=sys.stderr)
+        return 2
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
@@ -55,6 +70,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             if args.code_config:
                 keep = {k: raw["config"][k] for k in PERCEPTION_FIELDS if k in raw.get("config", {})}
                 config = dataclasses.replace(SceneConfig(), **keep)
+            if overrides:
+                if config is None:
+                    known = {f.name for f in dataclasses.fields(SceneConfig)}
+                    config = SceneConfig(**{k: v for k, v in raw.get("config", {}).items() if k in known})
+                config = dataclasses.replace(config, **overrides)
             scene = rebuild_scene(raw, config, rezone=args.rezone)
             save_scene(scene, args.out / f"{path.stem}.json")
         except Exception as exc:  # noqa: BLE001 — одно видео не останавливает пересборку

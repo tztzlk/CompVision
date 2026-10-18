@@ -55,6 +55,7 @@ def save_raw(
     item_checks: Optional[Sequence[tuple[float, Sequence[Detection]]]] = None,
     item_scan: Optional[Sequence[tuple[float, Sequence[Detection]]]] = None,
     person_head: Optional[Sequence[Sequence[Any]]] = None,
+    person_ft: Optional[Sequence[Sequence[Any]]] = None,
     door_diff: Optional[Sequence[Optional[float]]] = None,
 ) -> Path:
     """Записать входы assemble_timeline атомарно (через временный файл)."""
@@ -80,6 +81,8 @@ def save_raw(
     }
     if person_head:
         data["person_head"] = [[int(fi), _box(b), round(float(pr), 4)] for fi, b, pr in person_head]
+    if person_ft:
+        data["person_ft"] = [[int(fi), _box(b), round(float(pr), 4)] for fi, b, pr in person_ft]
     if door_diff is not None:
         data["door_diff"] = [None if d is None else round(float(d), 4) for d in door_diff]
     p = Path(path)
@@ -148,6 +151,7 @@ def rebuild_scene(raw: Mapping[str, Any], config: Optional[SceneConfig] = None, 
         config=_config(raw, config),
         meta=meta,
         person_head=raw.get("person_head"),
+        person_ft=raw.get("person_ft"),
     )
     brightness = raw.get("brightness")
     if brightness:

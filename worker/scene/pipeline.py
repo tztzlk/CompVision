@@ -111,6 +111,12 @@ def run_pipeline(
             inside_head = None
         timings["inside_head_sec"] = round(time.monotonic() - mark, 2)
 
+    person_ft = None
+    if cfg.inside_ft:
+        mark = time.monotonic()
+        person_ft, inside_ft_meta = person_inside_ft_probs(frames, tracks, zones, Path(models_dir), bundle.device, cfg)
+        timings["inside_ft_sec"] = round(time.monotonic() - mark, 2)
+
     refs = [FrameRef(index=pos, t=f.timestamp_sec, frame=f"{FRAMES_SUBDIR}/{f.path.name}") for pos, f in enumerate(frames)]
     frame_size = (info.width, info.height) if info.width > 0 and info.height > 0 else size
     meta: dict[str, Any] = {
@@ -129,6 +135,8 @@ def run_pipeline(
                              if safe_head is not None else {"error": "; ".join(head_errors) or f"не загружена: {cfg.safe_head}"})
     if ft_meta is not None:
         meta["safe_ft"] = ft_meta
+    if cfg.inside_ft:
+        meta["inside_ft"] = inside_ft_meta
     timeline = assemble_timeline(
         video_id=vid,
         duration_sec=info.duration_sec or frames[-1].timestamp_sec,
@@ -141,6 +149,7 @@ def run_pipeline(
         config=cfg,
         meta=meta,
         person_head=person_head,
+        person_ft=person_ft,
     )
     timeline = with_brightness(timeline, brightness)
     if door_diff is not None:
@@ -159,7 +168,7 @@ def run_pipeline(
                  frame_size=frame_size, frames=refs, tracks=tracks, objects=objects, zones=zones,
                  zone_info=zone_info, owl_keyframes=owl, state_samples=samples, config=cfg, meta=meta,
                  brightness=brightness, item_checks=item_checks, item_scan=item_scan, person_head=person_head,
-                 door_diff=door_diff)
+                 person_ft=person_ft, door_diff=door_diff)
     if pose_enabled():
         from worker.scene.pose_pass import run_pose_pass
 
@@ -350,6 +359,44 @@ def person_inside_probs(frames: Sequence[Frame], tracks: Sequence[Track], zones:
     feats = np.concatenate([bundle.zero_shot.image_embeddings(crops),
                             np.asarray(geos, dtype=np.float32) * np.asarray(PERSON_GEO_SCALE, dtype=np.float32)], axis=1)
     return [(fi, box, round(float(p), 4)) for (fi, box), p in zip(keep, head(feats))]
+
+
+def person_inside_ft_probs(frames: Sequence[Frame], tracks: Sequence[Track], zones: dict[str, Optional[BBox]],
+                           models_dir: Path, device: str, cfg: SceneConfig
+                           ) -> tuple[Optional[list[tuple[int, BBox, float]]], dict[str, Any]]:
+    """Башня inside_ft на каждой точке треков: ([(кадр, рамка, p)], сведения для meta.inside_ft).
+    Башни нет или ошибка — (None, {"error": ...}): внутри/за стеклом по геометрии (и голове)."""
+    import numpy as np
+
+    tower, err = load_ft_tower(models_dir, cfg.inside_ft, device)
+    if tower is None:
+        return None, {"error": err or f"не загружена: {cfg.inside_ft}"}
+    try:
+        ref_h = track_height(tracks)
+        desk = zones.get("desk")
+        by_frame: dict[int, list] = {}
+        for tr in tracks:
+            for pt in tr.points:
+                by_frame.setdefault(pt.frame_index, []).append(pt)
+        keep, crops, geos = [], [], []
+        for fi in sorted(by_frame):          # кадр читается один раз, в памяти — только вырезки
+            img = imread_unicode(frames[fi].path)
+            for pt in by_frame[fi]:
+                crop = crop_person(img, pt.bbox) if img is not None else None
+                if crop is None:
+                    continue
+                keep.append((fi, pt.bbox))
+                crops.append(crop.copy())
+                geos.append(person_geo(pt.bbox, pt.score, ref_h, desk))
+        if not crops:
+            return [], {**ft_tower_info(tower), "points": 0}
+        extra = np.asarray(geos, dtype=np.float32) * np.asarray(PERSON_GEO_SCALE, dtype=np.float32)
+        probs = tower(crops, ["person_inside"], extra=extra[:, :tower.extra_dim])["person_inside"]
+    except Exception as exc:             # не та башня, нет задачи person_inside — как без флага
+        LOG.warning("башня %s: %s — внутри/за стеклом по геометрии", cfg.inside_ft, exc)
+        return None, {"error": f"{type(exc).__name__}: {exc}"}
+    return ([(fi, box, round(float(p), 4)) for (fi, box), p in zip(keep, probs)],
+            {**ft_tower_info(tower), "points": len(keep)})
 
 
 # Задачи дообученной башни, которые конвейер подставляет в сцену: задача -> зона вырезки.

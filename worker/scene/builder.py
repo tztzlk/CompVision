@@ -191,6 +191,18 @@ class SceneConfig:
     inside_head_lo: float = 0.1
     inside_head_band: float = 0.08
     inside_head_max_dt: float = 0.7     # оценка головы берётся с ближайшей точки трека не дальше, с
+    # Дообученная башня «человек внутри кассы» (scripts/finetune_siglip.py person-final, worker.perception.ft_tower):
+    # каталог весов относительно каталога моделей (models/ft/person_inside: последние 4 блока SigLIP, pooling и
+    # голова на [эмбеддинг вырезки crop_person, person_geo]). Пусто — выключена. Оценка — на каждой точке трека
+    # (сырой кэш: person_ft). Правит точки в обе стороны: p < inside_ft_lo — за стеклом (кассир в коридоре над
+    # рабочим местом не «у места», не возвращение, не в persons_in_room; выход из кассы — последняя точка внутри
+    # у двери), геометрия «за стеклом», но p >= inside_ft_hi и рамка не мельче inside_height_ratio роста и низом
+    # не выше верха стола больше чем на inside_head_band — внутри. В зоне двери правка «за стеклом» — только
+    # при inside_ft_door (проём размечен «?», башня его не училась; на Х-38 так терялся вход).
+    inside_ft: str = ""
+    inside_ft_lo: float = 0.2
+    inside_ft_hi: float = 0.9
+    inside_ft_door: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -280,13 +292,15 @@ def _head_key(frame_index: int, bbox: Sequence[float]) -> tuple:
 
 
 def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config: SceneConfig,
-                  door: Optional[BBox] = None, head: Optional[Mapping[tuple, float]] = None) -> list[bool]:
+                  door: Optional[BBox] = None, head: Optional[Mapping[tuple, float]] = None,
+                  ft: Optional[Mapping[tuple, float]] = None) -> list[bool]:
     """Внутри кассы ли человек в каждой точке трека (сглажено большинством по 3 точкам).
 
     Люди за стеклом и отражения — мелкие рамки, низ которых выше верхнего края стола.
     Человек, который весь трек остаётся в зоне стеклянной двери и ни разу не становится крупным,
     виден сквозь стекло (door — зона двери): он целиком снаружи.
     head — вероятности головы «внутри кассы» по точкам (_head_key): правят спорные точки (SceneConfig.inside_head).
+    ft — вероятности дообученной башни по точкам (_head_key, SceneConfig.inside_ft): после головы, см. _apply_ft.
     """
     if door is not None and ref_height > 0:
         door_zone = pad(door, config.door_margin)
@@ -317,12 +331,40 @@ def _inside_flags(track: Track, ref_height: float, desk: Optional[BBox], config:
             elif raw[i] and ph <= config.inside_head_lo and not (door_zone and _near_door(point.bbox, door_zone, config)):
                 # в зоне двери не правим: там входят и выходят, а голова путает проём со стеклом (Х-38 flip)
                 raw[i] = False
+    if ft:
+        raw = _apply_ft(track, raw, ref_height, desk, config, door, ft)
     smoothed = []
     for i, value in enumerate(raw):
         window = raw[max(0, i - 1): i + 2]
         votes = sum(window) * 2
         smoothed.append(value if votes == len(window) else votes > len(window))
     return smoothed
+
+
+def _apply_ft(track: Track, raw: list[bool], ref_height: float, desk: Optional[BBox], config: SceneConfig,
+              door: Optional[BBox], ft: Mapping[tuple, float]) -> list[bool]:
+    """Флаги «внутри» по вероятностям башни inside_ft (точка без оценки — по ближайшей не дальше
+    inside_head_max_dt): p < inside_ft_lo — за стеклом (в зоне двери — только при inside_ft_door),
+    геометрия «за стеклом», p >= inside_ft_hi, рамка не мельче inside_height_ratio роста и низом у стола — внутри."""
+    door_zone = pad(door, config.door_margin) if door is not None else None
+    probs = [(p.t, ft.get(_head_key(p.frame_index, p.bbox))) for p in track.points]
+    known = [(t, v) for t, v in probs if v is not None]
+    out = list(raw)
+    for i, point in enumerate(track.points):
+        pf = probs[i][1]
+        if pf is None:
+            near = min(known, key=lambda tv: abs(tv[0] - point.t), default=None)
+            if near is None or abs(near[0] - point.t) > config.inside_head_max_dt:
+                continue
+            pf = near[1]
+        if out[i] and pf < config.inside_ft_lo:
+            if config.inside_ft_door or not (door_zone and _near_door(point.bbox, door_zone, config)):
+                out[i] = False
+        elif not out[i] and pf >= config.inside_ft_hi and desk is not None \
+                and point.bbox[3] >= desk[1] - config.inside_head_band \
+                and ref_height > 0 and height(point.bbox) >= config.inside_height_ratio * ref_height:
+            out[i] = True
+    return out
 
 
 def _fill_frames(info: _TrackInfo, times: Sequence[float], config: SceneConfig) -> None:
@@ -773,6 +815,7 @@ def assemble_timeline(
     config: Optional[SceneConfig] = None,
     meta: Optional[Mapping[str, Any]] = None,
     person_head: Optional[Sequence[Sequence[Any]]] = None,
+    person_ft: Optional[Sequence[Sequence[Any]]] = None,
 ) -> SceneTimeline:
     """Собрать SceneTimeline.
 
@@ -781,6 +824,7 @@ def assemble_timeline(
     сейф, дверь, ноутбук (workplace считается здесь); state_samples — zero-shot-оценки
     {состояние: [(t, вероятность)]}, между оценками держится последнее значение.
     person_head — [(кадр, рамка, p)] головы «внутри кассы» по точкам исходных треков (SceneConfig.inside_head).
+    person_ft — то же от дообученной башни (SceneConfig.inside_ft; без флага не используется).
     """
     cfg = config or SceneConfig()
     if len(objects) != len(frames):
@@ -799,7 +843,8 @@ def assemble_timeline(
     stitched = [t for t in stitch_tracks(tracks, cfg, door) if len(t.points) >= cfg.min_track_points]
     ref_height = _reference_height(stitched)
     head = {_head_key(fi, box): float(p) for fi, box, p in person_head} if person_head else None
-    infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door, head)) for t in stitched]
+    ft = {_head_key(fi, box): float(p) for fi, box, p in person_ft} if person_ft and cfg.inside_ft else None
+    infos = [_TrackInfo(track=t, inside=_inside_flags(t, ref_height, desk, cfg, door, head, ft)) for t in stitched]
     for info in infos:
         _fill_frames(info, times, cfg)
 
